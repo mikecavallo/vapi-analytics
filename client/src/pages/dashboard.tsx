@@ -10,7 +10,7 @@ import { Download, ChartLine, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
-  const [timeRange, setTimeRange] = useState("last-7-days");
+  const [timeRange, setTimeRange] = useState("all-time");
   const { toast } = useToast();
 
   const { data, isLoading, error, refetch } = useQuery<DashboardData>({
