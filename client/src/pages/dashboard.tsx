@@ -110,11 +110,6 @@ export default function Dashboard() {
               </nav>
             </div>
             <div className="flex items-center space-x-4">
-              <TimeRangeSelector 
-                value={timeRange} 
-                onChange={setTimeRange}
-                data-testid="select-time-range"
-              />
               <Button onClick={handleExport} data-testid="button-export" className="bg-primary hover:bg-primary/90">
                 <Download className="mr-2" size={16} />
                 Export
@@ -141,7 +136,14 @@ export default function Dashboard() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Key Metrics */}
         <section className="mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-6">Key Metrics</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-3xl font-bold text-foreground">Key Metrics</h2>
+            <TimeRangeSelector 
+              value={timeRange} 
+              onChange={setTimeRange}
+              data-testid="select-time-range"
+            />
+          </div>
           <KpiCards data={data} isLoading={isLoading} />
         </section>
 
