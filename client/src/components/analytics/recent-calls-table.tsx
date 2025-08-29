@@ -180,6 +180,7 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                     <Phone size={12} />
                   </div>
                 </TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Assistant Name</TableHead>
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Date & Time</TableHead>
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Duration</TableHead>
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Cost</TableHead>
@@ -194,6 +195,8 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                     <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                     <TableCell><Skeleton className="h-6 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                     <TableCell><Skeleton className="h-6 w-20" /></TableCell>
@@ -202,7 +205,7 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                 ))
               ) : filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                     {searchQuery ? "No calls found matching your search." : "No calls available for the selected time range."}
                   </TableCell>
                 </TableRow>
@@ -213,6 +216,7 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                     <TableCell>{getTypeBadge(call.type)}</TableCell>
                     <TableCell className="font-mono text-xs">{call.assistantPhoneNumber}</TableCell>
                     <TableCell className="font-mono text-xs">{call.customerPhoneNumber}</TableCell>
+                    <TableCell className="text-sm font-medium">{call.assistantName}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {new Date(call.createdAt).toLocaleDateString('en-US', {
                         month: 'short',

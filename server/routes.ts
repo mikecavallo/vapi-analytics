@@ -487,6 +487,33 @@ function formatDuration(seconds: number): string {
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
+async function fetchAssistantName(assistantId: string, vapiApiKey: string): Promise<string> {
+  if (!assistantId || !vapiApiKey) {
+    return `Assistant ${assistantId?.slice(0, 8) || 'Unknown'}`;
+  }
+
+  try {
+    const response = await fetch(`https://api.vapi.ai/assistant/${assistantId}`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${vapiApiKey}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`Failed to fetch assistant ${assistantId}:`, response.statusText);
+      return `Assistant ${assistantId.slice(0, 8)}`;
+    }
+
+    const assistantData = await response.json();
+    return assistantData.name || `Assistant ${assistantId.slice(0, 8)}`;
+  } catch (error) {
+    console.error(`Error fetching assistant ${assistantId}:`, error);
+    return `Assistant ${assistantId.slice(0, 8)}`;
+  }
+}
+
 async function fetchRecentCallsForDashboard(vapiApiKey?: string): Promise<DashboardData['recentCalls']> {
   if (!vapiApiKey) {
     return [];
@@ -511,12 +538,30 @@ async function fetchRecentCallsForDashboard(vapiApiKey?: string): Promise<Dashbo
     // Check if response is an array or has data property
     const calls = Array.isArray(callsData) ? callsData : (callsData.data || []);
     
+    // Get unique assistant IDs for batch fetching
+    const uniqueAssistantIds = [...new Set(calls.map((call: any) => call.assistantId).filter(Boolean))];
+    
+    // Fetch assistant names in parallel
+    const assistantNamesMap = new Map<string, string>();
+    
+    if (uniqueAssistantIds.length > 0) {
+      const assistantPromises = uniqueAssistantIds.map(async (assistantId: string) => {
+        const name = await fetchAssistantName(assistantId, vapiApiKey);
+        return { id: assistantId, name };
+      });
+      
+      const assistantResults = await Promise.all(assistantPromises);
+      assistantResults.forEach(({ id, name }) => {
+        assistantNamesMap.set(id, name);
+      });
+    }
+    
     return calls.slice(0, 50).map((call: any) => ({
       id: call.id,
       type: call.type === 'inboundPhoneCall' ? 'inbound' : 'outbound',
       assistantPhoneNumber: call.assistantPhoneNumber || call.phoneNumber || '+1-555-0100',
       customerPhoneNumber: call.customer?.number || call.customerPhoneNumber || '+1-555-0123',
-      assistantName: call.assistant?.name || `Assistant ${(call.assistantId || 'Unknown').slice(0, 8)}`,
+      assistantName: assistantNamesMap.get(call.assistantId) || call.assistant?.name || `Assistant ${(call.assistantId || 'Unknown').slice(0, 8)}`,
       duration: Math.round(((call.endedAt && call.startedAt) 
         ? (new Date(call.endedAt).getTime() - new Date(call.startedAt).getTime()) / 1000 
         : (call.duration || 0)) * 100) / 100,
