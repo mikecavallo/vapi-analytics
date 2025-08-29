@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, Filter, Eye, Download } from "lucide-react";
 import { DashboardData } from "@shared/schema";
+import CallDetailsPopover from "./call-details-popover";
 
 interface RecentCallsTableProps {
   data: DashboardData['recentCalls'];
@@ -148,9 +149,11 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
-                        <Button size="sm" variant="ghost" data-testid={`button-view-${call.id}`}>
-                          <Eye size={14} />
-                        </Button>
+                        <CallDetailsPopover callId={call.id}>
+                          <Button size="sm" variant="ghost" data-testid={`button-view-${call.id}`}>
+                            <Eye size={14} />
+                          </Button>
+                        </CallDetailsPopover>
                         <Button size="sm" variant="ghost" data-testid={`button-download-${call.id}`}>
                           <Download size={14} />
                         </Button>

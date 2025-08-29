@@ -120,8 +120,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const vapiData = await vapiResponse.json();
         
-        // Transform Vapi data to dashboard format
-        const dashboardData = await transformVapiDataToDashboard(vapiData);
+        // Transform Vapi data to dashboard format and fetch recent calls
+        const dashboardData = await transformVapiDataToDashboard(vapiData, vapiApiKey);
         
         // Cache the result
         await storage.setCachedAnalytics(cacheKey, dashboardData);
@@ -153,6 +153,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       console.error("Summary API error:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Internal server error" 
+      });
+    }
+  });
+
+  // Get recent calls
+  app.get("/api/calls/recent", async (req, res) => {
+    try {
+      const vapiApiKey = process.env.VAPI_API_KEY || process.env.VAPI_TOKEN || "";
+      if (!vapiApiKey) {
+        return res.status(500).json({ 
+          error: "Vapi API key not configured." 
+        });
+      }
+
+      const response = await fetch("https://api.vapi.ai/call?limit=20", {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${vapiApiKey}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return res.status(response.status).json({ 
+          error: `Vapi API error: ${errorText}` 
+        });
+      }
+
+      const callsData = await response.json();
+      res.json(callsData);
+    } catch (error) {
+      console.error("Recent calls API error:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Internal server error" 
+      });
+    }
+  });
+
+  // Get individual call details
+  app.get("/api/calls/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const vapiApiKey = process.env.VAPI_API_KEY || process.env.VAPI_TOKEN || "";
+      
+      if (!vapiApiKey) {
+        return res.status(500).json({ 
+          error: "Vapi API key not configured." 
+        });
+      }
+
+      const response = await fetch(`https://api.vapi.ai/call/${id}`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${vapiApiKey}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return res.status(response.status).json({ 
+          error: `Vapi API error: ${errorText}` 
+        });
+      }
+
+      const callData = await response.json();
+      res.json(callData);
+    } catch (error) {
+      console.error("Call details API error:", error);
       res.status(500).json({ 
         error: error instanceof Error ? error.message : "Internal server error" 
       });
@@ -228,7 +300,7 @@ function getTimeRangeForQuery(timeRange: string): { start: string; end: string }
   return { start, end };
 }
 
-async function transformVapiDataToDashboard(vapiData: any[]): Promise<DashboardData> {
+async function transformVapiDataToDashboard(vapiData: any[], vapiApiKey?: string): Promise<DashboardData> {
   const kpisData = vapiData.find(q => q.name === "kpis");
   const outcomesData = vapiData.find(q => q.name === "call_outcomes");
   const assistantData = vapiData.find(q => q.name === "assistant_performance");
@@ -274,7 +346,7 @@ async function transformVapiDataToDashboard(vapiData: any[]): Promise<DashboardD
       avgDuration: Math.round(parseFloat(item.avgDuration || "0") * 100) / 100,
       totalCost: Math.round(parseFloat(item.totalCost || "0") * 100) / 100,
     })) || [],
-    recentCalls: [],
+    recentCalls: await fetchRecentCallsForDashboard(vapiApiKey),
     costAnalysis: {
       avgCostPerCall: totalCalls > 0 ? Math.round((totalCost / totalCalls) * 100) / 100 : 0,
       costPerMinute: avgDuration > 0 ? Math.round((totalCost / (avgDuration / 60)) * 100) / 100 : 0,
@@ -292,4 +364,45 @@ async function transformVapiDataToDashboard(vapiData: any[]): Promise<DashboardD
       { hour: 18, calls: Math.floor(totalCalls * 0.4) },
     ] : [],
   };
+}
+
+async function fetchRecentCallsForDashboard(vapiApiKey?: string): Promise<DashboardData['recentCalls']> {
+  if (!vapiApiKey) {
+    return [];
+  }
+
+  try {
+    const response = await fetch("https://api.vapi.ai/call?limit=10", {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${vapiApiKey}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      console.error("Failed to fetch recent calls:", response.statusText);
+      return [];
+    }
+
+    const callsData = await response.json();
+    
+    // Check if response is an array or has data property
+    const calls = Array.isArray(callsData) ? callsData : (callsData.data || []);
+    
+    return calls.slice(0, 10).map((call: any) => ({
+      id: call.id,
+      assistantName: call.assistant?.name || `Assistant ${(call.assistantId || 'Unknown').slice(0, 8)}`,
+      duration: Math.round(((call.endedAt && call.startedAt) 
+        ? (new Date(call.endedAt).getTime() - new Date(call.startedAt).getTime()) / 1000 
+        : (call.duration || 0)) * 100) / 100,
+      cost: Math.round((call.cost || 0) * 100) / 100,
+      status: call.status || 'completed',
+      endedReason: call.endedReason || 'unknown',
+      createdAt: call.createdAt || call.startedAt || new Date().toISOString(),
+    }));
+  } catch (error) {
+    console.error("Error fetching recent calls:", error);
+    return [];
+  }
 }
