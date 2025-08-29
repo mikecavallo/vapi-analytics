@@ -50,6 +50,9 @@ export default function CallDetailsPopover({ callId, children }: CallDetailsPopo
   });
 
   const formatDuration = (seconds: number) => {
+    if (isNaN(seconds) || seconds === null || seconds === undefined) {
+      return "0:00";
+    }
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
@@ -142,7 +145,7 @@ export default function CallDetailsPopover({ callId, children }: CallDetailsPopo
                   <Clock className="text-chart-3" size={16} />
                   <div>
                     <p className="text-xs text-muted-foreground">Duration</p>
-                    <p className="text-sm font-medium">{formatDuration(callDetails.duration)}</p>
+                    <p className="text-sm font-medium">{formatDuration(callDetails.duration || 0)}</p>
                   </div>
                 </div>
                 

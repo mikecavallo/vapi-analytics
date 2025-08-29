@@ -484,7 +484,7 @@ async function fetchRecentCallsForDashboard(vapiApiKey?: string): Promise<Dashbo
   }
 
   try {
-    const response = await fetch("https://api.vapi.ai/call?limit=10", {
+    const response = await fetch("https://api.vapi.ai/call?limit=50", {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${vapiApiKey}`,
@@ -502,7 +502,7 @@ async function fetchRecentCallsForDashboard(vapiApiKey?: string): Promise<Dashbo
     // Check if response is an array or has data property
     const calls = Array.isArray(callsData) ? callsData : (callsData.data || []);
     
-    return calls.slice(0, 10).map((call: any) => ({
+    return calls.slice(0, 50).map((call: any) => ({
       id: call.id,
       assistantName: call.assistant?.name || `Assistant ${(call.assistantId || 'Unknown').slice(0, 8)}`,
       duration: Math.round(((call.endedAt && call.startedAt) 

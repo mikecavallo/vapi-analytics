@@ -18,10 +18,34 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
   const [searchQuery, setSearchQuery] = useState("");
   const [timeFilter, setTimeFilter] = useState("all");
 
-  const filteredData = data.filter(call =>
-    call.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    call.assistantName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const getTimeFilteredData = () => {
+    let filteredByTime = data;
+    const now = new Date();
+    
+    switch (timeFilter) {
+      case 'week':
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        filteredByTime = data.filter(call => new Date(call.createdAt) >= weekAgo);
+        break;
+      case 'month':
+        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        filteredByTime = data.filter(call => new Date(call.createdAt) >= monthAgo);
+        break;
+      case 'custom':
+        // For now, same as all - can be extended later
+        filteredByTime = data;
+        break;
+      default: // 'all'
+        filteredByTime = data;
+    }
+    
+    return filteredByTime.filter(call =>
+      call.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      call.assistantName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  };
+  
+  const filteredData = getTimeFilteredData();
 
   const formatDuration = (seconds: number) => {
     if (isNaN(seconds) || seconds === null || seconds === undefined) {
@@ -44,34 +68,21 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
     }).format(amount);
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed':
-      case 'customer-ended-call':
-        return (
-          <Badge className="bg-chart-2/10 text-chart-2 hover:bg-chart-2/20">
-            Completed
-          </Badge>
-        );
-      case 'failed':
-        return (
-          <Badge className="bg-destructive/10 text-destructive hover:bg-destructive/20">
-            Failed
-          </Badge>
-        );
-      case 'assistant-ended-call':
-        return (
-          <Badge className="bg-chart-3/10 text-chart-3 hover:bg-chart-3/20">
-            Assistant Ended
-          </Badge>
-        );
-      default:
-        return (
-          <Badge className="bg-muted text-muted-foreground">
-            {status}
-          </Badge>
-        );
-    }
+  const getSuccessEvaluationBadge = (status: string, endedReason: string) => {
+    // Determine if the call was successful based on status and ended reason
+    const isSuccessful = status.toLowerCase() === 'completed' || 
+                        endedReason === 'customer-ended-call' ||
+                        endedReason === 'assistant-ended-call';
+    
+    return (
+      <Badge className={`${
+        isSuccessful 
+          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+          : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+      } border-0`}>
+        {isSuccessful ? 'Pass' : 'Fail'}
+      </Badge>
+    );
   };
 
   return (
@@ -145,7 +156,7 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Assistant</TableHead>
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Duration</TableHead>
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Cost</TableHead>
-                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Status</TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Success Evaluation</TableHead>
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Date</TableHead>
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Actions</TableHead>
               </TableRow>
@@ -176,7 +187,7 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                     <TableCell>{call.assistantName}</TableCell>
                     <TableCell>{formatDuration(call.duration)}</TableCell>
                     <TableCell>{formatCurrency(call.cost)}</TableCell>
-                    <TableCell>{getStatusBadge(call.status)}</TableCell>
+                    <TableCell>{getSuccessEvaluationBadge(call.status, call.endedReason)}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {new Date(call.createdAt).toLocaleDateString('en-US', {
                         month: 'short',
