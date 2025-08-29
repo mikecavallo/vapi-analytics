@@ -5,7 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Filter, Eye, Phone } from "lucide-react";
+import { Search, Filter, Eye, Phone, Copy } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 import { DashboardData } from "@shared/schema";
 import CallDetailsPopover from "./call-details-popover";
 
@@ -17,6 +24,23 @@ interface RecentCallsTableProps {
 export default function RecentCallsTable({ data, isLoading }: RecentCallsTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [timeFilter, setTimeFilter] = useState("all");
+  const { toast } = useToast();
+
+  const copyCallId = async (callId: string) => {
+    try {
+      await navigator.clipboard.writeText(callId);
+      toast({
+        description: "Call ID copied to clipboard",
+        duration: 2000,
+      });
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description: "Failed to copy call ID",
+        duration: 2000,
+      });
+    }
+  };
 
   const getTimeFilteredData = () => {
     if (!data || !Array.isArray(data)) {
@@ -229,7 +253,28 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
               ) : (
                 filteredData.map((call) => (
                   <TableRow key={call.id} className="hover:bg-muted/50 transition-colors" data-testid={`row-call-${call.id}`}>
-                    <TableCell className="font-mono text-sm">{call.id.substring(0, 8)}...</TableCell>
+                    <TableCell className="font-mono text-sm">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button 
+                              onClick={() => copyCallId(call.id)}
+                              className="hover:bg-muted rounded px-1 py-0.5 transition-colors cursor-pointer text-left"
+                              data-testid={`button-copy-callid-${call.id}`}
+                            >
+                              {call.id.substring(0, 8)}...
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="flex items-center space-x-2">
+                              <span className="font-mono text-xs">{call.id}</span>
+                              <Copy size={12} />
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">Click to copy</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
                     <TableCell>{getTypeBadge(call.type)}</TableCell>
                     <TableCell className="font-mono text-xs">{call.assistantPhoneNumber}</TableCell>
                     <TableCell className="font-mono text-xs">{call.customerPhoneNumber}</TableCell>
