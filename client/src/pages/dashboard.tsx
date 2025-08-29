@@ -11,12 +11,14 @@ import PeakUsageHeatmap from "@/components/analytics/peak-usage-heatmap";
 import ConversationOutcomes from "@/components/analytics/conversation-outcomes";
 import AIChatbot from "@/components/ai-chatbot";
 import { Button } from "@/components/ui/button";
-import { Download, ChartLine, User } from "lucide-react";
+import { Download, ChartLine, User, Sun, Moon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from "@/contexts/theme-context";
 
 export default function Dashboard() {
   const [timeRange, setTimeRange] = useState("all-time");
   const { toast } = useToast();
+  const { theme, toggleTheme } = useTheme();
 
   const { data, isLoading, error, refetch } = useQuery<DashboardData>({
     queryKey: ["/api/analytics/summary", `?timeRange=${timeRange}`],
@@ -108,6 +110,15 @@ export default function Dashboard() {
               <Button onClick={handleExport} data-testid="button-export" className="bg-primary hover:bg-primary/90">
                 <Download className="mr-2" size={16} />
                 Export
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={toggleTheme}
+                className="w-8 h-8 rounded-full p-0"
+                data-testid="button-toggle-theme"
+              >
+                {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
               </Button>
               <div className="relative">
                 <Button variant="secondary" size="sm" className="w-8 h-8 rounded-full p-0" data-testid="button-user">
