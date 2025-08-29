@@ -105,35 +105,7 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
       {/* Call Volume Trends */}
       <Card data-testid="chart-call-volume">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Call Volume Trends</CardTitle>
-            <div className="flex space-x-2">
-              <Button 
-                size="sm" 
-                variant={volumeTimeRange === "daily" ? "default" : "ghost"}
-                onClick={() => setVolumeTimeRange("daily")}
-                data-testid="button-daily"
-              >
-                Daily
-              </Button>
-              <Button 
-                size="sm" 
-                variant={volumeTimeRange === "weekly" ? "default" : "ghost"}
-                onClick={() => setVolumeTimeRange("weekly")}
-                data-testid="button-weekly"
-              >
-                Weekly
-              </Button>
-              <Button 
-                size="sm" 
-                variant={volumeTimeRange === "monthly" ? "default" : "ghost"}
-                onClick={() => setVolumeTimeRange("monthly")}
-                data-testid="button-monthly"
-              >
-                Monthly
-              </Button>
-            </div>
-          </div>
+          <CardTitle>Call Volume Trends</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-64 w-full">
@@ -157,6 +129,32 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
                 />
               </LineChart>
             </ResponsiveContainer>
+          </div>
+          <div className="flex justify-center space-x-2 mt-4">
+            <Button 
+              size="sm" 
+              variant={volumeTimeRange === "daily" ? "default" : "ghost"}
+              onClick={() => setVolumeTimeRange("daily")}
+              data-testid="button-daily"
+            >
+              Daily
+            </Button>
+            <Button 
+              size="sm" 
+              variant={volumeTimeRange === "weekly" ? "default" : "ghost"}
+              onClick={() => setVolumeTimeRange("weekly")}
+              data-testid="button-weekly"
+            >
+              Weekly
+            </Button>
+            <Button 
+              size="sm" 
+              variant={volumeTimeRange === "monthly" ? "default" : "ghost"}
+              onClick={() => setVolumeTimeRange("monthly")}
+              data-testid="button-monthly"
+            >
+              Monthly
+            </Button>
           </div>
         </CardContent>
       </Card>
