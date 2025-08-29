@@ -72,18 +72,25 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
   };
 
   const getSuccessEvaluationBadge = (call: any) => {
-    // Use actual analysis.successEvaluation if available, otherwise use heuristics
-    let evaluation = call.successEvaluation;
+    // Use actual successEvaluation from Vapi API if available
+    let isSuccess = false;
     
-    if (!evaluation) {
-      // Fall back to business logic when no analysis data is available
-      const isSuccess = ['customer-ended-call', 'assistant-ended-call', 'completed'].includes(call.endedReason) && 
-                       ['ended', 'completed'].includes(call.status) && 
-                       call.duration > 30; // Calls longer than 30 seconds that ended normally
-      evaluation = isSuccess ? 'Pass' : 'Fail';
+    if (call.successEvaluation !== null && call.successEvaluation !== undefined) {
+      // Handle both string and boolean values from API
+      if (typeof call.successEvaluation === 'string') {
+        isSuccess = call.successEvaluation === 'true';
+      } else {
+        isSuccess = Boolean(call.successEvaluation);
+      }
+    } else {
+      // Fallback heuristics when successEvaluation is not provided
+      const validEndReasons = ['customer-ended-call', 'assistant-ended-call', 'completed', 'assistant-forwarded-call'];
+      const validStatuses = ['ended', 'completed'];
+      
+      isSuccess = validEndReasons.includes(call.endedReason) && 
+                 validStatuses.includes(call.status) && 
+                 call.duration >= 10;
     }
-    
-    const isSuccess = evaluation === 'Pass' || evaluation === 'pass' || evaluation === 'Passed';
     
     return (
       <Badge className={`${

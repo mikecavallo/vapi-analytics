@@ -63,13 +63,13 @@ export default function BulkAnalysis() {
   // Filter states
   const [selectedDateRange, setSelectedDateRange] = useState<{from?: Date; to?: Date}>({});
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [selectedCallType, setSelectedCallType] = useState<string>('');
-  const [selectedAssistant, setSelectedAssistant] = useState<string>('');
+  const [selectedCallType, setSelectedCallType] = useState<string>('all');
+  const [selectedAssistant, setSelectedAssistant] = useState<string>('all');
   const [assistantPhoneFilter, setAssistantPhoneFilter] = useState<string>('');
   const [customerPhoneFilter, setCustomerPhoneFilter] = useState<string>('');
   const [callIdFilter, setCallIdFilter] = useState<string>('');
-  const [selectedSuccessEvaluation, setSelectedSuccessEvaluation] = useState<string>('');
-  const [selectedEndedReason, setSelectedEndedReason] = useState<string>('');
+  const [selectedSuccessEvaluation, setSelectedSuccessEvaluation] = useState<string>('all');
+  const [selectedEndedReason, setSelectedEndedReason] = useState<string>('all');
   const [costRange, setCostRange] = useState<{min?: string; max?: string}>({});
   const [durationRange, setDurationRange] = useState<{min?: string; max?: string}>({});
 
@@ -93,10 +93,10 @@ export default function BulkAnalysis() {
     }
     
     // Call type filter
-    if (selectedCallType && call.type !== selectedCallType) return false;
+    if (selectedCallType && selectedCallType !== 'all' && call.type !== selectedCallType) return false;
     
     // Assistant filter
-    if (selectedAssistant && (call.assistantName || call.assistantId) !== selectedAssistant) return false;
+    if (selectedAssistant && selectedAssistant !== 'all' && (call.assistantName || call.assistantId) !== selectedAssistant) return false;
     
     // Phone number filters
     if (assistantPhoneFilter && !call.assistantPhoneNumber?.includes(assistantPhoneFilter)) return false;
@@ -106,7 +106,7 @@ export default function BulkAnalysis() {
     if (callIdFilter && !call.id.toLowerCase().includes(callIdFilter.toLowerCase())) return false;
     
     // Success evaluation filter
-    if (selectedSuccessEvaluation) {
+    if (selectedSuccessEvaluation && selectedSuccessEvaluation !== 'all') {
       const isSuccess = ['customer-ended-call', 'assistant-ended-call', 'completed'].includes(call.endedReason) && 
                        ['ended', 'completed'].includes(call.status) && 
                        call.duration > 30;
@@ -115,7 +115,7 @@ export default function BulkAnalysis() {
     }
     
     // Ended reason filter
-    if (selectedEndedReason && call.endedReason !== selectedEndedReason) return false;
+    if (selectedEndedReason && selectedEndedReason !== 'all' && call.endedReason !== selectedEndedReason) return false;
     
     // Cost range filter
     if (costRange.min && call.cost < parseFloat(costRange.min)) return false;
@@ -178,13 +178,13 @@ export default function BulkAnalysis() {
 
   const clearAllFilters = () => {
     setSelectedDateRange({});
-    setSelectedCallType('');
-    setSelectedAssistant('');
+    setSelectedCallType('all');
+    setSelectedAssistant('all');
     setAssistantPhoneFilter('');
     setCustomerPhoneFilter('');
     setCallIdFilter('');
-    setSelectedSuccessEvaluation('');
-    setSelectedEndedReason('');
+    setSelectedSuccessEvaluation('all');
+    setSelectedEndedReason('all');
     setCostRange({});
     setDurationRange({});
   };
@@ -411,7 +411,7 @@ export default function BulkAnalysis() {
                     <SelectValue placeholder="All call types" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Types</SelectItem>
+                    <SelectItem value="all">All Types</SelectItem>
                     <SelectItem value="inbound">Inbound</SelectItem>
                     <SelectItem value="outbound">Outbound</SelectItem>
                   </SelectContent>
@@ -426,7 +426,7 @@ export default function BulkAnalysis() {
                     <SelectValue placeholder="All assistants" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Assistants</SelectItem>
+                    <SelectItem value="all">All Assistants</SelectItem>
                     {assistants.map((assistant) => (
                       <SelectItem key={assistant} value={assistant}>{assistant}</SelectItem>
                     ))}
@@ -476,7 +476,7 @@ export default function BulkAnalysis() {
                     <SelectValue placeholder="All evaluations" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Evaluations</SelectItem>
+                    <SelectItem value="all">All Evaluations</SelectItem>
                     <SelectItem value="pass">Pass</SelectItem>
                     <SelectItem value="fail">Fail</SelectItem>
                   </SelectContent>
@@ -491,7 +491,7 @@ export default function BulkAnalysis() {
                     <SelectValue placeholder="All end reasons" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Reasons</SelectItem>
+                    <SelectItem value="all">All Reasons</SelectItem>
                     {endedReasons.map((reason) => (
                       <SelectItem key={reason} value={reason}>{reason}</SelectItem>
                     ))}
