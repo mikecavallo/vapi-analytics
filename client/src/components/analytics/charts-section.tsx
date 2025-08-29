@@ -21,6 +21,29 @@ const COLORS = {
 export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
   const [volumeTimeRange, setVolumeTimeRange] = useState("daily");
   
+  // Group call outcomes under 5% into "Other" category
+  const processCallOutcomes = (outcomes: any[]) => {
+    if (!outcomes || outcomes.length === 0) return [];
+    
+    const significantOutcomes = outcomes.filter(outcome => outcome.percentage >= 5);
+    const smallOutcomes = outcomes.filter(outcome => outcome.percentage < 5);
+    
+    if (smallOutcomes.length === 0) {
+      return significantOutcomes;
+    }
+    
+    // Create "Other" category from small outcomes
+    const otherCategory = {
+      outcome: "other",
+      count: smallOutcomes.reduce((sum, outcome) => sum + outcome.count, 0),
+      percentage: smallOutcomes.reduce((sum, outcome) => sum + outcome.percentage, 0),
+    };
+    
+    return [...significantOutcomes, otherCategory];
+  };
+
+  const processedCallOutcomes = processCallOutcomes(data?.callOutcomes || []);
+  
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -120,7 +143,7 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={data?.callOutcomes || []}
+                  data={processedCallOutcomes}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -128,7 +151,7 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
                   paddingAngle={5}
                   dataKey="count"
                 >
-                  {(data?.callOutcomes || []).map((entry, index) => (
+                  {processedCallOutcomes.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={Object.values(COLORS)[index % Object.values(COLORS).length]} />
                   ))}
                 </Pie>
@@ -136,7 +159,7 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
             </ResponsiveContainer>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            {(data?.callOutcomes || []).map((outcome, index) => (
+            {processedCallOutcomes.map((outcome, index) => (
               <div key={outcome.outcome} className="flex items-center" data-testid={`outcome-${outcome.outcome}`}>
                 <div 
                   className="w-3 h-3 rounded-full mr-2"
