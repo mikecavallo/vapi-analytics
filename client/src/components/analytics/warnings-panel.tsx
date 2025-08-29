@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, TrendingDown, TrendingUp, Clock, DollarSign, Users, Activity } from "lucide-react";
+import { AlertTriangle, TrendingDown, TrendingUp, Clock, DollarSign, Users, Activity, Info } from "lucide-react";
 import { DashboardData } from "@shared/schema";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
