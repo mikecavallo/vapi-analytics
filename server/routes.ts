@@ -235,8 +235,8 @@ async function transformVapiDataToDashboard(vapiData: any[]): Promise<DashboardD
   
   // Parse the numeric values from the API response (they come as strings)
   const totalCalls = parseInt(kpisData?.result?.[0]?.totalCalls || "0");
-  const avgDuration = parseFloat(kpisData?.result?.[0]?.avgDuration || "0");
-  const totalCost = parseFloat(kpisData?.result?.[0]?.totalCost || "0");
+  const avgDuration = Math.round(parseFloat(kpisData?.result?.[0]?.avgDuration || "0") * 100) / 100;
+  const totalCost = Math.round(parseFloat(kpisData?.result?.[0]?.totalCost || "0") * 100) / 100;
   
   // Calculate success rate from outcomes
   const outcomeTotalCalls = outcomesData?.result?.reduce((sum: number, item: any) => sum + parseInt(item.count || "0"), 0) || 0;
@@ -271,8 +271,8 @@ async function transformVapiDataToDashboard(vapiData: any[]): Promise<DashboardD
       name: `Assistant ${item.assistantId}`,
       calls: parseInt(item.calls || "0"),
       successRate: Math.round((Math.random() * 20 + 80) * 100) / 100,
-      avgDuration: parseFloat(item.avgDuration || "0"),
-      totalCost: parseFloat(item.totalCost || "0"),
+      avgDuration: Math.round(parseFloat(item.avgDuration || "0") * 100) / 100,
+      totalCost: Math.round(parseFloat(item.totalCost || "0") * 100) / 100,
     })) || [],
     recentCalls: [],
     costAnalysis: {
