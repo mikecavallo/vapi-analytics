@@ -226,7 +226,7 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Duration</TableHead>
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Cost</TableHead>
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Success Evaluation</TableHead>
-                <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Actions</TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Details</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

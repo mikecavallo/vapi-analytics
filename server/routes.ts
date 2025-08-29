@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { vapiAnalyticsQuerySchema, type VapiAnalyticsQuery, type DashboardData } from "@shared/schema";
 import { z } from "zod";
+import { VapiClient } from "@vapi-ai/server-sdk";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -268,22 +269,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const response = await fetch(`https://api.vapi.ai/call/${id}`, {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${vapiApiKey}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        return res.status(response.status).json({ 
-          error: `Vapi API error: ${errorText}` 
-        });
-      }
-
-      const callData = await response.json();
+      // Use Vapi SDK to get call details including recording URL
+      const client = new VapiClient({ token: vapiApiKey });
+      const callData = await client.calls.get(id);
       
       // Calculate duration if timestamps are available, otherwise convert from minutes to seconds
       if (callData.endedAt && callData.startedAt) {

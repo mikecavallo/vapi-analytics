@@ -18,6 +18,7 @@ import {
   Calendar,
   ExternalLink
 } from "lucide-react";
+import AudioPlayer from "@/components/audio-player";
 
 interface CallDetailsPopoverProps {
   callId: string;
@@ -187,6 +188,13 @@ export default function CallDetailsPopover({ callId, children }: CallDetailsPopo
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Ended Reason</p>
                 <p className="text-sm">{formatEndedReason(callDetails.endedReason)}</p>
+              </div>
+
+              {/* Audio Recording Player */}
+              <Separator />
+              <div>
+                <p className="text-xs text-muted-foreground mb-2">Call Recording</p>
+                <AudioPlayer recordingUrl={(callDetails as any).recordingUrl} />
               </div>
 
               {callDetails.summary && (
