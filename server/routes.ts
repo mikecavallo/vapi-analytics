@@ -590,22 +590,42 @@ async function transformVapiDataToDashboard(vapiData: any[], vapiApiKey?: string
     });
   }
 
-  // Find most successful agent
-  const mostSuccessfulAgent = assistantData?.result?.reduce((best: any, current: any) => {
-    const currentSuccessRate = Math.round((Math.random() * 20 + 80) * 100) / 100;
-    const bestSuccessRate = best ? best.successRate : 0;
-    const currentCalls = parseInt(current.calls || "0");
+  // Find most successful agent - need to fetch names first
+  let mostSuccessfulAgent = null;
+  if (assistantData?.result?.length > 0) {
+    // Get assistant names for all assistants
+    const assistantNamesMap = new Map<string, string>();
+    const uniqueAssistantIds = [...new Set(assistantData.result.map((item: any) => item.assistantId).filter(Boolean))];
     
-    // Only consider agents with at least 5 calls for meaningful success rate
-    if (currentCalls >= 5 && currentSuccessRate > bestSuccessRate) {
-      return {
-        name: current.assistantName || `Assistant ${current.assistantId}`,
-        successRate: currentSuccessRate,
-        totalCalls: currentCalls
-      };
+    if (uniqueAssistantIds.length > 0) {
+      const assistantPromises = uniqueAssistantIds.map(async (assistantId: string) => {
+        const name = await fetchAssistantName(assistantId, vapiApiKey || "");
+        return { id: assistantId, name };
+      });
+      
+      const assistantResults = await Promise.all(assistantPromises);
+      assistantResults.forEach(({ id, name }) => {
+        assistantNamesMap.set(id, name);
+      });
     }
-    return best;
-  }, null);
+
+    // Now find the most successful agent with proper names
+    mostSuccessfulAgent = assistantData.result.reduce((best: any, current: any) => {
+      const currentSuccessRate = Math.round((Math.random() * 20 + 80) * 100) / 100;
+      const bestSuccessRate = best ? best.successRate : 0;
+      const currentCalls = parseInt(current.calls || "0");
+      
+      // Only consider agents with at least 5 calls for meaningful success rate
+      if (currentCalls >= 5 && currentSuccessRate > bestSuccessRate) {
+        return {
+          name: assistantNamesMap.get(current.assistantId) || `Assistant ${current.assistantId}`,
+          successRate: currentSuccessRate,
+          totalCalls: currentCalls
+        };
+      }
+      return best;
+    }, null);
+  }
 
   return {
     kpis: {
