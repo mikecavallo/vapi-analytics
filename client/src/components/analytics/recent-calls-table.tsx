@@ -69,17 +69,19 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
 
   const getSuccessEvaluationBadge = (status: string, endedReason: string) => {
     // Determine if the call was successful based on status and ended reason
-    const isSuccessful = status.toLowerCase() === 'completed' || 
-                        endedReason === 'customer-ended-call' ||
-                        endedReason === 'assistant-ended-call';
+    // Failed calls typically have status 'failed' or reasons like 'system-error', 'user-hangup'
+    const isFailed = status.toLowerCase() === 'failed' || 
+                     endedReason === 'system-error' ||
+                     endedReason === 'user-hangup' ||
+                     endedReason === 'timeout';
     
     return (
       <Badge className={`${
-        isSuccessful 
+        !isFailed 
           ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
           : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
       } border-0`}>
-        {isSuccessful ? 'Pass' : 'Fail'}
+        {!isFailed ? 'Pass' : 'Fail'}
       </Badge>
     );
   };
