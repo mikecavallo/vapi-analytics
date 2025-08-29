@@ -186,7 +186,7 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(214.3, 31.8%, 91.4%)" />
                 <XAxis dataKey="range" stroke="hsl(215.4, 16.3%, 46.9%)" fontSize={12} />
                 <YAxis stroke="hsl(215.4, 16.3%, 46.9%)" fontSize={12} />
-                <Bar dataKey="count" fill={COLORS.chart1} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" fill={COLORS.chart3} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
