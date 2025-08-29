@@ -9,6 +9,7 @@ import ConversationFlowAnalysis from "@/components/analytics/conversation-flow-a
 import DurationDistribution from "@/components/analytics/duration-distribution";
 import PeakUsageHeatmap from "@/components/analytics/peak-usage-heatmap";
 import ConversationOutcomes from "@/components/analytics/conversation-outcomes";
+import WarningsPanel from "@/components/analytics/warnings-panel";
 import AIChatbot from "@/components/ai-chatbot";
 import { Button } from "@/components/ui/button";
 import { Download, ChartLine, User, Sun, Moon, Brain } from "lucide-react";
@@ -141,6 +142,11 @@ export default function Dashboard() {
         <section className="mb-8">
           <h2 className="text-3xl font-bold text-foreground mb-6">Key Metrics</h2>
           <KpiCards data={data} isLoading={isLoading} />
+        </section>
+
+        {/* Warnings Panel */}
+        <section className="mb-8">
+          <WarningsPanel data={data} isLoading={isLoading} />
         </section>
 
         {/* Charts */}
