@@ -93,8 +93,16 @@ export default function BulkAnalysis() {
     // Date range filter
     if (selectedDateRange.from || selectedDateRange.to) {
       const callDate = new Date(call.createdAt);
-      if (selectedDateRange.from && callDate < selectedDateRange.from) return false;
-      if (selectedDateRange.to && callDate > selectedDateRange.to) return false;
+      if (selectedDateRange.from) {
+        const fromDate = new Date(selectedDateRange.from);
+        fromDate.setHours(0, 0, 0, 0);
+        if (callDate < fromDate) return false;
+      }
+      if (selectedDateRange.to) {
+        const toDate = new Date(selectedDateRange.to);
+        toDate.setHours(23, 59, 59, 999);
+        if (callDate > toDate) return false;
+      }
     }
     
     // Call type filter
@@ -778,6 +786,76 @@ export default function BulkAnalysis() {
                     {filteredCalls?.filter((call: any) => call.transcript).length || 0}
                   </p>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Filtered Dataset Preview */}
+        {filteredCalls && filteredCalls.length > 0 && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Eye size={20} />
+                <span>Filtered Dataset Preview</span>
+                <Badge variant="outline" className="ml-2">
+                  {filteredCalls.length} calls
+                </Badge>
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Preview of filtered calls that will be used for AI analysis
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="max-h-64 overflow-auto border rounded-lg">
+                <Table>
+                  <TableHeader className="sticky top-0 bg-background z-10">
+                    <TableRow>
+                      <TableHead className="w-24">Call ID</TableHead>
+                      <TableHead className="w-20">Type</TableHead>
+                      <TableHead className="w-24">Duration</TableHead>
+                      <TableHead className="w-20">Cost</TableHead>
+                      <TableHead className="w-32">Date</TableHead>
+                      <TableHead className="w-24">Success</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredCalls.slice(0, 50).map((call: any) => (
+                      <TableRow key={call.id} className="text-xs">
+                        <TableCell className="font-mono">
+                          {call.id.substring(0, 8)}...
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={call.type === 'inbound' ? 'default' : 'secondary'} className="text-xs px-1 py-0">
+                            {call.type === 'inbound' ? 'In' : 'Out'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {Math.floor(call.duration / 60)}:{(call.duration % 60).toString().padStart(2, '0')}
+                        </TableCell>
+                        <TableCell>
+                          ${call.cost?.toFixed(2) || '0.00'}
+                        </TableCell>
+                        <TableCell>
+                          {new Date(call.createdAt).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={call.successEvaluation === 'true' ? 'default' : 'destructive'} 
+                            className="text-xs px-1 py-0"
+                          >
+                            {call.successEvaluation === 'true' ? 'Pass' : 'Fail'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {filteredCalls.length > 50 && (
+                  <div className="text-center py-2 text-xs text-muted-foreground border-t">
+                    Showing first 50 of {filteredCalls.length} filtered calls
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
