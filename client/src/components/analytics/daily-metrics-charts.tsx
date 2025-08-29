@@ -158,7 +158,7 @@ export default function DailyMetricsCharts({ data, isLoading }: DailyMetricsChar
                   dataKey="successfulCalls" 
                   name="Successful"
                   stackId="calls"
-                  fill="hsl(var(--chart-2))" 
+                  fill="#22c55e" 
                   radius={[0, 0, 2, 2]}
                   minPointSize={2}
                 />
@@ -166,7 +166,7 @@ export default function DailyMetricsCharts({ data, isLoading }: DailyMetricsChar
                   dataKey="failedCalls" 
                   name="Failed"
                   stackId="calls"
-                  fill="hsl(var(--chart-1))" 
+                  fill="#ef4444" 
                   radius={[2, 2, 0, 0]}
                   minPointSize={2}
                 />
@@ -176,49 +176,6 @@ export default function DailyMetricsCharts({ data, isLoading }: DailyMetricsChar
         </CardContent>
       </Card>
 
-      {/* Cost Breakdown Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <DollarSign className="text-yellow-500" size={20} />
-            <span>Cost Breakdown</span>
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Daily cost analysis with duration and per-call cost metrics
-          </p>
-        </CardHeader>
-        <CardContent>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.dailyMetrics} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis 
-                  dataKey="date" 
-                  tickFormatter={formatDate}
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  angle={-45}
-                  textAnchor="end"
-                  height={60}
-                />
-                <YAxis 
-                  stroke="hsl(var(--muted-foreground))" 
-                  fontSize={12}
-                  label={{ value: 'Cost ($)', angle: -90, position: 'insideLeft' }}
-                />
-                <Tooltip content={<CostTooltip />} />
-                <Bar 
-                  dataKey="totalCost" 
-                  name="Total Cost"
-                  fill="hsl(var(--chart-4))" 
-                  radius={[2, 2, 0, 0]}
-                  minPointSize={2}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
