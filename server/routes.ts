@@ -504,6 +504,7 @@ async function fetchRecentCallsForDashboard(vapiApiKey?: string): Promise<Dashbo
     
     return calls.slice(0, 50).map((call: any) => ({
       id: call.id,
+      type: call.type === 'inboundPhoneCall' ? 'inbound' : 'outbound',
       assistantName: call.assistant?.name || `Assistant ${(call.assistantId || 'Unknown').slice(0, 8)}`,
       duration: Math.round(((call.endedAt && call.startedAt) 
         ? (new Date(call.endedAt).getTime() - new Date(call.startedAt).getTime()) / 1000 

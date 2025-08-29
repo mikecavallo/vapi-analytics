@@ -84,6 +84,19 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
     );
   };
 
+  const getTypeBadge = (type: string) => {
+    const isInbound = type === 'inbound';
+    return (
+      <Badge className={`${
+        isInbound 
+          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' 
+          : 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
+      } border-0`}>
+        {isInbound ? 'Inbound' : 'Outbound'}
+      </Badge>
+    );
+  };
+
   return (
     <Card data-testid="table-recent-calls">
       <CardHeader className="border-b border-border">
@@ -152,6 +165,7 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
             <TableHeader>
               <TableRow className="bg-muted">
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Call ID</TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Type</TableHead>
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Date & Time</TableHead>
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Duration</TableHead>
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Cost</TableHead>
@@ -164,6 +178,7 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                 Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={index}>
                     <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-12" /></TableCell>
@@ -173,7 +188,7 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                 ))
               ) : filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     {searchQuery ? "No calls found matching your search." : "No calls available for the selected time range."}
                   </TableCell>
                 </TableRow>
@@ -181,6 +196,7 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                 filteredData.map((call) => (
                   <TableRow key={call.id} className="hover:bg-muted/50 transition-colors" data-testid={`row-call-${call.id}`}>
                     <TableCell className="font-mono text-sm">{call.id.substring(0, 8)}...</TableCell>
+                    <TableCell>{getTypeBadge(call.type)}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {new Date(call.createdAt).toLocaleDateString('en-US', {
                         month: 'short',
