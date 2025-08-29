@@ -222,6 +222,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const callData = await response.json();
+      
+      // Calculate duration if timestamps are available
+      if (callData.endedAt && callData.startedAt) {
+        const durationInSeconds = Math.round(
+          (new Date(callData.endedAt).getTime() - new Date(callData.startedAt).getTime()) / 1000
+        );
+        callData.duration = durationInSeconds;
+      }
+      
       res.json(callData);
     } catch (error) {
       console.error("Call details API error:", error);
