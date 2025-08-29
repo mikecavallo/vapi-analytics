@@ -71,13 +71,13 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
   
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
             <Skeleton className="h-6 w-48" />
           </CardHeader>
           <CardContent>
-            <Skeleton className="h-80 w-full" />
+            <Skeleton className="h-64 w-full" />
           </CardContent>
         </Card>
         <Card>
@@ -85,7 +85,15 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
             <Skeleton className="h-6 w-48" />
           </CardHeader>
           <CardContent>
-            <Skeleton className="h-80 w-full" />
+            <Skeleton className="h-64 w-full" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-64 w-full" />
           </CardContent>
         </Card>
       </div>
@@ -93,7 +101,7 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Call Volume Trends */}
       <Card data-testid="chart-call-volume">
         <CardHeader>
@@ -128,7 +136,7 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="h-80 w-full">
+          <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={filteredVolumeData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(214.3, 31.8%, 91.4%)" />
@@ -143,9 +151,9 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
                   type="monotone" 
                   dataKey="calls" 
                   stroke={COLORS.chart1}
-                  strokeWidth={3}
-                  dot={{ fill: COLORS.chart1, strokeWidth: 2, r: 4 }}
-                  activeDot={{ r: 6, stroke: COLORS.chart1, strokeWidth: 2 }}
+                  strokeWidth={2}
+                  dot={{ fill: COLORS.chart1, strokeWidth: 2, r: 3 }}
+                  activeDot={{ r: 5, stroke: COLORS.chart1, strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -164,15 +172,15 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="h-64 w-full mb-4">
+          <div className="h-48 w-full mb-3">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={processedCallOutcomes}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={120}
+                  innerRadius={40}
+                  outerRadius={80}
                   paddingAngle={5}
                   dataKey="count"
                 >
@@ -183,14 +191,14 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-2">
             {processedCallOutcomes.map((outcome, index) => (
               <div key={outcome.outcome} className="flex items-center" data-testid={`outcome-${outcome.outcome}`}>
                 <div 
                   className="w-3 h-3 rounded-full mr-2"
                   style={{ backgroundColor: Object.values(COLORS)[index % Object.values(COLORS).length] }}
                 />
-                <span className="text-sm text-foreground">
+                <span className="text-xs text-foreground">
                   {formatOutcomeName(outcome.outcome)}: {outcome.percentage.toFixed(1)}%
                 </span>
               </div>
@@ -206,9 +214,9 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
           <CardTitle>Hourly Call Patterns</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-80 w-full">
+          <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data?.hourlyPatterns || []}>
+              <BarChart data={data?.hourlyPatterns || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(214.3, 31.8%, 91.4%)" />
                 <XAxis 
                   dataKey="hour" 
@@ -217,14 +225,12 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
                   tickFormatter={(value) => `${value.toString().padStart(2, '0')}:00`}
                 />
                 <YAxis stroke="hsl(215.4, 16.3%, 46.9%)" fontSize={12} />
-                <Line 
-                  type="monotone" 
+                <Bar 
                   dataKey="calls" 
-                  stroke={COLORS.chart2}
-                  strokeWidth={3}
-                  dot={{ fill: COLORS.chart2, strokeWidth: 2, r: 4 }}
+                  fill={COLORS.chart3}
+                  radius={[4, 4, 0, 0]}
                 />
-              </LineChart>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </CardContent>
