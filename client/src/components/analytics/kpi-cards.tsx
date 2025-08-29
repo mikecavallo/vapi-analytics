@@ -11,8 +11,11 @@ interface KpiCardsProps {
 export default function KpiCards({ data, isLoading }: KpiCardsProps) {
   const formatDuration = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    const remainingSeconds = Math.floor(seconds % 60);
+    if (minutes === 0) {
+      return `${remainingSeconds}sec`;
+    }
+    return `${minutes}min ${remainingSeconds}sec`;
   };
 
   const formatCurrency = (amount: number) => {
