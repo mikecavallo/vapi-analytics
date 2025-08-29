@@ -791,6 +791,7 @@ async function fetchRecentCallsForDashboard(vapiApiKey?: string): Promise<Dashbo
       status: call.status || 'completed',
       endedReason: call.endedReason || 'unknown',
       createdAt: call.createdAt || call.startedAt || new Date().toISOString(),
+      successEvaluation: call.analysis?.successEvaluation || null,
     }));
   } catch (error) {
     console.error("Error fetching recent calls:", error);

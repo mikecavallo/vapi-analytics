@@ -71,14 +71,19 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
     }).format(amount);
   };
 
-  const getSuccessEvaluationBadge = (status: string, endedReason: string) => {
-    // Determine if the call was successful based on status and ended reason
-    // For this demo, let's simulate realistic success/fail distribution
-    // In a real scenario, this would be based on actual business logic
+  const getSuccessEvaluationBadge = (call: any) => {
+    // Use actual analysis.successEvaluation if available, otherwise use heuristics
+    let evaluation = call.successEvaluation;
     
-    // Simulate some failure cases for demonstration
-    const callId = Math.random();
-    const isSuccess = callId > 0.15; // ~85% success rate
+    if (!evaluation) {
+      // Fall back to business logic when no analysis data is available
+      const isSuccess = ['customer-ended-call', 'assistant-ended-call'].includes(call.endedReason) && 
+                       call.status === 'ended' && 
+                       call.duration > 30; // Calls longer than 30 seconds that ended normally
+      evaluation = isSuccess ? 'Pass' : 'Fail';
+    }
+    
+    const isSuccess = evaluation === 'Pass' || evaluation === 'pass' || evaluation === 'Passed';
     
     return (
       <Badge className={`${
@@ -238,7 +243,7 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                     </TableCell>
                     <TableCell>{formatDuration(call.duration)}</TableCell>
                     <TableCell>{formatCurrency(call.cost)}</TableCell>
-                    <TableCell>{getSuccessEvaluationBadge(call.status, call.endedReason)}</TableCell>
+                    <TableCell>{getSuccessEvaluationBadge(call)}</TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         <CallDetailsPopover callId={call.id}>

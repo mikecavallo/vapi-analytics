@@ -88,6 +88,10 @@ export const dashboardDataSchema = z.object({
     status: z.string(),
     endedReason: z.string(),
     createdAt: z.string(),
+    type: z.string(),
+    assistantPhoneNumber: z.string(),
+    customerPhoneNumber: z.string(),
+    successEvaluation: z.string().optional(),
   })),
   costAnalysis: z.object({
     avgCostPerCall: z.number(),
