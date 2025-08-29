@@ -19,6 +19,10 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
   const [timeFilter, setTimeFilter] = useState("all");
 
   const getTimeFilteredData = () => {
+    if (!data || !Array.isArray(data)) {
+      return [];
+    }
+    
     let filteredByTime = data;
     const now = new Date();
     
