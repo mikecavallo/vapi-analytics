@@ -233,7 +233,7 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                     <TableCell>{getTypeBadge(call.type)}</TableCell>
                     <TableCell className="font-mono text-xs">{call.assistantPhoneNumber}</TableCell>
                     <TableCell className="font-mono text-xs">{call.customerPhoneNumber}</TableCell>
-                    <TableCell className="text-sm font-medium">{call.assistantName}</TableCell>
+                    <TableCell className="text-sm font-medium">{call.assistantName || call.assistantId || 'Unknown'}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {new Date(call.createdAt).toLocaleDateString('en-US', {
                         month: 'short',

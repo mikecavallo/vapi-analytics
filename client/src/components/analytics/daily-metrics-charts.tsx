@@ -33,7 +33,7 @@ interface DailyMetricsChartsProps {
 export default function DailyMetricsCharts({ data, isLoading }: DailyMetricsChartsProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <Card>
           <CardHeader>
             <Skeleton className="h-6 w-48" />
@@ -122,7 +122,7 @@ export default function DailyMetricsCharts({ data, isLoading }: DailyMetricsChar
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 gap-6">
       {/* Success Evaluation Chart */}
       <Card>
         <CardHeader>
