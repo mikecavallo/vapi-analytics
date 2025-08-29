@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Filter, Eye } from "lucide-react";
+import { Search, Filter, Eye, Phone } from "lucide-react";
 import { DashboardData } from "@shared/schema";
 import CallDetailsPopover from "./call-details-popover";
 
@@ -166,6 +166,18 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
               <TableRow className="bg-muted">
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Call ID</TableHead>
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Type</TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">
+                  <div className="flex items-center space-x-1">
+                    <span>Assistant</span>
+                    <Phone size={12} />
+                  </div>
+                </TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">
+                  <div className="flex items-center space-x-1">
+                    <span>Customer</span>
+                    <Phone size={12} />
+                  </div>
+                </TableHead>
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Date & Time</TableHead>
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Duration</TableHead>
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Cost</TableHead>
@@ -188,7 +200,7 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                 ))
               ) : filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                     {searchQuery ? "No calls found matching your search." : "No calls available for the selected time range."}
                   </TableCell>
                 </TableRow>
@@ -197,6 +209,8 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                   <TableRow key={call.id} className="hover:bg-muted/50 transition-colors" data-testid={`row-call-${call.id}`}>
                     <TableCell className="font-mono text-sm">{call.id.substring(0, 8)}...</TableCell>
                     <TableCell>{getTypeBadge(call.type)}</TableCell>
+                    <TableCell className="font-mono text-xs">{call.assistantPhoneNumber}</TableCell>
+                    <TableCell className="font-mono text-xs">{call.customerPhoneNumber}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {new Date(call.createdAt).toLocaleDateString('en-US', {
                         month: 'short',
