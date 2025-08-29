@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Clock, TrendingUp, Moon } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Clock, TrendingUp, Moon, Info } from "lucide-react";
 
 interface PeakUsageHeatmapProps {
   data: {
@@ -94,13 +95,39 @@ export default function PeakUsageHeatmap({ data, isLoading }: PeakUsageHeatmapPr
                   </div>
                   {DAYS.map(day => {
                     const cellData = getCellData(hour, day);
+                    const hourNum = parseInt(hour.split(':')[0]);
+                    const isBusinessHours = hourNum >= 9 && hourNum <= 17;
+                    const isWeekend = day === 'Sat' || day === 'Sun';
+                    const isPeak = cellData.intensity >= 0.7;
+                    
                     return (
-                      <div
-                        key={`${hour}-${day}`}
-                        className={`h-6 rounded-sm cursor-pointer transition-all hover:ring-2 hover:ring-chart-1/50 ${getIntensityColor(cellData.intensity)}`}
-                        title={`${day} ${hour}: ${cellData.calls} calls`}
-                        data-testid={`heatmap-cell-${day}-${hour}`}
-                      />
+                      <TooltipProvider key={`${hour}-${day}`}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div
+                              className={`h-6 rounded-sm cursor-pointer transition-all hover:ring-2 hover:ring-chart-1/50 hover:scale-110 ${getIntensityColor(cellData.intensity)}`}
+                              data-testid={`heatmap-cell-${day}-${hour}`}
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="space-y-1 text-sm">
+                              <p className="font-medium text-foreground">{day} at {hour}</p>
+                              <div className="space-y-1">
+                                <p><span className="font-medium">📞 Calls:</span> {cellData.calls}</p>
+                                <p><span className="font-medium">🌡️ Activity:</span> {isPeak ? "High" : cellData.intensity > 0.4 ? "Medium" : cellData.intensity > 0 ? "Low" : "None"}</p>
+                                <p><span className="font-medium">⏰ Period:</span> {isBusinessHours ? "Business Hours" : "Off Hours"}</p>
+                                <div className="pt-1 border-t text-xs text-muted-foreground">
+                                  {isPeak && isBusinessHours ? '🚀 Peak business activity' :
+                                   isPeak && !isBusinessHours ? '🌟 Unexpected high activity' :
+                                   isWeekend ? '🏖️ Weekend activity' :
+                                   isBusinessHours ? '💼 Standard business hours' :
+                                   '🌙 Off-hours activity'}
+                                </div>
+                              </div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     );
                   })}
                 </div>

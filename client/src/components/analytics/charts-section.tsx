@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip as RechartsTooltip } from "recharts";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
 import { DashboardData } from "@shared/schema";
 
@@ -20,6 +21,102 @@ const COLORS = {
 
 export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
   const [volumeTimeRange, setVolumeTimeRange] = useState("daily");
+
+  // Enhanced tooltip for volume trends
+  const VolumeTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      const date = new Date(label);
+      const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
+      const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+      
+      return (
+        <div className="bg-background border border-border rounded-lg shadow-lg p-4 min-w-[250px]">
+          <p className="font-medium text-foreground mb-2">{dayOfWeek}, {date.toLocaleDateString()}</p>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between items-center">
+              <span className="text-blue-400">📞 Total Calls:</span>
+              <span className="font-medium">{data.calls}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Day Type:</span>
+              <span className="font-medium">{isWeekend ? "Weekend" : "Weekday"}</span>
+            </div>
+            <div className="pt-2 border-t text-xs text-muted-foreground">
+              {isWeekend ? "📉 Weekend volumes are typically 40-60% lower" : "📈 Weekday peak activity"}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Enhanced tooltip for pie chart
+  const OutcomeTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      const total = data?.count || 0;
+      
+      return (
+        <div className="bg-background border border-border rounded-lg shadow-lg p-4 min-w-[220px]">
+          <p className="font-medium text-foreground mb-2">{data.outcome}</p>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Calls:</span>
+              <span className="font-medium">{total.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Percentage:</span>
+              <span className="font-medium">{data.percentage.toFixed(1)}%</span>
+            </div>
+            <div className="pt-2 border-t text-xs text-muted-foreground">
+              {data.outcome === 'customer-ended-call' ? '✅ Natural conversation completion' :
+               data.outcome === 'assistant-ended-call' ? '🤖 Assistant completed objective' :
+               data.outcome === 'pipeline-error-hangup' ? '⚠️ Technical issue - requires attention' :
+               data.outcome === 'customer-hangup' ? '❌ Customer disconnected early' :
+               '📊 Other call outcome'}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Enhanced tooltip for hourly patterns
+  const HourlyTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      const hour = parseInt(label);
+      const timeSlot = hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : hour < 21 ? 'Evening' : 'Night';
+      const businessHours = hour >= 9 && hour <= 17;
+      
+      return (
+        <div className="bg-background border border-border rounded-lg shadow-lg p-4 min-w-[200px]">
+          <p className="font-medium text-foreground mb-2">{hour.toString().padStart(2, '0')}:00 - {timeSlot}</p>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-blue-400">📞 Calls:</span>
+              <span className="font-medium">{data.calls}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Period:</span>
+              <span className="font-medium">{businessHours ? "Business Hours" : "Off Hours"}</span>
+            </div>
+            <div className="pt-2 border-t text-xs text-muted-foreground">
+              {hour >= 9 && hour <= 11 ? '🌅 Morning peak - high customer engagement' :
+               hour >= 12 && hour <= 14 ? '☀️ Lunch period - moderate activity' :
+               hour >= 15 && hour <= 17 ? '🚀 Afternoon peak - highest activity' :
+               hour >= 18 && hour <= 20 ? '🌆 Evening hours - declining activity' :
+               '🌙 Off-hours - minimal activity expected'}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
   
   // Group call outcomes under 5% into "Other" category
   const processCallOutcomes = (outcomes: any[]) => {
@@ -119,6 +216,7 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
                   tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 />
                 <YAxis stroke="hsl(215.4, 16.3%, 46.9%)" fontSize={12} />
+                <RechartsTooltip content={<VolumeTooltip />} />
                 <Line 
                   type="monotone" 
                   dataKey="calls" 
@@ -186,6 +284,7 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
                     <Cell key={`cell-${index}`} fill={Object.values(COLORS)[index % Object.values(COLORS).length]} />
                   ))}
                 </Pie>
+                <RechartsTooltip content={<OutcomeTooltip />} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -223,6 +322,7 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
                   tickFormatter={(value) => `${value.toString().padStart(2, '0')}:00`}
                 />
                 <YAxis stroke="hsl(215.4, 16.3%, 46.9%)" fontSize={12} />
+                <RechartsTooltip content={<HourlyTooltip />} />
                 <Bar 
                   dataKey="calls" 
                   fill={COLORS.chart3}
