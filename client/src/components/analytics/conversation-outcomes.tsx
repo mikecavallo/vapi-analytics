@@ -219,7 +219,7 @@ export default function ConversationOutcomes({ data, isLoading }: ConversationOu
                               style={{ width: `${outcome.percentage}%` }}
                             />
                           </div>
-                          <span className="text-sm font-medium">{outcome.percentage}%</span>
+                          <span className="text-sm font-medium">{Math.round(outcome.percentage)}%</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-center">

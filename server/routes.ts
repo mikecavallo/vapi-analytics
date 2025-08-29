@@ -694,7 +694,7 @@ function generateConversationOutcomesData(outcomesData: any[], totalCalls: numbe
   const outcomes = outcomesData?.map((item: any) => ({
     outcome: item.endedReason,
     volume: parseInt(item.count || "0"),
-    percentage: totalCalls > 0 ? Math.round((parseInt(item.count || "0") / totalCalls) * 10000) / 100 : 0,
+    percentage: totalCalls > 0 ? Math.round((parseInt(item.count || "0") / totalCalls) * 100) : 0,
     avgDuration: formatDuration(Math.random() * 300 + 60), // 1-5 minutes
     satisfaction: Math.round((Math.random() * 2 + 3) * 10) / 10, // 3.0-5.0
     trend: Math.round((Math.random() * 10 - 5) * 10) / 10, // -5% to +5%
