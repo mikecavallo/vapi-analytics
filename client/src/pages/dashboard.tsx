@@ -157,7 +157,7 @@ export default function Dashboard() {
 
         {/* Daily Metrics Charts */}
         <section className="mb-8">
-          <DailyMetricsCharts data={data?.dailyMetrics || []} isLoading={isLoading} />
+          <DailyMetricsCharts data={{ dailyMetrics: data?.dailyMetrics || [] }} isLoading={isLoading} />
         </section>
 
         {/* Recent Calls Table */}
