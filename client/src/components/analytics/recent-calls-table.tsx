@@ -40,8 +40,7 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
     }
     
     return filteredByTime.filter(call =>
-      call.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      call.assistantName.toLowerCase().includes(searchQuery.toLowerCase())
+      call.id.toLowerCase().includes(searchQuery.toLowerCase())
     );
   };
   
@@ -153,11 +152,10 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
             <TableHeader>
               <TableRow className="bg-muted">
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Call ID</TableHead>
-                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Assistant</TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Date & Time</TableHead>
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Duration</TableHead>
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Cost</TableHead>
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Success Evaluation</TableHead>
-                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Date</TableHead>
                 <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -170,13 +168,12 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                     <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                     <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                   </TableRow>
                 ))
               ) : filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     {searchQuery ? "No calls found matching your search." : "No calls available for the selected time range."}
                   </TableCell>
                 </TableRow>
@@ -184,19 +181,23 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                 filteredData.map((call) => (
                   <TableRow key={call.id} className="hover:bg-muted/50 transition-colors" data-testid={`row-call-${call.id}`}>
                     <TableCell className="font-mono text-sm">{call.id.substring(0, 8)}...</TableCell>
-                    <TableCell>{call.assistantName}</TableCell>
-                    <TableCell>{formatDuration(call.duration)}</TableCell>
-                    <TableCell>{formatCurrency(call.cost)}</TableCell>
-                    <TableCell>{getSuccessEvaluationBadge(call.status, call.endedReason)}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {new Date(call.createdAt).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
+                        year: '2-digit',
                       })}
+                      <br />
+                      <span className="text-xs text-muted-foreground/70">
+                        {new Date(call.createdAt).toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
                     </TableCell>
+                    <TableCell>{formatDuration(call.duration)}</TableCell>
+                    <TableCell>{formatCurrency(call.cost)}</TableCell>
+                    <TableCell>{getSuccessEvaluationBadge(call.status, call.endedReason)}</TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         <CallDetailsPopover callId={call.id}>
