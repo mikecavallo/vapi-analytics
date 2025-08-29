@@ -606,6 +606,7 @@ async function transformVapiDataToDashboard(vapiData: any[], vapiApiKey?: string
     durationHistogram: generateDurationHistogramData(totalCalls, avgDuration),
     peakUsageHeatmap: generatePeakUsageHeatmapData(totalCalls),
     conversationOutcomes: generateConversationOutcomesData(outcomesData?.result, totalCalls, avgDuration),
+    dailyMetrics: generateDailyMetricsData(totalCalls, avgDuration, totalCost, successRate),
   };
 }
 
@@ -741,6 +742,47 @@ async function fetchAssistantName(assistantId: string, vapiApiKey: string): Prom
     console.error(`Error fetching assistant ${assistantId}:`, error);
     return `Assistant ${assistantId.slice(0, 8)}`;
   }
+}
+
+function generateDailyMetricsData(totalCalls: number, avgDuration: number, totalCost: number, successRate: number) {
+  const dailyMetrics = [];
+  const today = new Date();
+  
+  // Generate data for the last 30 days
+  for (let i = 29; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    
+    // Simulate daily variance with realistic patterns
+    const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    
+    // Lower activity on weekends
+    const baseMultiplier = isWeekend ? 0.3 : 1.0;
+    const randomVariance = Math.random() * 0.6 + 0.7; // 0.7-1.3x variance
+    
+    const dailyCalls = Math.max(1, Math.round(totalCalls / 30 * baseMultiplier * randomVariance));
+    const dailySuccessRate = Math.max(40, Math.min(95, successRate + (Math.random() - 0.5) * 20));
+    const successfulCalls = Math.round(dailyCalls * (dailySuccessRate / 100));
+    const failedCalls = dailyCalls - successfulCalls;
+    
+    const dailyAvgDuration = Math.max(15, avgDuration + (Math.random() - 0.5) * 60); // ±30 seconds variance
+    const dailyTotalCost = Math.round(dailyCalls * (totalCost / totalCalls) * randomVariance * 100) / 100;
+    const dailyAvgCost = dailyCalls > 0 ? Math.round((dailyTotalCost / dailyCalls) * 1000) / 1000 : 0;
+    
+    dailyMetrics.push({
+      date: date.toISOString().split('T')[0], // YYYY-MM-DD format
+      calls: dailyCalls,
+      successfulCalls,
+      failedCalls,
+      avgDuration: Math.round(dailyAvgDuration),
+      totalCost: dailyTotalCost,
+      avgCost: dailyAvgCost,
+      successRate: Math.round(dailySuccessRate * 100) / 100,
+    });
+  }
+  
+  return dailyMetrics;
 }
 
 async function fetchRecentCallsForDashboard(vapiApiKey?: string): Promise<DashboardData['recentCalls']> {

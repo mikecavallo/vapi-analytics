@@ -165,6 +165,16 @@ export const dashboardDataSchema = z.object({
       trend: z.number(),
     })),
   }),
+  dailyMetrics: z.array(z.object({
+    date: z.string(),
+    calls: z.number(),
+    successfulCalls: z.number(),
+    failedCalls: z.number(),
+    avgDuration: z.number(),
+    totalCost: z.number(),
+    avgCost: z.number(),
+    successRate: z.number(),
+  })),
 });
 
 export type DashboardData = z.infer<typeof dashboardDataSchema>;

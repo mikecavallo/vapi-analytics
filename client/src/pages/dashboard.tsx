@@ -10,6 +10,7 @@ import DurationDistribution from "@/components/analytics/duration-distribution";
 import PeakUsageHeatmap from "@/components/analytics/peak-usage-heatmap";
 import ConversationOutcomes from "@/components/analytics/conversation-outcomes";
 import WarningsPanel from "@/components/analytics/warnings-panel";
+import DailyMetricsCharts from "@/components/analytics/daily-metrics-charts";
 import AIChatbot from "@/components/ai-chatbot";
 import { Button } from "@/components/ui/button";
 import { Download, ChartLine, User, Sun, Moon, Brain } from "lucide-react";
@@ -152,6 +153,11 @@ export default function Dashboard() {
         {/* Charts */}
         <section className="mb-8">
           <ChartsSection data={data} isLoading={isLoading} />
+        </section>
+
+        {/* Daily Metrics Charts */}
+        <section className="mb-8">
+          <DailyMetricsCharts data={data?.dailyMetrics || []} isLoading={isLoading} />
         </section>
 
         {/* Recent Calls Table */}
