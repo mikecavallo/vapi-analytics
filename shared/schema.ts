@@ -61,6 +61,8 @@ export const dashboardDataSchema = z.object({
     totalCalls: z.number(),
     avgDuration: z.number(), // in seconds
     successRate: z.number(), // percentage
+    inboundSuccessRate: z.number(), // percentage for inbound calls
+    outboundSuccessRate: z.number(), // percentage for outbound calls
     totalCost: z.number(),
   }),
   callVolumeTrends: z.array(z.object({

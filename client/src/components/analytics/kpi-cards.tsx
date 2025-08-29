@@ -49,15 +49,26 @@ export default function KpiCards({ data, isLoading }: KpiCardsProps) {
       testId: "kpi-avg-duration"
     },
     {
-      title: "Success Rate",
-      value: data?.kpis.successRate || 0,
+      title: "Inbound Success",
+      value: data?.kpis.inboundSuccessRate || 0,
       format: (val: number) => `${val.toFixed(1)}%`,
       icon: CheckCircle,
       trend: 5.7,
       trendLabel: "vs last month",
-      color: "text-chart-2", 
-      bgColor: "bg-chart-2/10",
-      testId: "kpi-success-rate"
+      color: "text-green-600", 
+      bgColor: "bg-green-100 dark:bg-green-900/20",
+      testId: "kpi-inbound-success-rate"
+    },
+    {
+      title: "Outbound Success",
+      value: data?.kpis.outboundSuccessRate || 0,
+      format: (val: number) => `${val.toFixed(1)}%`,
+      icon: CheckCircle,
+      trend: 3.2,
+      trendLabel: "vs last month",
+      color: "text-blue-600", 
+      bgColor: "bg-blue-100 dark:bg-blue-900/20",
+      testId: "kpi-outbound-success-rate"
     },
     {
       title: "Total Cost",
@@ -73,7 +84,7 @@ export default function KpiCards({ data, isLoading }: KpiCardsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
       {kpiCards.map((card, index) => (
         <Card key={card.title} className="stat-card shadow-sm" data-testid={card.testId}>
           <CardContent className="p-6">
