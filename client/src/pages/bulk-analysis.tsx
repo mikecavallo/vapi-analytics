@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   Brain, 
   Filter, 
@@ -26,7 +28,9 @@ import {
   User,
   Sun,
   Moon,
-  Download
+  Download,
+  CalendarDays,
+  Phone
 } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -34,8 +38,7 @@ import { useTheme } from "@/contexts/theme-context";
 
 interface FilterCriteria {
   id: string;
-  type: 'duration' | 'cost' | 'outcome' | 'timeRange' | 'assistantId';
-  operator: 'equals' | 'greater' | 'less' | 'between' | 'contains';
+  type: 'dateRange' | 'callType' | 'assistant' | 'assistantPhone' | 'customerPhone' | 'callId' | 'successEvaluation' | 'endedReason' | 'cost' | 'duration';
   value: string;
   value2?: string;
   label: string;
@@ -54,19 +57,76 @@ export default function BulkAnalysis() {
   const { theme, toggleTheme } = useTheme();
   const [location] = useLocation();
   const [filters, setFilters] = useState<FilterCriteria[]>([]);
-  const [newFilterType, setNewFilterType] = useState<FilterCriteria['type']>('duration');
-  const [newFilterOperator, setNewFilterOperator] = useState<FilterCriteria['operator']>('greater');
-  const [newFilterValue, setNewFilterValue] = useState('');
-  const [newFilterValue2, setNewFilterValue2] = useState('');
-  
   const [analysisQuery, setAnalysisQuery] = useState('');
   const [conversationHistory, setConversationHistory] = useState<AnalysisMessage[]>([]);
+  
+  // Filter states
+  const [selectedDateRange, setSelectedDateRange] = useState<{from?: Date; to?: Date}>({});
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedCallType, setSelectedCallType] = useState<string>('');
+  const [selectedAssistant, setSelectedAssistant] = useState<string>('');
+  const [assistantPhoneFilter, setAssistantPhoneFilter] = useState<string>('');
+  const [customerPhoneFilter, setCustomerPhoneFilter] = useState<string>('');
+  const [callIdFilter, setCallIdFilter] = useState<string>('');
+  const [selectedSuccessEvaluation, setSelectedSuccessEvaluation] = useState<string>('');
+  const [selectedEndedReason, setSelectedEndedReason] = useState<string>('');
+  const [costRange, setCostRange] = useState<{min?: string; max?: string}>({});
+  const [durationRange, setDurationRange] = useState<{min?: string; max?: string}>({});
 
-  // Fetch filtered calls based on current filters
-  const { data: filteredCalls, isLoading: isLoadingCalls } = useQuery<any[]>({
-    queryKey: ['/api/bulk-analysis/calls', filters],
+  // Fetch all calls first, then filter on frontend
+  const { data: allCalls, isLoading: isLoadingCalls } = useQuery<any[]>({
+    queryKey: ['/api/bulk-analysis/calls'],
     enabled: true,
   });
+  
+  // Get unique assistants and ended reasons for dropdowns
+  const assistants = [...new Set(allCalls?.map(call => call.assistantName || call.assistantId).filter(Boolean))] || [];
+  const endedReasons = [...new Set(allCalls?.map(call => call.endedReason).filter(Boolean))] || [];
+  
+  // Filter calls based on current filter criteria
+  const filteredCalls = allCalls?.filter(call => {
+    // Date range filter
+    if (selectedDateRange.from || selectedDateRange.to) {
+      const callDate = new Date(call.createdAt);
+      if (selectedDateRange.from && callDate < selectedDateRange.from) return false;
+      if (selectedDateRange.to && callDate > selectedDateRange.to) return false;
+    }
+    
+    // Call type filter
+    if (selectedCallType && call.type !== selectedCallType) return false;
+    
+    // Assistant filter
+    if (selectedAssistant && (call.assistantName || call.assistantId) !== selectedAssistant) return false;
+    
+    // Phone number filters
+    if (assistantPhoneFilter && !call.assistantPhoneNumber?.includes(assistantPhoneFilter)) return false;
+    if (customerPhoneFilter && !call.customerPhoneNumber?.includes(customerPhoneFilter)) return false;
+    
+    // Call ID filter
+    if (callIdFilter && !call.id.toLowerCase().includes(callIdFilter.toLowerCase())) return false;
+    
+    // Success evaluation filter
+    if (selectedSuccessEvaluation) {
+      const isSuccess = ['customer-ended-call', 'assistant-ended-call', 'completed'].includes(call.endedReason) && 
+                       ['ended', 'completed'].includes(call.status) && 
+                       call.duration > 30;
+      const evaluation = isSuccess ? 'pass' : 'fail';
+      if (evaluation !== selectedSuccessEvaluation) return false;
+    }
+    
+    // Ended reason filter
+    if (selectedEndedReason && call.endedReason !== selectedEndedReason) return false;
+    
+    // Cost range filter
+    if (costRange.min && call.cost < parseFloat(costRange.min)) return false;
+    if (costRange.max && call.cost > parseFloat(costRange.max)) return false;
+    
+    // Duration range filter
+    if (durationRange.min && call.duration < parseInt(durationRange.min)) return false;
+    if (durationRange.max && call.duration > parseInt(durationRange.max)) return false;
+    
+    return true;
+  }) || [];
 
   // AI Analysis mutation
   const analysisMutation = useMutation({
@@ -76,7 +136,7 @@ export default function BulkAnalysis() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query,
-          filters,
+          filters: [], // Not using old filter format anymore
           callIds: (filteredCalls as any[])?.map((call: any) => call.id) || []
         }),
       });
@@ -116,13 +176,50 @@ export default function BulkAnalysis() {
     },
   });
 
+  const clearAllFilters = () => {
+    setSelectedDateRange({});
+    setSelectedCallType('');
+    setSelectedAssistant('');
+    setAssistantPhoneFilter('');
+    setCustomerPhoneFilter('');
+    setCallIdFilter('');
+    setSelectedSuccessEvaluation('');
+    setSelectedEndedReason('');
+    setCostRange({});
+    setDurationRange({});
+  };
+  
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (selectedDateRange.from || selectedDateRange.to) count++;
+    if (selectedCallType) count++;
+    if (selectedAssistant) count++;
+    if (assistantPhoneFilter) count++;
+    if (customerPhoneFilter) count++;
+    if (callIdFilter) count++;
+    if (selectedSuccessEvaluation) count++;
+    if (selectedEndedReason) count++;
+    if (costRange.min || costRange.max) count++;
+    if (durationRange.min || durationRange.max) count++;
+    return count;
+  };
+  
   const addFilter = () => {
-    if (!newFilterValue) return;
-
-    const filterId = Date.now().toString();
+    // This function is no longer needed as filters are now applied directly
+    return;
+  };
+  
+  // Remove old filter logic
+  const removeFilter = () => {
+    return;
+  };
+  
+  // Legacy function kept for compatibility
+  const oldAddFilter = () => {
+    return;
     
     let label = '';
-    switch (newFilterType) {
+    switch ('duration') {
       case 'duration':
         label = `Duration ${newFilterOperator} ${newFilterValue}${newFilterValue2 && newFilterOperator === 'between' ? ` and ${newFilterValue2}` : ''} seconds`;
         break;
@@ -157,10 +254,6 @@ export default function BulkAnalysis() {
     queryClient.invalidateQueries({ queryKey: ['/api/bulk-analysis/calls'] });
   };
 
-  const removeFilter = (filterId: string) => {
-    setFilters(prev => prev.filter(f => f.id !== filterId));
-    queryClient.invalidateQueries({ queryKey: ['/api/bulk-analysis/calls'] });
-  };
 
   const handleAnalysis = () => {
     if (!analysisQuery.trim()) return;
@@ -280,88 +373,187 @@ export default function BulkAnalysis() {
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Add New Filter */}
-              <div className="space-y-3 p-3 bg-muted/50 rounded-lg">
-                <Label className="text-sm font-medium">Add Filter</Label>
-                
-                <Select value={newFilterType} onValueChange={(value: any) => setNewFilterType(value)}>
-                  <SelectTrigger data-testid="select-filter-type">
-                    <SelectValue placeholder="Filter type" />
+              {/* Date Range Filter */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Date Range</Label>
+                <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal" data-testid="button-date-range">
+                      <CalendarDays className="mr-2 h-4 w-4" />
+                      {selectedDateRange.from ? (
+                        selectedDateRange.to ? (
+                          `${selectedDateRange.from.toLocaleDateString()} - ${selectedDateRange.to.toLocaleDateString()}`
+                        ) : (
+                          selectedDateRange.from.toLocaleDateString()
+                        )
+                      ) : (
+                        "Pick date range"
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      selected={selectedDateRange}
+                      onSelect={(range) => setSelectedDateRange(range || {})}
+                      numberOfMonths={2}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Call Type Filter */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Call Type</Label>
+                <Select value={selectedCallType} onValueChange={setSelectedCallType}>
+                  <SelectTrigger data-testid="select-call-type">
+                    <SelectValue placeholder="All call types" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="duration">Call Duration</SelectItem>
-                    <SelectItem value="cost">Call Cost</SelectItem>
-                    <SelectItem value="outcome">Call Outcome</SelectItem>
-                    <SelectItem value="timeRange">Date Range</SelectItem>
-                    <SelectItem value="assistantId">Assistant</SelectItem>
+                    <SelectItem value="">All Types</SelectItem>
+                    <SelectItem value="inbound">Inbound</SelectItem>
+                    <SelectItem value="outbound">Outbound</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
 
-                <Select value={newFilterOperator} onValueChange={(value: any) => setNewFilterOperator(value)}>
-                  <SelectTrigger data-testid="select-filter-operator">
-                    <SelectValue placeholder="Operator" />
+              {/* Assistant Filter */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Assistant</Label>
+                <Select value={selectedAssistant} onValueChange={setSelectedAssistant}>
+                  <SelectTrigger data-testid="select-assistant">
+                    <SelectValue placeholder="All assistants" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="equals">Equals</SelectItem>
-                    <SelectItem value="greater">Greater than</SelectItem>
-                    <SelectItem value="less">Less than</SelectItem>
-                    <SelectItem value="between">Between</SelectItem>
-                    <SelectItem value="contains">Contains</SelectItem>
+                    <SelectItem value="">All Assistants</SelectItem>
+                    {assistants.map((assistant) => (
+                      <SelectItem key={assistant} value={assistant}>{assistant}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
+              </div>
 
+              {/* Phone Number Filters */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Assistant Phone</Label>
+                <Input
+                  type="tel"
+                  placeholder="Assistant phone number"
+                  value={assistantPhoneFilter}
+                  onChange={(e) => setAssistantPhoneFilter(e.target.value)}
+                  data-testid="input-assistant-phone"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Customer Phone</Label>
+                <Input
+                  type="tel"
+                  placeholder="Customer phone number"
+                  value={customerPhoneFilter}
+                  onChange={(e) => setCustomerPhoneFilter(e.target.value)}
+                  data-testid="input-customer-phone"
+                />
+              </div>
+
+              {/* Call ID Filter */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Call ID</Label>
+                <Input
+                  placeholder="Search by call ID"
+                  value={callIdFilter}
+                  onChange={(e) => setCallIdFilter(e.target.value)}
+                  data-testid="input-call-id"
+                />
+              </div>
+
+              {/* Success Evaluation Filter */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Success Evaluation</Label>
+                <Select value={selectedSuccessEvaluation} onValueChange={setSelectedSuccessEvaluation}>
+                  <SelectTrigger data-testid="select-success-evaluation">
+                    <SelectValue placeholder="All evaluations" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Evaluations</SelectItem>
+                    <SelectItem value="pass">Pass</SelectItem>
+                    <SelectItem value="fail">Fail</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Ended Reason Filter */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Ended Reason</Label>
+                <Select value={selectedEndedReason} onValueChange={setSelectedEndedReason}>
+                  <SelectTrigger data-testid="select-ended-reason">
+                    <SelectValue placeholder="All end reasons" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Reasons</SelectItem>
+                    {endedReasons.map((reason) => (
+                      <SelectItem key={reason} value={reason}>{reason}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Cost Range Filter */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Cost Range ($)</Label>
                 <div className="flex space-x-2">
                   <Input
-                    placeholder="Value"
-                    value={newFilterValue}
-                    onChange={(e) => setNewFilterValue(e.target.value)}
-                    data-testid="input-filter-value"
+                    type="number"
+                    step="0.01"
+                    placeholder="Min cost"
+                    value={costRange.min || ''}
+                    onChange={(e) => setCostRange(prev => ({...prev, min: e.target.value}))}
+                    data-testid="input-cost-min"
                   />
-                  {newFilterOperator === 'between' && (
-                    <Input
-                      placeholder="To"
-                      value={newFilterValue2}
-                      onChange={(e) => setNewFilterValue2(e.target.value)}
-                      data-testid="input-filter-value2"
-                    />
-                  )}
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="Max cost"
+                    value={costRange.max || ''}
+                    onChange={(e) => setCostRange(prev => ({...prev, max: e.target.value}))}
+                    data-testid="input-cost-max"
+                  />
                 </div>
-
-                <Button 
-                  onClick={addFilter} 
-                  size="sm" 
-                  className="w-full"
-                  disabled={!newFilterValue}
-                  data-testid="button-add-filter"
-                >
-                  <Plus size={16} className="mr-1" />
-                  Add Filter
-                </Button>
               </div>
 
-              {/* Active Filters */}
+              {/* Duration Range Filter */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Active Filters ({filters.length})</Label>
-                {filters.length === 0 ? (
-                  <p className="text-xs text-muted-foreground italic">No filters applied - analyzing all calls</p>
-                ) : (
-                  <div className="space-y-2">
-                    {filters.map((filter) => (
-                      <div key={filter.id} className="flex items-center justify-between p-2 bg-background rounded border">
-                        <span className="text-sm">{filter.label}</span>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => removeFilter(filter.id)}
-                          data-testid={`button-remove-filter-${filter.id}`}
-                        >
-                          <X size={14} />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <Label className="text-sm font-medium">Duration Range (seconds)</Label>
+                <div className="flex space-x-2">
+                  <Input
+                    type="number"
+                    placeholder="Min seconds"
+                    value={durationRange.min || ''}
+                    onChange={(e) => setDurationRange(prev => ({...prev, min: e.target.value}))}
+                    data-testid="input-duration-min"
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Max seconds"
+                    value={durationRange.max || ''}
+                    onChange={(e) => setDurationRange(prev => ({...prev, max: e.target.value}))}
+                    data-testid="input-duration-max"
+                  />
+                </div>
               </div>
+
+              {/* Clear All Filters Button */}
+              <Button 
+                onClick={clearAllFilters}
+                variant="outline" 
+                size="sm" 
+                className="w-full"
+                disabled={getActiveFilterCount() === 0}
+                data-testid="button-clear-filters"
+              >
+                Clear All Filters
+              </Button>
 
               {/* Filtered Dataset Info */}
               <Card className="bg-muted/30">
@@ -375,6 +567,17 @@ export default function BulkAnalysis() {
                         `${filteredCalls?.length || 0} calls`
                       )}
                     </Badge>
+                  </div>
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Active Filters:</span>
+                      <span>{getActiveFilterCount()}</span>
+                    </div>
+                    {getActiveFilterCount() > 0 && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Filtered from {allCalls?.length || 0} total calls
+                      </div>
+                    )}
                   </div>
                   {filteredCalls && filteredCalls.length > 0 && (
                     <div className="mt-2 text-xs text-muted-foreground">

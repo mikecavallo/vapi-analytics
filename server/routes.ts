@@ -313,8 +313,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Vapi API key not configured." });
       }
 
-      // Fetch calls with transcripts
-      const response = await fetch("https://api.vapi.ai/call?limit=100", {
+      // Fetch calls with transcripts (removed limit to get all calls)
+      const response = await fetch("https://api.vapi.ai/call", {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${vapiApiKey}`,
