@@ -14,7 +14,7 @@ export default function Dashboard() {
   const { toast } = useToast();
 
   const { data, isLoading, error, refetch } = useQuery<DashboardData>({
-    queryKey: ["/api/analytics", timeRange],
+    queryKey: ["/api/analytics/summary", `?timeRange=${timeRange}`],
     enabled: true,
   });
 
