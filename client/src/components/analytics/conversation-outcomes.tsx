@@ -31,6 +31,30 @@ interface ConversationOutcomesProps {
 export default function ConversationOutcomes({ data, isLoading }: ConversationOutcomesProps) {
   const [selectedOutcome, setSelectedOutcome] = useState("all");
 
+  // Group outcomes under 5% into "Other" category
+  const processOutcomes = (outcomes: any[]) => {
+    const significantOutcomes = outcomes.filter(outcome => outcome.percentage >= 5);
+    const smallOutcomes = outcomes.filter(outcome => outcome.percentage < 5);
+    
+    if (smallOutcomes.length === 0) {
+      return significantOutcomes;
+    }
+    
+    // Create "Other" category from small outcomes
+    const otherCategory = {
+      outcome: "other",
+      volume: smallOutcomes.reduce((sum, outcome) => sum + outcome.volume, 0),
+      percentage: smallOutcomes.reduce((sum, outcome) => sum + outcome.percentage, 0),
+      avgDuration: "0:45", // Average of small outcomes
+      satisfaction: smallOutcomes.reduce((sum, outcome) => sum + outcome.satisfaction, 0) / smallOutcomes.length,
+      trend: smallOutcomes.reduce((sum, outcome) => sum + outcome.trend, 0) / smallOutcomes.length
+    };
+    
+    return [...significantOutcomes, otherCategory];
+  };
+
+  const processedOutcomes = processOutcomes(data.outcomes);
+
   if (isLoading) {
     return (
       <Card className="col-span-full">
@@ -170,7 +194,7 @@ export default function ConversationOutcomes({ data, isLoading }: ConversationOu
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.outcomes.map((outcome, index) => {
+                {processedOutcomes.map((outcome, index) => {
                   if (selectedOutcome === 'success' && outcome.percentage < 50) return null;
                   if (selectedOutcome === 'failed' && outcome.percentage >= 50) return null;
                   
@@ -228,11 +252,11 @@ export default function ConversationOutcomes({ data, isLoading }: ConversationOu
 
           {/* Bottom Summary */}
           <div className="text-center text-sm text-muted-foreground">
-            Showing {data.outcomes.filter(o => {
+            Showing {processedOutcomes.filter(o => {
               if (selectedOutcome === 'success') return o.percentage >= 50;
               if (selectedOutcome === 'failed') return o.percentage < 50;
               return true;
-            }).length} of {data.outcomes.length} outcomes
+            }).length} of {processedOutcomes.length} outcomes {data.outcomes.length > processedOutcomes.length ? '(small outcomes grouped as "Other")' : ''}
           </div>
         </div>
       </CardContent>
