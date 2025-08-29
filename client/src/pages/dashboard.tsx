@@ -10,6 +10,7 @@ import DurationDistribution from "@/components/analytics/duration-distribution";
 import PeakUsageHeatmap from "@/components/analytics/peak-usage-heatmap";
 import ConversationOutcomes from "@/components/analytics/conversation-outcomes";
 import WarningsPanel from "@/components/analytics/warnings-panel";
+import MostSuccessfulAgent from "@/components/analytics/most-successful-agent";
 import DailyMetricsCharts from "@/components/analytics/daily-metrics-charts";
 import AIChatbot from "@/components/ai-chatbot";
 import { Button } from "@/components/ui/button";
@@ -147,9 +148,12 @@ export default function Dashboard() {
           <KpiCards data={data} isLoading={isLoading} />
         </section>
 
-        {/* Warnings Panel */}
+        {/* Warnings and Top Agent Panel */}
         <section className="mb-8">
-          <WarningsPanel data={data} isLoading={isLoading} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <WarningsPanel data={data} isLoading={isLoading} />
+            <MostSuccessfulAgent data={data} isLoading={isLoading} />
+          </div>
         </section>
 
         {/* Charts */}
