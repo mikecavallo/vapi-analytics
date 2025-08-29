@@ -77,7 +77,7 @@ export default function AIChatbot({ callData }: AIChatbotProps) {
     const lowerQuery = query.toLowerCase();
     
     if (lowerQuery.includes('total') && lowerQuery.includes('call')) {
-      return `Based on your data, you have ${data?.kpis?.totalCalls || 863} total calls with an average duration of ${data?.kpis?.avgDuration || 1.23} seconds.`;
+      return `Based on your data, you have ${data?.kpis?.totalCalls || 863} total calls with an average duration of ${data?.kpis?.avgDuration ? Math.round(data.kpis.avgDuration / 60 * 100) / 100 : 1.23} minutes.`;
     }
     
     if (lowerQuery.includes('success') || lowerQuery.includes('rate')) {
@@ -89,7 +89,7 @@ export default function AIChatbot({ callData }: AIChatbotProps) {
     }
     
     if (lowerQuery.includes('duration') || lowerQuery.includes('long')) {
-      return `The average call duration is ${data?.kpis?.avgDuration || 1.23} seconds. Most calls fall into the 2-3 minute range based on your duration distribution.`;
+      return `The average call duration is ${data?.kpis?.avgDuration ? Math.round(data.kpis.avgDuration / 60 * 100) / 100 : 1.23} minutes. Most calls fall into the 2-3 minute range based on your duration distribution.`;
     }
     
     if (lowerQuery.includes('outcome') || lowerQuery.includes('end')) {

@@ -285,12 +285,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const callData = await response.json();
       
-      // Calculate duration if timestamps are available
+      // Calculate duration if timestamps are available, otherwise convert from minutes to seconds
       if (callData.endedAt && callData.startedAt) {
         const durationInSeconds = Math.round(
           (new Date(callData.endedAt).getTime() - new Date(callData.startedAt).getTime()) / 1000
         );
         callData.duration = durationInSeconds;
+      } else if (callData.duration) {
+        // Convert Vapi duration from minutes to seconds
+        callData.duration = Math.round(callData.duration * 60 * 100) / 100;
       }
       
       res.json(callData);
@@ -330,9 +333,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const enrichedCalls = calls.map((call: any) => ({
         id: call.id,
         transcript: call.transcript || "",
-        duration: call.duration || ((call.endedAt && call.startedAt) 
+        duration: (call.endedAt && call.startedAt) 
           ? Math.round((new Date(call.endedAt).getTime() - new Date(call.startedAt).getTime()) / 1000)
-          : 0),
+          : (call.duration ? Math.round(call.duration * 60 * 100) / 100 : 0), // Convert Vapi duration from minutes to seconds
         cost: call.cost || 0,
         status: call.status || 'ended',
         endedReason: call.endedReason || 'unknown',
@@ -537,7 +540,9 @@ async function transformVapiDataToDashboard(vapiData: any[], vapiApiKey?: string
   
   // Parse the numeric values from the API response (they come as strings)
   const totalCalls = parseInt(kpisData?.result?.[0]?.totalCalls || "0");
-  const avgDuration = Math.round(parseFloat(kpisData?.result?.[0]?.avgDuration || "0") * 100) / 100;
+  // Convert avgDuration from minutes to seconds (Vapi API returns duration in minutes)
+  const avgDurationMinutes = Math.round(parseFloat(kpisData?.result?.[0]?.avgDuration || "0") * 100) / 100;
+  const avgDuration = Math.round(avgDurationMinutes * 60 * 100) / 100; // Convert to seconds
   const totalCost = Math.round(parseFloat(kpisData?.result?.[0]?.totalCost || "0") * 100) / 100;
   
   // Calculate success rate from outcomes
@@ -573,7 +578,8 @@ async function transformVapiDataToDashboard(vapiData: any[], vapiApiKey?: string
       name: `Assistant ${item.assistantId}`,
       calls: parseInt(item.calls || "0"),
       successRate: Math.round((Math.random() * 20 + 80) * 100) / 100,
-      avgDuration: Math.round(parseFloat(item.avgDuration || "0") * 100) / 100,
+      // Convert assistant avgDuration from minutes to seconds (Vapi API returns duration in minutes)
+      avgDuration: Math.round(parseFloat(item.avgDuration || "0") * 60 * 100) / 100,
       totalCost: Math.round(parseFloat(item.totalCost || "0") * 100) / 100,
     })) || [],
     recentCalls: await fetchRecentCallsForDashboard(vapiApiKey),
@@ -583,9 +589,11 @@ async function transformVapiDataToDashboard(vapiData: any[], vapiApiKey?: string
       monthlyCostTrend: 5.2, // Simple mock trend
     },
     durationDistribution: totalCalls > 0 ? [
-      { range: "0-1s", count: Math.floor(totalCalls * 0.7) },
-      { range: "1-5s", count: Math.floor(totalCalls * 0.2) },
-      { range: "5-10s", count: Math.floor(totalCalls * 0.1) },
+      { range: "0-30s", count: Math.floor(totalCalls * 0.1) },
+      { range: "30s-2m", count: Math.floor(totalCalls * 0.3) },
+      { range: "2-5m", count: Math.floor(totalCalls * 0.4) },
+      { range: "5-10m", count: Math.floor(totalCalls * 0.15) },
+      { range: "10m+", count: Math.floor(totalCalls * 0.05) },
     ] : [],
     hourlyPatterns: totalCalls > 0 ? [
       { hour: 9, calls: Math.floor(totalCalls * 0.1) },
@@ -786,7 +794,7 @@ async function fetchRecentCallsForDashboard(vapiApiKey?: string): Promise<Dashbo
       assistantName: assistantNamesMap.get(call.assistantId) || call.assistant?.name || `Assistant ${(call.assistantId || 'Unknown').slice(0, 8)}`,
       duration: Math.round(((call.endedAt && call.startedAt) 
         ? (new Date(call.endedAt).getTime() - new Date(call.startedAt).getTime()) / 1000 
-        : (call.duration || 0)) * 100) / 100,
+        : (call.duration || 0) * 60) * 100) / 100, // Convert Vapi duration from minutes to seconds
       cost: Math.round((call.cost || 0) * 100) / 100,
       status: call.status || 'completed',
       endedReason: call.endedReason || 'unknown',
