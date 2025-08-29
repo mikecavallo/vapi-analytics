@@ -507,6 +507,11 @@ function getTimeRangeForQuery(timeRange: string): { start: string; end: string }
   let start: string;
   
   switch (timeRange) {
+    case "today":
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      start = today.toISOString();
+      break;
     case "last-7-days":
       start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       break;

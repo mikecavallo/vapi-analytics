@@ -12,6 +12,7 @@ export default function TimeRangeSelector({ value, onChange }: TimeRangeSelector
         <SelectValue placeholder="Select range" />
       </SelectTrigger>
       <SelectContent>
+        <SelectItem value="today">Today</SelectItem>
         <SelectItem value="last-7-days">Last 7 days</SelectItem>
         <SelectItem value="last-30-days">Last 30 days</SelectItem>
         <SelectItem value="last-90-days">Last 90 days</SelectItem>
