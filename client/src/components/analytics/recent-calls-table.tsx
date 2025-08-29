@@ -77,8 +77,8 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
     
     if (!evaluation) {
       // Fall back to business logic when no analysis data is available
-      const isSuccess = ['customer-ended-call', 'assistant-ended-call'].includes(call.endedReason) && 
-                       call.status === 'ended' && 
+      const isSuccess = ['customer-ended-call', 'assistant-ended-call', 'completed'].includes(call.endedReason) && 
+                       ['ended', 'completed'].includes(call.status) && 
                        call.duration > 30; // Calls longer than 30 seconds that ended normally
       evaluation = isSuccess ? 'Pass' : 'Fail';
     }
@@ -172,30 +172,30 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="max-h-96 overflow-auto">
+        <div className="max-h-96 overflow-auto relative">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted">
-                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Call ID</TableHead>
-                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Type</TableHead>
-                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Call ID</TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Type</TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">
                   <div className="flex items-center space-x-1">
                     <span>Assistant</span>
                     <Phone size={12} />
                   </div>
                 </TableHead>
-                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">
                   <div className="flex items-center space-x-1">
                     <span>Customer</span>
                     <Phone size={12} />
                   </div>
                 </TableHead>
-                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Assistant Name</TableHead>
-                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Date & Time</TableHead>
-                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Duration</TableHead>
-                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Cost</TableHead>
-                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Success Evaluation</TableHead>
-                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Actions</TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Assistant Name</TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Date & Time</TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Duration</TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Cost</TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Success Evaluation</TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
