@@ -79,8 +79,13 @@ export default function BulkAnalysis() {
     enabled: true,
   });
   
-  // Get unique assistants and ended reasons for dropdowns
-  const assistants = [...new Set(allCalls?.map(call => call.assistantName || call.assistantId).filter(Boolean))] || [];
+  // Get unique assistants with preference for names over IDs
+  const assistants = [...new Set(allCalls?.map(call => {
+    if (call.assistantName && call.assistantName.trim()) {
+      return call.assistantName;
+    }
+    return call.assistantId;
+  }).filter(Boolean))] || [];
   const endedReasons = [...new Set(allCalls?.map(call => call.endedReason).filter(Boolean))] || [];
   
   // Filter calls based on current filter criteria
@@ -96,7 +101,10 @@ export default function BulkAnalysis() {
     if (selectedCallType && selectedCallType !== 'all' && call.type !== selectedCallType) return false;
     
     // Assistant filter
-    if (selectedAssistant && selectedAssistant !== 'all' && (call.assistantName || call.assistantId) !== selectedAssistant) return false;
+    if (selectedAssistant && selectedAssistant !== 'all') {
+      const callAssistantDisplay = call.assistantName && call.assistantName.trim() ? call.assistantName : call.assistantId;
+      if (callAssistantDisplay !== selectedAssistant) return false;
+    }
     
     // Phone number filters
     if (assistantPhoneFilter && !call.assistantPhoneNumber?.includes(assistantPhoneFilter)) return false;
