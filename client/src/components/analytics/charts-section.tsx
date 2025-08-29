@@ -44,6 +44,31 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
 
   const processedCallOutcomes = processCallOutcomes(data?.callOutcomes || []);
   
+  // Filter call volume data based on selected time range
+  const getFilteredVolumeData = () => {
+    const volumeData = data?.callVolumeTrends || [];
+    const now = new Date();
+    
+    switch (volumeTimeRange) {
+      case "daily":
+        // Show last 7 days
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        return volumeData.filter(item => new Date(item.date) >= sevenDaysAgo);
+      case "weekly":
+        // Show last 4 weeks
+        const fourWeeksAgo = new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000);
+        return volumeData.filter(item => new Date(item.date) >= fourWeeksAgo);
+      case "monthly":
+        // Show last 6 months
+        const sixMonthsAgo = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+        return volumeData.filter(item => new Date(item.date) >= sixMonthsAgo);
+      default:
+        return volumeData;
+    }
+  };
+
+  const filteredVolumeData = getFilteredVolumeData();
+  
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -105,7 +130,7 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
         <CardContent>
           <div className="h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data?.callVolumeTrends || []}>
+              <LineChart data={filteredVolumeData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(214.3, 31.8%, 91.4%)" />
                 <XAxis 
                   dataKey="date" 
