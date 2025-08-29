@@ -136,11 +136,6 @@ export default function CallDetailsPopover({ callId, children }: CallDetailsPopo
             </div>
           ) : callDetails ? (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Status</span>
-                {getStatusBadge(callDetails.status)}
-              </div>
-              
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center space-x-2">
                   <Clock className="text-chart-3" size={16} />
