@@ -199,24 +199,6 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
         </CardContent>
       </Card>
 
-      {/* Duration Distribution */}
-      <Card data-testid="chart-duration-distribution">
-        <CardHeader>
-          <CardTitle>Call Duration Distribution</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data?.durationDistribution || []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(214.3, 31.8%, 91.4%)" />
-                <XAxis dataKey="range" stroke="hsl(215.4, 16.3%, 46.9%)" fontSize={12} />
-                <YAxis stroke="hsl(215.4, 16.3%, 46.9%)" fontSize={12} />
-                <Bar dataKey="count" fill={COLORS.chart3} radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Hourly Patterns */}
       <Card data-testid="chart-hourly-patterns">

@@ -111,7 +111,7 @@ export default function DurationDistribution({ data, isLoading }: DurationDistri
                 <Tooltip content={<CustomTooltip />} />
                 <Bar 
                   dataKey="count" 
-                  fill="hsl(var(--chart-1))"
+                  fill="hsl(43, 74%, 66%)"
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>
