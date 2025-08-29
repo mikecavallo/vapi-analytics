@@ -73,28 +73,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(cached);
       }
 
-      // If no cache, return minimal structure with loading indicators
-      const emptyData: DashboardData = {
-        kpis: {
-          totalCalls: 0,
-          avgDuration: 0,
-          successRate: 0,
-          totalCost: 0,
-        },
-        callVolumeTrends: [],
-        callOutcomes: [],
-        assistantPerformance: [],
-        recentCalls: [],
-        costAnalysis: {
-          avgCostPerCall: 0,
-          costPerMinute: 0,
-          monthlyCostTrend: 0,
-        },
-        durationDistribution: [],
-        hourlyPatterns: [],
-      };
+      // If no cache, try to fetch from Vapi API
+      const vapiApiKey = process.env.VAPI_API_KEY || process.env.VAPI_TOKEN || "";
+      if (!vapiApiKey) {
+        const emptyData: DashboardData = {
+          kpis: {
+            totalCalls: 0,
+            avgDuration: 0,
+            successRate: 0,
+            totalCost: 0,
+          },
+          callVolumeTrends: [],
+          callOutcomes: [],
+          assistantPerformance: [],
+          recentCalls: [],
+          costAnalysis: {
+            avgCostPerCall: 0,
+            costPerMinute: 0,
+            monthlyCostTrend: 0,
+          },
+          durationDistribution: [],
+          hourlyPatterns: [],
+        };
+        return res.json(emptyData);
+      }
 
-      res.json(emptyData);
+      try {
+        // Build analytics queries for Vapi API
+        const analyticsQueries = await buildAnalyticsQueries(timeRange);
+        
+        // Make request to Vapi Analytics API
+        const vapiResponse = await fetch("https://api.vapi.ai/analytics", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${vapiApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ queries: analyticsQueries }),
+        });
+
+        if (!vapiResponse.ok) {
+          const errorText = await vapiResponse.text();
+          console.error("Vapi API error:", errorText);
+          throw new Error(`Vapi API error: ${errorText}`);
+        }
+
+        const vapiData = await vapiResponse.json();
+        
+        // Transform Vapi data to dashboard format
+        const dashboardData = await transformVapiDataToDashboard(vapiData);
+        
+        // Cache the result
+        await storage.setCachedAnalytics(cacheKey, dashboardData);
+        
+        res.json(dashboardData);
+      } catch (error) {
+        console.error("Failed to fetch from Vapi API:", error);
+        // Return empty data if API fails
+        const emptyData: DashboardData = {
+          kpis: {
+            totalCalls: 0,
+            avgDuration: 0,
+            successRate: 0,
+            totalCost: 0,
+          },
+          callVolumeTrends: [],
+          callOutcomes: [],
+          assistantPerformance: [],
+          recentCalls: [],
+          costAnalysis: {
+            avgCostPerCall: 0,
+            costPerMinute: 0,
+            monthlyCostTrend: 0,
+          },
+          durationDistribution: [],
+          hourlyPatterns: [],
+        };
+        res.json(emptyData);
+      }
     } catch (error) {
       console.error("Summary API error:", error);
       res.status(500).json({ 
@@ -117,7 +173,7 @@ async function buildAnalyticsQueries(timeRange: string): Promise<VapiAnalyticsQu
       timeRange: { start, end },
       table: "call" as const,
       operations: [
-        { operation: "count", column: "*", alias: "totalCalls" },
+        { operation: "count", column: "id", alias: "totalCalls" },
         { operation: "avg", column: "duration", alias: "avgDuration" },
         { operation: "sum", column: "cost", alias: "totalCost" },
       ],
@@ -128,7 +184,7 @@ async function buildAnalyticsQueries(timeRange: string): Promise<VapiAnalyticsQu
       timeRange: { start, end, step: "day" },
       table: "call" as const,
       operations: [
-        { operation: "count", column: "*", alias: "calls" },
+        { operation: "count", column: "id", alias: "calls" },
       ],
       groupBy: ["date"],
     },
@@ -138,7 +194,7 @@ async function buildAnalyticsQueries(timeRange: string): Promise<VapiAnalyticsQu
       timeRange: { start, end },
       table: "call" as const,
       operations: [
-        { operation: "count", column: "*", alias: "count" },
+        { operation: "count", column: "id", alias: "count" },
       ],
       groupBy: ["endedReason"],
     },
@@ -148,23 +204,22 @@ async function buildAnalyticsQueries(timeRange: string): Promise<VapiAnalyticsQu
       timeRange: { start, end },
       table: "call" as const,
       operations: [
-        { operation: "count", column: "*", alias: "calls" },
+        { operation: "count", column: "id", alias: "calls" },
         { operation: "avg", column: "duration", alias: "avgDuration" },
         { operation: "sum", column: "cost", alias: "totalCost" },
       ],
       groupBy: ["assistantId"],
     },
-    // Recent calls
+    // Duration distribution
     {
-      name: "recent_calls",
+      name: "duration_distribution",
       timeRange: { start, end },
       table: "call" as const,
       operations: [
-        { operation: "count", column: "*", alias: "count" },
+        { operation: "count", column: "id", alias: "count" },
+        { operation: "avg", column: "duration", alias: "avgDuration" },
       ],
-      where: [
-        { column: "createdAt", operator: ">=", value: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() }
-      ],
+      groupBy: ["duration"],
     },
   ];
 }
