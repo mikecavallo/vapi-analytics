@@ -5,6 +5,10 @@ import KpiCards from "@/components/analytics/kpi-cards";
 import ChartsSection from "@/components/analytics/charts-section";
 import RecentCallsTable from "@/components/analytics/recent-calls-table";
 import TimeRangeSelector from "@/components/analytics/time-range-selector";
+import ConversationFlowAnalysis from "@/components/analytics/conversation-flow-analysis";
+import DurationDistribution from "@/components/analytics/duration-distribution";
+import PeakUsageHeatmap from "@/components/analytics/peak-usage-heatmap";
+import ConversationOutcomes from "@/components/analytics/conversation-outcomes";
 import { Button } from "@/components/ui/button";
 import { Download, ChartLine, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -129,6 +133,33 @@ export default function Dashboard() {
         {/* Recent Calls Table */}
         <section className="mb-8">
           <RecentCallsTable data={data?.recentCalls || []} isLoading={isLoading} />
+        </section>
+
+        {/* Advanced Analytics Grid */}
+        <section className="mb-8 grid grid-cols-1 gap-8">
+          {/* Conversation Flow Analysis */}
+          <ConversationFlowAnalysis 
+            data={data?.conversationFlow || { stages: [], successPaths: [], dropOffPoints: [] }} 
+            isLoading={isLoading} 
+          />
+          
+          {/* Duration Distribution */}
+          <DurationDistribution 
+            data={data?.durationHistogram || { histogram: [], stats: { average: "0:00", median: "0:00", mostCommon: "0:00", longest: "0:00" } }} 
+            isLoading={isLoading} 
+          />
+          
+          {/* Peak Usage Heatmap */}
+          <PeakUsageHeatmap 
+            data={data?.peakUsageHeatmap || { heatmapData: [], insights: { peakHours: "", busiestDay: "", quietHours: "" } }} 
+            isLoading={isLoading} 
+          />
+          
+          {/* Conversation Outcomes */}
+          <ConversationOutcomes 
+            data={data?.conversationOutcomes || { summary: { totalConversations: 0, successRate: 0, avgDuration: "0:00", avgSatisfaction: 0 }, outcomes: [] }} 
+            isLoading={isLoading} 
+          />
         </section>
       </main>
     </div>

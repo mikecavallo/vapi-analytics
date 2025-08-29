@@ -102,6 +102,65 @@ export const dashboardDataSchema = z.object({
     hour: z.number(),
     calls: z.number(),
   })),
+  // Advanced Analytics
+  conversationFlow: z.object({
+    stages: z.array(z.object({
+      name: z.string(),
+      performance: z.number(),
+      avgDuration: z.string(),
+      dropRate: z.number(),
+    })),
+    successPaths: z.array(z.object({
+      name: z.string(),
+      percentage: z.number(),
+    })),
+    dropOffPoints: z.array(z.object({
+      name: z.string(),
+      percentage: z.number(),
+    })),
+  }),
+  durationHistogram: z.object({
+    histogram: z.array(z.object({
+      range: z.string(),
+      count: z.number(),
+      percentage: z.number(),
+    })),
+    stats: z.object({
+      average: z.string(),
+      median: z.string(),
+      mostCommon: z.string(),
+      longest: z.string(),
+    }),
+  }),
+  peakUsageHeatmap: z.object({
+    heatmapData: z.array(z.object({
+      hour: z.string(),
+      day: z.string(),
+      calls: z.number(),
+      intensity: z.number(),
+    })),
+    insights: z.object({
+      peakHours: z.string(),
+      busiestDay: z.string(),
+      quietHours: z.string(),
+    }),
+  }),
+  conversationOutcomes: z.object({
+    summary: z.object({
+      totalConversations: z.number(),
+      successRate: z.number(),
+      avgDuration: z.string(),
+      avgSatisfaction: z.number(),
+    }),
+    outcomes: z.array(z.object({
+      outcome: z.string(),
+      volume: z.number(),
+      percentage: z.number(),
+      avgDuration: z.string(),
+      satisfaction: z.number(),
+      trend: z.number(),
+    })),
+  }),
 });
 
 export type DashboardData = z.infer<typeof dashboardDataSchema>;
