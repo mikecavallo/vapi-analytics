@@ -9,6 +9,7 @@ import ConversationFlowAnalysis from "@/components/analytics/conversation-flow-a
 import DurationDistribution from "@/components/analytics/duration-distribution";
 import PeakUsageHeatmap from "@/components/analytics/peak-usage-heatmap";
 import ConversationOutcomes from "@/components/analytics/conversation-outcomes";
+import AIChatbot from "@/components/ai-chatbot";
 import { Button } from "@/components/ui/button";
 import { Download, ChartLine, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -162,6 +163,9 @@ export default function Dashboard() {
           />
         </section>
       </main>
+
+      {/* AI Chatbot */}
+      <AIChatbot callData={data} />
     </div>
   );
 }

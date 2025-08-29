@@ -99,7 +99,7 @@ export default function CallDetailsPopover({ callId, children }: CallDetailsPopo
   };
 
   const openInVapi = () => {
-    window.open(`https://dashboard.vapi.ai/call/${callId}`, '_blank');
+    window.open(`https://dashboard.vapi.ai/calls?callId=${callId}`, '_blank');
   };
 
   return (

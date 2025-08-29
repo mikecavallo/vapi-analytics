@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,8 @@ interface DurationDistributionProps {
 }
 
 export default function DurationDistribution({ data, isLoading }: DurationDistributionProps) {
+  const [viewMode, setViewMode] = useState("histogram");
+
   if (isLoading) {
     return (
       <Card className="col-span-full lg:col-span-2">
@@ -71,12 +74,22 @@ export default function DurationDistribution({ data, isLoading }: DurationDistri
           <p className="text-sm text-muted-foreground">Conversation length analysis and patterns</p>
         </div>
         <div className="flex items-center space-x-2">
-          <Badge variant="outline" className="bg-chart-1/10 text-chart-1" data-testid="badge-histogram">
+          <Button
+            size="sm"
+            variant={viewMode === "histogram" ? "default" : "outline"}
+            onClick={() => setViewMode("histogram")}
+            data-testid="badge-histogram"
+          >
             Histogram
-          </Badge>
-          <Badge variant="outline" data-testid="badge-trend">
+          </Button>
+          <Button
+            size="sm"
+            variant={viewMode === "trend" ? "default" : "outline"}
+            onClick={() => setViewMode("trend")}
+            data-testid="badge-trend"
+          >
             Trend
-          </Badge>
+          </Button>
         </div>
       </CardHeader>
       <CardContent>

@@ -81,11 +81,38 @@ export default function ConversationFlowAnalysis({ data, isLoading }: Conversati
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Sankey Flow Diagram */}
           <div className="lg:col-span-2">
-            <div className="border rounded-lg p-6 h-64 flex items-center justify-center bg-muted/50">
-              <div className="text-center">
-                <div className="text-4xl mb-4 text-muted-foreground">🔄</div>
-                <h3 className="text-lg font-medium mb-2">Sankey Flow Diagram</h3>
-                <p className="text-sm text-muted-foreground">Interactive conversation flow visualization</p>
+            <div className="border rounded-lg p-6 h-64 bg-gradient-to-r from-muted/50 to-muted/30 relative overflow-hidden">
+              <div className="absolute inset-0 flex items-center justify-center">
+                {/* Simple Flow Visualization */}
+                <div className="flex items-center space-x-8">
+                  <div className="flex flex-col items-center">
+                    <div className="w-12 h-12 rounded-full bg-chart-2/20 flex items-center justify-center">
+                      <span className="text-chart-2 font-bold">95%</span>
+                    </div>
+                    <span className="text-xs mt-2">Call Start</span>
+                  </div>
+                  <div className="w-8 h-1 bg-chart-2/50 rounded"></div>
+                  <div className="flex flex-col items-center">
+                    <div className="w-12 h-12 rounded-full bg-chart-2/20 flex items-center justify-center">
+                      <span className="text-chart-2 font-bold">97%</span>
+                    </div>
+                    <span className="text-xs mt-2">Greeting</span>
+                  </div>
+                  <div className="w-8 h-1 bg-chart-2/50 rounded"></div>
+                  <div className="flex flex-col items-center">
+                    <div className="w-12 h-12 rounded-full bg-chart-3/20 flex items-center justify-center">
+                      <span className="text-chart-3 font-bold">92%</span>
+                    </div>
+                    <span className="text-xs mt-2">Intent Recognition</span>
+                  </div>
+                  <div className="w-8 h-1 bg-chart-3/50 rounded"></div>
+                  <div className="flex flex-col items-center">
+                    <div className="w-12 h-12 rounded-full bg-chart-4/20 flex items-center justify-center">
+                      <span className="text-chart-4 font-bold">75%</span>
+                    </div>
+                    <span className="text-xs mt-2">Resolution</span>
+                  </div>
+                </div>
               </div>
             </div>
 

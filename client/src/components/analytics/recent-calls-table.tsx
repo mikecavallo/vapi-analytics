@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Filter, Eye, Download } from "lucide-react";
+import { Search, Filter, Eye } from "lucide-react";
 import { DashboardData } from "@shared/schema";
 import CallDetailsPopover from "./call-details-popover";
 
@@ -16,31 +16,31 @@ interface RecentCallsTableProps {
 
 export default function RecentCallsTable({ data, isLoading }: RecentCallsTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [timeFilter, setTimeFilter] = useState("all");
 
   const filteredData = data.filter(call =>
     call.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
     call.assistantName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const paginatedData = filteredData.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-
   const formatDuration = (seconds: number) => {
+    if (isNaN(seconds) || seconds === null || seconds === undefined) {
+      return "0:00";
+    }
     const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
+    const remainingSeconds = Math.floor(seconds % 60);
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   const formatCurrency = (amount: number) => {
+    if (isNaN(amount) || amount === null || amount === undefined) {
+      return "$0.00";
+    }
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(amount);
   };
 
@@ -80,6 +80,45 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
         <div className="flex items-center justify-between">
           <CardTitle>Recent Calls</CardTitle>
           <div className="flex items-center space-x-4">
+            {/* Time Filter Buttons */}
+            <div className="flex space-x-1 border rounded-md p-1">
+              <Button
+                size="sm"
+                variant={timeFilter === "all" ? "default" : "ghost"}
+                onClick={() => setTimeFilter("all")}
+                className="h-7 px-2 text-xs"
+                data-testid="button-all-calls"
+              >
+                All
+              </Button>
+              <Button
+                size="sm"
+                variant={timeFilter === "week" ? "default" : "ghost"}
+                onClick={() => setTimeFilter("week")}
+                className="h-7 px-2 text-xs"
+                data-testid="button-week-calls"
+              >
+                Week
+              </Button>
+              <Button
+                size="sm"
+                variant={timeFilter === "month" ? "default" : "ghost"}
+                onClick={() => setTimeFilter("month")}
+                className="h-7 px-2 text-xs"
+                data-testid="button-month-calls"
+              >
+                Month
+              </Button>
+              <Button
+                size="sm"
+                variant={timeFilter === "custom" ? "default" : "ghost"}
+                onClick={() => setTimeFilter("custom")}
+                className="h-7 px-2 text-xs"
+                data-testid="button-custom-calls"
+              >
+                Custom
+              </Button>
+            </div>
             <div className="relative">
               <Input
                 type="text"
@@ -98,17 +137,17 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="overflow-x-auto">
+        <div className="max-h-96 overflow-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted">
-                <TableHead className="text-foreground font-medium">Call ID</TableHead>
-                <TableHead className="text-foreground font-medium">Assistant</TableHead>
-                <TableHead className="text-foreground font-medium">Duration</TableHead>
-                <TableHead className="text-foreground font-medium">Cost</TableHead>
-                <TableHead className="text-foreground font-medium">Status</TableHead>
-                <TableHead className="text-foreground font-medium">Date</TableHead>
-                <TableHead className="text-foreground font-medium">Actions</TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Call ID</TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Assistant</TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Duration</TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Cost</TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Status</TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Date</TableHead>
+                <TableHead className="text-foreground font-medium sticky top-0 bg-muted">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -124,16 +163,16 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                     <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                   </TableRow>
                 ))
-              ) : paginatedData.length === 0 ? (
+              ) : filteredData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     {searchQuery ? "No calls found matching your search." : "No calls available for the selected time range."}
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedData.map((call) => (
+                filteredData.map((call) => (
                   <TableRow key={call.id} className="hover:bg-muted/50 transition-colors" data-testid={`row-call-${call.id}`}>
-                    <TableCell className="font-mono text-sm">{call.id}</TableCell>
+                    <TableCell className="font-mono text-sm">{call.id.substring(0, 8)}...</TableCell>
                     <TableCell>{call.assistantName}</TableCell>
                     <TableCell>{formatDuration(call.duration)}</TableCell>
                     <TableCell>{formatCurrency(call.cost)}</TableCell>
@@ -154,9 +193,6 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                             <Eye size={14} />
                           </Button>
                         </CallDetailsPopover>
-                        <Button size="sm" variant="ghost" data-testid={`button-download-${call.id}`}>
-                          <Download size={14} />
-                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -165,45 +201,10 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
             </TableBody>
           </Table>
         </div>
-        {data.length > 0 && (
-          <div className="p-6 border-t border-border flex items-center justify-between">
+        {!isLoading && filteredData.length > 0 && (
+          <div className="p-4 border-t border-border text-center">
             <div className="text-sm text-muted-foreground">
-              Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} calls
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                data-testid="button-previous-page"
-              >
-                Previous
-              </Button>
-              {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
-                const pageNum = currentPage <= 2 ? i + 1 : currentPage - 1 + i;
-                if (pageNum > totalPages) return null;
-                return (
-                  <Button
-                    key={pageNum}
-                    size="sm"
-                    variant={pageNum === currentPage ? "default" : "ghost"}
-                    onClick={() => setCurrentPage(pageNum)}
-                    data-testid={`button-page-${pageNum}`}
-                  >
-                    {pageNum}
-                  </Button>
-                );
-              })}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                data-testid="button-next-page"
-              >
-                Next
-              </Button>
+              Showing {filteredData.length} {filteredData.length === 1 ? 'call' : 'calls'}
             </div>
           </div>
         )}

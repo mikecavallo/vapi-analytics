@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,6 +19,8 @@ const COLORS = {
 };
 
 export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
+  const [volumeTimeRange, setVolumeTimeRange] = useState("daily");
+  
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -49,13 +52,28 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
           <div className="flex items-center justify-between">
             <CardTitle>Call Volume Trends</CardTitle>
             <div className="flex space-x-2">
-              <Button size="sm" className="bg-primary text-primary-foreground" data-testid="button-daily">
+              <Button 
+                size="sm" 
+                variant={volumeTimeRange === "daily" ? "default" : "ghost"}
+                onClick={() => setVolumeTimeRange("daily")}
+                data-testid="button-daily"
+              >
                 Daily
               </Button>
-              <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground" data-testid="button-weekly">
+              <Button 
+                size="sm" 
+                variant={volumeTimeRange === "weekly" ? "default" : "ghost"}
+                onClick={() => setVolumeTimeRange("weekly")}
+                data-testid="button-weekly"
+              >
                 Weekly
               </Button>
-              <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground" data-testid="button-monthly">
+              <Button 
+                size="sm" 
+                variant={volumeTimeRange === "monthly" ? "default" : "ghost"}
+                onClick={() => setVolumeTimeRange("monthly")}
+                data-testid="button-monthly"
+              >
                 Monthly
               </Button>
             </div>
