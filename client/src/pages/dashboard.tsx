@@ -11,7 +11,8 @@ import PeakUsageHeatmap from "@/components/analytics/peak-usage-heatmap";
 import ConversationOutcomes from "@/components/analytics/conversation-outcomes";
 import AIChatbot from "@/components/ai-chatbot";
 import { Button } from "@/components/ui/button";
-import { Download, ChartLine, User, Sun, Moon } from "lucide-react";
+import { Download, ChartLine, User, Sun, Moon, Brain } from "lucide-react";
+import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
 
@@ -19,6 +20,7 @@ export default function Dashboard() {
   const [timeRange, setTimeRange] = useState("all-time");
   const { toast } = useToast();
   const { theme, toggleTheme } = useTheme();
+  const [location] = useLocation();
 
   const { data, isLoading, error, refetch } = useQuery<DashboardData>({
     queryKey: ["/api/analytics/summary", `?timeRange=${timeRange}`],
@@ -90,9 +92,13 @@ export default function Dashboard() {
                 </h1>
               </div>
               <nav className="hidden md:flex space-x-8">
-                <a href="#" className="text-primary border-b-2 border-primary pb-4 px-1 text-sm font-medium">
+                <Link href="/dashboard" className="text-primary border-b-2 border-primary pb-4 px-1 text-sm font-medium">
                   Dashboard
-                </a>
+                </Link>
+                <Link href="/bulk-analysis" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
+                  <Brain size={16} />
+                  <span>Bulk Analysis</span>
+                </Link>
                 <a href="#" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
                   Reports
                 </a>

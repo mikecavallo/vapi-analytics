@@ -94,6 +94,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
           durationDistribution: [],
           hourlyPatterns: [],
+          conversationFlow: {
+            stages: [],
+            successPaths: [],
+            dropOffPoints: [],
+          },
+          durationHistogram: {
+            histogram: [],
+            stats: {
+              average: "0:00",
+              median: "0:00",
+              mostCommon: "0s",
+              longest: "0:00",
+            },
+          },
+          peakUsageHeatmap: {
+            heatmapData: [],
+            insights: {
+              peakHours: "N/A",
+              busiestDay: "N/A",
+              quietHours: "N/A",
+            },
+          },
+          conversationOutcomes: {
+            summary: {
+              totalConversations: 0,
+              successRate: 0,
+              avgDuration: "0:00",
+              avgSatisfaction: 0,
+            },
+            outcomes: [],
+          },
         };
         return res.json(emptyData);
       }
@@ -148,6 +179,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
           durationDistribution: [],
           hourlyPatterns: [],
+          conversationFlow: {
+            stages: [],
+            successPaths: [],
+            dropOffPoints: [],
+          },
+          durationHistogram: {
+            histogram: [],
+            stats: {
+              average: "0:00",
+              median: "0:00",
+              mostCommon: "0s",
+              longest: "0:00",
+            },
+          },
+          peakUsageHeatmap: {
+            heatmapData: [],
+            insights: {
+              peakHours: "N/A",
+              busiestDay: "N/A",
+              quietHours: "N/A",
+            },
+          },
+          conversationOutcomes: {
+            summary: {
+              totalConversations: 0,
+              successRate: 0,
+              avgDuration: "0:00",
+              avgSatisfaction: 0,
+            },
+            outcomes: [],
+          },
         };
         res.json(emptyData);
       }
@@ -236,6 +298,165 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Call details API error:", error);
       res.status(500).json({ 
         error: error instanceof Error ? error.message : "Internal server error" 
+      });
+    }
+  });
+
+  // Bulk analysis endpoints
+  app.get("/api/bulk-analysis/calls", async (req, res) => {
+    try {
+      const vapiApiKey = process.env.VAPI_API_KEY || "";
+      if (!vapiApiKey) {
+        return res.status(500).json({ error: "Vapi API key not configured." });
+      }
+
+      // Fetch calls with transcripts
+      const response = await fetch("https://api.vapi.ai/call?limit=100", {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${vapiApiKey}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        return res.status(response.status).json({ error: "Failed to fetch calls" });
+      }
+
+      const callsData = await response.json();
+      const calls = Array.isArray(callsData) ? callsData : (callsData.data || []);
+      
+      // Return calls with transcripts and basic info
+      const enrichedCalls = calls.map((call: any) => ({
+        id: call.id,
+        transcript: call.transcript || "",
+        duration: call.duration || ((call.endedAt && call.startedAt) 
+          ? Math.round((new Date(call.endedAt).getTime() - new Date(call.startedAt).getTime()) / 1000)
+          : 0),
+        cost: call.cost || 0,
+        status: call.status || 'ended',
+        endedReason: call.endedReason || 'unknown',
+        assistantId: call.assistantId,
+        createdAt: call.createdAt || call.startedAt,
+        type: call.type === 'inboundPhoneCall' ? 'inbound' : 'outbound',
+      }));
+
+      res.json(enrichedCalls);
+    } catch (error) {
+      console.error("Bulk analysis calls error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/bulk-analysis/analyze", async (req, res) => {
+    try {
+      const { query, filters, callIds } = req.body;
+      const openaiApiKey = process.env.OPENAI_API_KEY;
+      
+      if (!openaiApiKey) {
+        return res.status(500).json({ error: "OpenAI API key not configured" });
+      }
+
+      const vapiApiKey = process.env.VAPI_API_KEY || "";
+      
+      // Fetch detailed transcripts for the specified calls
+      const transcriptPromises = callIds.slice(0, 20).map(async (callId: string) => {
+        try {
+          const response = await fetch(`https://api.vapi.ai/call/${callId}`, {
+            method: "GET",
+            headers: {
+              "Authorization": `Bearer ${vapiApiKey}`,
+              "Content-Type": "application/json",
+            },
+          });
+          
+          if (response.ok) {
+            const callData = await response.json();
+            return {
+              id: callId,
+              transcript: callData.transcript || "",
+              duration: callData.duration || 0,
+              cost: callData.cost || 0,
+              endedReason: callData.endedReason,
+              status: callData.status
+            };
+          }
+        } catch (error) {
+          console.error(`Failed to fetch call ${callId}:`, error);
+        }
+        return null;
+      });
+
+      const transcripts = (await Promise.all(transcriptPromises)).filter(Boolean);
+      
+      // Prepare data for OpenAI analysis
+      const analysisContext = {
+        totalCalls: transcripts.length,
+        transcripts: transcripts.map(t => ({
+          id: t!.id,
+          text: t!.transcript.substring(0, 2000), // Limit transcript length
+          duration: t!.duration,
+          cost: t!.cost,
+          outcome: t!.endedReason
+        })),
+        filters: filters
+      };
+
+      // Call OpenAI for analysis
+      const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${openaiApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-5", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+          messages: [
+            {
+              role: "system",
+              content: `You are an expert call analytics assistant analyzing voice AI call transcripts. 
+              
+              Analyze the provided call transcripts data and answer questions about:
+              - Agent performance patterns and behaviors
+              - Customer satisfaction and sentiment
+              - Conversation flow and bottlenecks  
+              - Transcription quality issues
+              - Success/failure patterns
+              - Common topics and themes
+              
+              Provide specific, actionable insights based on the actual transcript data. 
+              Be concise but thorough, and support findings with specific examples when possible.`
+            },
+            {
+              role: "user", 
+              content: `Analyze this call transcript dataset and answer: "${query}"
+              
+              Dataset: ${JSON.stringify(analysisContext, null, 2)}`
+            }
+          ],
+          max_tokens: 1000,
+          temperature: 0.1,
+        }),
+      });
+
+      if (!openaiResponse.ok) {
+        throw new Error("OpenAI analysis failed");
+      }
+
+      const openaiResult = await openaiResponse.json();
+      const analysis = openaiResult.choices[0].message.content;
+
+      res.json({
+        analysis,
+        analysisType: "transcript_analysis",
+        datasetSize: transcripts.length,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error("Analysis error:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Analysis failed" 
       });
     }
   });
@@ -539,7 +760,8 @@ async function fetchRecentCallsForDashboard(vapiApiKey?: string): Promise<Dashbo
     const calls = Array.isArray(callsData) ? callsData : (callsData.data || []);
     
     // Get unique assistant IDs for batch fetching
-    const uniqueAssistantIds = [...new Set(calls.map((call: any) => call.assistantId).filter(Boolean))];
+    const assistantIds = calls.map((call: any) => call.assistantId).filter(Boolean);
+    const uniqueAssistantIds = Array.from(new Set(assistantIds));
     
     // Fetch assistant names in parallel
     const assistantNamesMap = new Map<string, string>();
