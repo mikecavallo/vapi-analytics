@@ -2,9 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, TrendingDown, TrendingUp, Clock, DollarSign, Users, Activity, Info } from "lucide-react";
+import { AlertTriangle, TrendingDown, TrendingUp, Clock, DollarSign, Users, Activity } from "lucide-react";
 import { DashboardData } from "@shared/schema";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface WarningsPanelProps {
   data?: DashboardData;
@@ -244,67 +243,32 @@ export default function WarningsPanel({ data, isLoading }: WarningsPanelProps) {
             </AlertDescription>
           </Alert>
         ) : (
-          <TooltipProvider>
-            <div className="space-y-3">
-              {warnings.map((warning) => {
-                const IconComponent = warning.icon;
-                return (
-                  <Tooltip key={warning.id}>
-                    <TooltipTrigger asChild>
-                      <Alert className={`${getWarningColor(warning.type)} cursor-help hover:shadow-sm transition-shadow`} data-testid={`warning-${warning.id}`}>
-                        <div className="flex items-start space-x-3">
-                          <IconComponent className="mt-0.5 text-current" size={16} />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <h4 className="font-medium text-sm flex items-center space-x-1">
-                                <span>{warning.title}</span>
-                                <Info size={12} className="text-muted-foreground" />
-                              </h4>
-                              <div className="flex items-center space-x-2">
-                                <Badge className={`text-xs ${getWarningBadgeColor(warning.type)} border-0`}>
-                                  {warning.type.toUpperCase()}
-                                </Badge>
-                                <span className="text-xs font-mono">{warning.value}</span>
-                              </div>
-                            </div>
-                            <AlertDescription className="text-xs leading-relaxed">
-                              {warning.description}
-                            </AlertDescription>
-                          </div>
-                        </div>
-                      </Alert>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-sm p-4">
-                      <div className="space-y-2">
-                        <p className="font-medium text-foreground">Detailed Analysis</p>
-                        <div className="space-y-1 text-sm">
-                          {warning.type === 'critical' ? (
-                            <>
-                              <p><span className="font-medium text-destructive">Impact:</span> High - Immediate attention required</p>
-                              <p><span className="font-medium">Action:</span> Review assistant configuration and call flows</p>
-                              <p><span className="font-medium">Timeline:</span> Address within 24 hours</p>
-                            </>
-                          ) : warning.type === 'warning' ? (
-                            <>
-                              <p><span className="font-medium text-orange-500">Impact:</span> Medium - Should be addressed soon</p>
-                              <p><span className="font-medium">Action:</span> Monitor trends and optimize if needed</p>
-                              <p><span className="font-medium">Timeline:</span> Address within 1-3 days</p>
-                            </>
-                          ) : (
-                            <>
-                              <p><span className="font-medium text-blue-500">Impact:</span> Low - For awareness</p>
-                              <p><span className="font-medium">Action:</span> Monitor for patterns</p>
-                              <p><span className="font-medium">Timeline:</span> No immediate action required</p>
-                            </>
-                          )}
+          <div className="space-y-3">
+            {warnings.map((warning) => {
+              const IconComponent = warning.icon;
+              return (
+                <Alert key={warning.id} className={getWarningColor(warning.type)} data-testid={`warning-${warning.id}`}>
+                  <div className="flex items-start space-x-3">
+                    <IconComponent className="mt-0.5 text-current" size={16} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="font-medium text-sm">{warning.title}</h4>
+                        <div className="flex items-center space-x-2">
+                          <Badge className={`text-xs ${getWarningBadgeColor(warning.type)} border-0`}>
+                            {warning.type.toUpperCase()}
+                          </Badge>
+                          <span className="text-xs font-mono">{warning.value}</span>
                         </div>
                       </div>
-                    </TooltipContent>
-                  </Tooltip>
-                );
-              })}
-            </div>
-          </TooltipProvider>
+                      <AlertDescription className="text-xs leading-relaxed">
+                        {warning.description}
+                      </AlertDescription>
+                    </div>
+                  </div>
+                </Alert>
+              );
+            })}
+          </div>
         )}
       </CardContent>
     </Card>

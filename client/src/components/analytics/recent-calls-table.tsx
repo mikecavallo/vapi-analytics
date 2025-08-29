@@ -293,83 +293,9 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                         })}
                       </span>
                     </TableCell>
-                    <TableCell>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="cursor-help hover:bg-muted rounded px-1 py-0.5 transition-colors">
-                              {formatDuration(call.duration)}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <div className="space-y-1 text-sm">
-                              <p className="font-medium">Duration Analysis</p>
-                              <div className="space-y-1">
-                                <p><span className="font-medium">Length:</span> {formatDuration(call.duration)}</p>
-                                <p><span className="font-medium">Type:</span> {call.duration > 300 ? "Long conversation" : call.duration > 120 ? "Standard call" : "Quick interaction"}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {call.duration > 300 ? "🕐 Detailed discussion or complex issue" :
-                                   call.duration > 120 ? "⏱️ Typical conversation length" :
-                                   "⚡ Brief exchange or early disconnect"}
-                                </p>
-                              </div>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </TableCell>
-                    <TableCell>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="cursor-help hover:bg-muted rounded px-1 py-0.5 transition-colors">
-                              {formatCurrency(call.cost)}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <div className="space-y-1 text-sm">
-                              <p className="font-medium">Cost Breakdown</p>
-                              <div className="space-y-1">
-                                <p><span className="font-medium">Total:</span> {formatCurrency(call.cost)}</p>
-                                <p><span className="font-medium">Per Minute:</span> {formatCurrency((call.cost / (call.duration / 60)) || 0)}</p>
-                                <p><span className="font-medium">Cost Tier:</span> {call.cost > 2.0 ? "High" : call.cost > 1.0 ? "Medium" : "Low"}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {call.cost > 2.0 ? "💰 Premium interaction cost" :
-                                   call.cost > 1.0 ? "💵 Standard cost range" :
-                                   "💚 Cost-effective interaction"}
-                                </p>
-                              </div>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </TableCell>
-                    <TableCell>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="cursor-help">
-                              {getSuccessEvaluationBadge(call)}
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <div className="space-y-1 text-sm">
-                              <p className="font-medium">Success Analysis</p>
-                              <div className="space-y-1">
-                                <p><span className="font-medium">Status:</span> {call.successEvaluation === 'true' || call.successEvaluation === true ? "Successful" : "Failed"}</p>
-                                <p><span className="font-medium">Duration Factor:</span> {call.duration > 60 ? "Adequate time" : "Short interaction"}</p>
-                                <p><span className="font-medium">Outcome:</span> {call.endedReason || "Not specified"}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {call.successEvaluation === 'true' || call.successEvaluation === true ? 
-                                    "✅ Objective achieved successfully" : 
-                                    "❌ Did not meet success criteria"}
-                                </p>
-                              </div>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </TableCell>
+                    <TableCell>{formatDuration(call.duration)}</TableCell>
+                    <TableCell>{formatCurrency(call.cost)}</TableCell>
+                    <TableCell>{getSuccessEvaluationBadge(call)}</TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         <CallDetailsPopover callId={call.id}>

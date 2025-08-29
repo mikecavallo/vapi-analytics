@@ -3,9 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
-import { TrendingUp, Clock, Users, Info } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { TrendingUp, Clock, Users } from "lucide-react";
 
 interface DurationDistributionProps {
   data: {
@@ -55,28 +54,12 @@ export default function DurationDistribution({ data, isLoading }: DurationDistri
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      const isPopularRange = data.percentage > 20;
-      const isLongCall = label.includes('10+') || label.includes('15+');
-      
       return (
-        <div className="bg-background border border-border rounded-lg shadow-lg p-4 min-w-[220px]">
-          <p className="font-medium text-foreground mb-2">Duration: {label}</p>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between items-center">
-              <span className="text-blue-400">📞 Calls:</span>
-              <span className="font-medium">{data.count.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Percentage:</span>
-              <span className="font-medium">{data.percentage.toFixed(1)}%</span>
-            </div>
-            <div className="pt-2 border-t text-xs text-muted-foreground">
-              {isPopularRange ? '🎯 Common call duration - majority of conversations' :
-               isLongCall ? '⏰ Extended conversations - complex discussions or detailed support' :
-               '⚡ Quick interactions - brief exchanges or early disconnects'}
-            </div>
-          </div>
+        <div className="bg-background border rounded-lg shadow-lg p-3">
+          <p className="font-medium">{label}</p>
+          <p className="text-chart-1">
+            <span className="font-medium">{payload[0].value}</span> calls ({payload[0].payload.percentage}%)
+          </p>
         </div>
       );
     }
@@ -125,7 +108,7 @@ export default function DurationDistribution({ data, isLoading }: DurationDistri
                   fontSize={12}
                   className="text-muted-foreground"
                 />
-                <RechartsTooltip content={<CustomTooltip />} />
+                <Tooltip content={<CustomTooltip />} />
                 <Bar 
                   dataKey="count" 
                   fill="hsl(43, 74%, 66%)"

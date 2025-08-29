@@ -1,7 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Phone, Clock, CheckCircle, DollarSign, TrendingUp, TrendingDown, Info } from "lucide-react";
+import { Phone, Clock, CheckCircle, DollarSign, TrendingUp, TrendingDown } from "lucide-react";
 import { DashboardData } from "@shared/schema";
 
 interface KpiCardsProps {
@@ -84,103 +83,46 @@ export default function KpiCards({ data, isLoading }: KpiCardsProps) {
     },
   ];
 
-  const getKpiInsights = (title: string, value: number, trend: number) => {
-    const insights = {
-      "Total Calls": {
-        context: "Total number of calls processed",
-        benchmark: value > 100 ? "Above average volume" : "Moderate volume",
-        recommendation: trend < 0 ? "Consider marketing initiatives" : "Maintain current performance"
-      },
-      "Avg Duration": {
-        context: "Average call duration in minutes and seconds", 
-        benchmark: value > 180 ? "Longer than typical" : value > 120 ? "Standard length" : "Shorter calls",
-        recommendation: value < 60 ? "May indicate quick resolutions or early hang-ups" : "Good engagement duration"
-      },
-      "Inbound Success": {
-        context: "Success rate for incoming calls",
-        benchmark: value > 85 ? "Excellent performance" : value > 70 ? "Good performance" : "Needs improvement",
-        recommendation: value < 80 ? "Review call handling procedures" : "Maintain current standards"
-      },
-      "Outbound Success": {
-        context: "Success rate for outgoing calls",
-        benchmark: value > 80 ? "Excellent performance" : value > 60 ? "Good performance" : "Needs improvement", 
-        recommendation: value < 70 ? "Consider script optimization" : "Strong outbound performance"
-      },
-      "Total Cost": {
-        context: "Total spend across all calls",
-        benchmark: value > 1000 ? "High usage month" : value > 500 ? "Moderate usage" : "Light usage",
-        recommendation: trend > 15 ? "Monitor cost efficiency" : "Cost management looks good"
-      }
-    };
-    return insights[title as keyof typeof insights] || { context: "", benchmark: "", recommendation: "" };
-  };
-
   return (
-    <TooltipProvider>
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {kpiCards.map((card, index) => {
-          const insights = getKpiInsights(card.title, card.value, card.trend);
-          return (
-            <Tooltip key={card.title}>
-              <TooltipTrigger asChild>
-                <Card className="stat-card shadow-sm hover:shadow-md transition-shadow cursor-help" data-testid={card.testId}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-1">
-                          <p className="text-muted-foreground text-sm font-medium">{card.title}</p>
-                          <Info size={12} className="text-muted-foreground" />
-                        </div>
-                        {isLoading ? (
-                          <Skeleton className="h-8 w-20 mt-2" />
-                        ) : (
-                          <p className="text-3xl font-bold text-foreground mt-2">
-                            {card.format(card.value)}
-                          </p>
-                        )}
-                        <div className="flex items-center mt-2">
-                          {isLoading ? (
-                            <Skeleton className="h-4 w-24" />
-                          ) : (
-                            <>
-                              {card.trend >= 0 ? (
-                                <TrendingUp className="text-chart-2 mr-1" size={14} />
-                              ) : (
-                                <TrendingDown className="text-destructive mr-1" size={14} />
-                              )}
-                              <span className={card.trend >= 0 ? "text-chart-2" : "text-destructive"}>
-                                {card.trend >= 0 ? "+" : ""}{card.trend}%
-                              </span>
-                              <span className="text-muted-foreground text-sm ml-1">{card.trendLabel}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      <div className={`${card.bgColor} p-3 rounded-lg`}>
-                        <card.icon className={`${card.color} text-xl`} size={20} />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs p-4">
-                <div className="space-y-2">
-                  <p className="font-medium text-foreground">{insights.context}</p>
-                  <div className="space-y-1 text-sm">
-                    <p><span className="font-medium">Performance:</span> {insights.benchmark}</p>
-                    <p><span className="font-medium">Insight:</span> {insights.recommendation}</p>
-                    <div className="pt-1 border-t">
-                      <p className="text-xs text-muted-foreground">
-                        Trend: {card.trend >= 0 ? "↗" : "↘"} {Math.abs(card.trend)}% {card.trendLabel}
-                      </p>
-                    </div>
-                  </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      {kpiCards.map((card, index) => (
+        <Card key={card.title} className="stat-card shadow-sm" data-testid={card.testId}>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-muted-foreground text-sm font-medium">{card.title}</p>
+                {isLoading ? (
+                  <Skeleton className="h-8 w-20 mt-2" />
+                ) : (
+                  <p className="text-3xl font-bold text-foreground mt-2">
+                    {card.format(card.value)}
+                  </p>
+                )}
+                <div className="flex items-center mt-2">
+                  {isLoading ? (
+                    <Skeleton className="h-4 w-24" />
+                  ) : (
+                    <>
+                      {card.trend >= 0 ? (
+                        <TrendingUp className="text-chart-2 mr-1" size={14} />
+                      ) : (
+                        <TrendingDown className="text-destructive mr-1" size={14} />
+                      )}
+                      <span className={card.trend >= 0 ? "text-chart-2" : "text-destructive"}>
+                        {card.trend >= 0 ? "+" : ""}{card.trend}%
+                      </span>
+                      <span className="text-muted-foreground text-sm ml-1">{card.trendLabel}</span>
+                    </>
+                  )}
                 </div>
-              </TooltipContent>
-            </Tooltip>
-          );
-        })}
-      </div>
-    </TooltipProvider>
+              </div>
+              <div className={`${card.bgColor} p-3 rounded-lg`}>
+                <card.icon className={`${card.color} text-xl`} size={20} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   );
 }
