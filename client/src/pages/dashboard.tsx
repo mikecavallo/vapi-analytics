@@ -100,7 +100,7 @@ export default function Dashboard() {
                 </Link>
                 <Link href="/bulk-analysis" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
                   <Brain size={16} />
-                  <span>Bulk Analysis</span>
+                  <span>VoiceScope</span>
                 </Link>
                 <a href="#" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
                   Reports

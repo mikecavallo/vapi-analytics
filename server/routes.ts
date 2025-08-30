@@ -307,40 +307,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Vapi API key not configured." });
       }
 
-      // Fetch all calls with transcripts (using high limit to get all available calls)
-      const response = await fetch("https://api.vapi.ai/call?limit=1000", {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${vapiApiKey}`,
-          "Content-Type": "application/json",
-        },
-      });
+      // Create an abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-      if (!response.ok) {
-        return res.status(response.status).json({ error: "Failed to fetch calls" });
+      try {
+        // Fetch all calls with transcripts (using high limit to get all available calls)
+        const response = await fetch("https://api.vapi.ai/call?limit=1000", {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${vapiApiKey}`,
+            "Content-Type": "application/json",
+          },
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          console.error(`Vapi API responded with status ${response.status}: ${response.statusText}`);
+          return res.status(response.status).json({ error: `Failed to fetch calls: ${response.statusText}` });
+        }
+
+        const callsData = await response.json();
+        const calls = Array.isArray(callsData) ? callsData : (callsData.data || []);
+        
+        // Return calls with transcripts and basic info
+        const enrichedCalls = calls.map((call: any) => ({
+          id: call.id,
+          transcript: call.transcript || "",
+          duration: (call.endedAt && call.startedAt) 
+            ? Math.round((new Date(call.endedAt).getTime() - new Date(call.startedAt).getTime()) / 1000)
+            : (call.duration ? Math.round(call.duration * 60 * 100) / 100 : 0), // Convert Vapi duration from minutes to seconds
+          cost: call.cost || 0,
+          status: call.status || 'ended',
+          endedReason: call.endedReason || 'unknown',
+          assistantId: call.assistantId,
+          assistantName: call.assistant?.name || call.assistantName || '',
+          createdAt: call.createdAt || call.startedAt,
+          type: call.type === 'inboundPhoneCall' ? 'inbound' : 'outbound',
+          assistantPhoneNumber: call.phoneNumber || '',
+          customerPhoneNumber: call.customer?.number || call.customerPhoneNumber || '',
+        }));
+
+        console.log(`[${new Date().toLocaleTimeString()}] Successfully fetched ${enrichedCalls.length} calls for VoiceScope analysis`);
+        res.json(enrichedCalls);
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        
+        if (fetchError.name === 'AbortError') {
+          console.error("VoiceScope calls error: Request timeout");
+          return res.status(408).json({ error: "Request timeout - Vapi API took too long to respond" });
+        }
+        
+        console.error("VoiceScope calls fetch error:", fetchError);
+        throw fetchError; // Re-throw to be caught by outer try-catch
       }
-
-      const callsData = await response.json();
-      const calls = Array.isArray(callsData) ? callsData : (callsData.data || []);
+    } catch (error: any) {
+      console.error("VoiceScope calls error:", error);
       
-      // Return calls with transcripts and basic info
-      const enrichedCalls = calls.map((call: any) => ({
-        id: call.id,
-        transcript: call.transcript || "",
-        duration: (call.endedAt && call.startedAt) 
-          ? Math.round((new Date(call.endedAt).getTime() - new Date(call.startedAt).getTime()) / 1000)
-          : (call.duration ? Math.round(call.duration * 60 * 100) / 100 : 0), // Convert Vapi duration from minutes to seconds
-        cost: call.cost || 0,
-        status: call.status || 'ended',
-        endedReason: call.endedReason || 'unknown',
-        assistantId: call.assistantId,
-        createdAt: call.createdAt || call.startedAt,
-        type: call.type === 'inboundPhoneCall' ? 'inbound' : 'outbound',
-      }));
-
-      res.json(enrichedCalls);
-    } catch (error) {
-      console.error("Bulk analysis calls error:", error);
+      // Provide more specific error messages
+      if (error.cause?.code === 'UND_ERR_SOCKET') {
+        return res.status(503).json({ error: "Service temporarily unavailable - connection issue with Vapi API" });
+      }
+      
       res.status(500).json({ error: "Internal server error" });
     }
   });
