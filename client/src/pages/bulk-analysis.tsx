@@ -293,13 +293,13 @@ export default function BulkAnalysis() {
   const getActiveFilterCount = () => {
     let count = 0;
     if (selectedDateRange.from || selectedDateRange.to) count++;
-    if (selectedCallType) count++;
-    if (selectedAssistant) count++;
-    if (assistantPhoneFilter) count++;
-    if (customerPhoneFilter) count++;
-    if (callIdFilter) count++;
-    if (selectedSuccessEvaluation) count++;
-    if (selectedEndedReason) count++;
+    if (selectedCallType && selectedCallType !== 'all') count++;
+    if (selectedAssistant && selectedAssistant !== 'all') count++;
+    if (assistantPhoneFilter && assistantPhoneFilter.trim()) count++;
+    if (customerPhoneFilter && customerPhoneFilter.trim()) count++;
+    if (callIdFilter && callIdFilter.trim()) count++;
+    if (selectedSuccessEvaluation && selectedSuccessEvaluation !== 'all') count++;
+    if (selectedEndedReason && selectedEndedReason !== 'all') count++;
     if (costRange.min || costRange.max) count++;
     if (durationRange.min || durationRange.max) count++;
     return count;
@@ -1295,8 +1295,10 @@ export default function BulkAnalysis() {
           </div>
         )}
 
-        {/* Dataset Preview - Full width spanning below tabs */}
-        {allCalls && (
+      </main>
+
+      {/* Dataset Preview - Full width spanning below all content */}
+      {allCalls && (
           <Card className="mt-6">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -1439,8 +1441,7 @@ export default function BulkAnalysis() {
               </div>
             </CardContent>
           </Card>
-        )}
-      </main>
+      )}
     </div>
   );
 }
