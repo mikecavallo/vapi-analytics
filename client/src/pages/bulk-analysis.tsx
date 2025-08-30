@@ -1081,66 +1081,6 @@ export default function BulkAnalysis() {
             </CardContent>
           </Card>
 
-          {/* Summary Statistics */}
-          {filteredCalls && filteredCalls.length > 0 && (
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <TrendingUp size={20} />
-                  <span>Filtered Dataset Summary</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center justify-center mb-1">
-                    <Users className="text-chart-1 mr-1" size={16} />
-                    <span className="text-xs text-muted-foreground">Total Calls</span>
-                  </div>
-                  <p className="text-lg font-bold text-chart-1" data-testid="stat-total-calls">
-                    {filteredCalls?.length || 0}
-                  </p>
-                </div>
-                
-                <div className="text-center p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center justify-center mb-1">
-                    <Clock className="text-chart-2 mr-1" size={16} />
-                    <span className="text-xs text-muted-foreground">Avg Duration</span>
-                  </div>
-                  <p className="text-lg font-bold text-chart-2" data-testid="stat-avg-duration">
-                    {filteredCalls?.length ? 
-                      `${Math.round(filteredCalls.reduce((sum: number, call: any) => sum + (call.duration || 0), 0) / filteredCalls.length / 60)}m` 
-                      : '0m'
-                    }
-                  </p>
-                </div>
-                
-                <div className="text-center p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center justify-center mb-1">
-                    <TrendingUp className="text-chart-3 mr-1" size={16} />
-                    <span className="text-xs text-muted-foreground">Total Cost</span>
-                  </div>
-                  <p className="text-lg font-bold text-chart-3" data-testid="stat-total-cost">
-                    ${filteredCalls?.length ? 
-                      filteredCalls.reduce((sum: number, call: any) => sum + (call.cost || 0), 0).toFixed(2)
-                      : '0.00'
-                    }
-                  </p>
-                </div>
-
-                <div className="text-center p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center justify-center mb-1">
-                    <MessageSquare className="text-chart-4 mr-1" size={16} />
-                    <span className="text-xs text-muted-foreground">With Transcripts</span>
-                  </div>
-                  <p className="text-lg font-bold text-chart-4" data-testid="stat-with-transcripts">
-                    {filteredCalls?.filter((call: any) => call.transcript).length || 0}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          )}
         </div>
         )}
 
@@ -1324,6 +1264,46 @@ export default function BulkAnalysis() {
                     <Badge variant="secondary" className="text-xs">
                       Filtered
                     </Badge>
+                  )}
+                  
+                  {/* Metrics from filtered dataset summary */}
+                  {(filteredCalls || allCalls) && (filteredCalls || allCalls).length > 0 && (
+                    <div className="flex items-center space-x-4 ml-4 text-xs">
+                      <div className="flex items-center space-x-1">
+                        <Users className="text-chart-1" size={14} />
+                        <span className="text-muted-foreground">Total:</span>
+                        <span className="font-medium text-chart-1">
+                          {(filteredCalls || allCalls)?.length || 0}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Clock className="text-chart-2" size={14} />
+                        <span className="text-muted-foreground">Avg:</span>
+                        <span className="font-medium text-chart-2">
+                          {(filteredCalls || allCalls)?.length ? 
+                            `${Math.round((filteredCalls || allCalls).reduce((sum: number, call: any) => sum + (call.duration || 0), 0) / (filteredCalls || allCalls).length / 60)}m` 
+                            : '0m'
+                          }
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <TrendingUp className="text-chart-3" size={14} />
+                        <span className="text-muted-foreground">Cost:</span>
+                        <span className="font-medium text-chart-3">
+                          ${(filteredCalls || allCalls)?.length ? 
+                            (filteredCalls || allCalls).reduce((sum: number, call: any) => sum + (call.cost || 0), 0).toFixed(2)
+                            : '0.00'
+                          }
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <MessageSquare className="text-chart-4" size={14} />
+                        <span className="text-muted-foreground">Transcripts:</span>
+                        <span className="font-medium text-chart-4">
+                          {(filteredCalls || allCalls)?.filter((call: any) => call.transcript).length || 0}
+                        </span>
+                      </div>
+                    </div>
                   )}
                 </div>
                 <div className="text-xs text-muted-foreground">
