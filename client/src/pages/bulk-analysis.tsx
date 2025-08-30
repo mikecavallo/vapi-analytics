@@ -1329,7 +1329,13 @@ export default function BulkAnalysis() {
                     <div className="text-center">
                       <Eye size={48} className="mx-auto mb-2 opacity-50" />
                       <p>No call data available</p>
-                      <p className="text-sm">Check your Vapi API connection</p>
+                      <p className="text-sm">The API connection timed out</p>
+                      <button 
+                        onClick={() => window.location.reload()} 
+                        className="mt-3 px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                      >
+                        Refresh Page
+                      </button>
                     </div>
                   </div>
                 ) : (
