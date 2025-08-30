@@ -206,33 +206,6 @@ export default function ChartsSection({ data, isLoading }: ChartsSectionProps) {
       </Card>
 
 
-      {/* Hourly Patterns */}
-      <Card data-testid="chart-hourly-patterns">
-        <CardHeader>
-          <CardTitle>Hourly Call Patterns</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data?.hourlyPatterns || []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(214.3, 31.8%, 91.4%)" />
-                <XAxis 
-                  dataKey="hour" 
-                  stroke="hsl(215.4, 16.3%, 46.9%)"
-                  fontSize={12}
-                  tickFormatter={(value) => `${value.toString().padStart(2, '0')}:00`}
-                />
-                <YAxis stroke="hsl(215.4, 16.3%, 46.9%)" fontSize={12} />
-                <Bar 
-                  dataKey="calls" 
-                  fill={COLORS.chart3}
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
