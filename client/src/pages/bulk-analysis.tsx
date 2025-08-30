@@ -1309,8 +1309,9 @@ export default function BulkAnalysis() {
       </main>
 
       {/* Dataset Preview - Full width spanning below all content */}
-      {(allCalls || isLoadingCalls) && (
-          <Card className="mt-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Always show dataset preview, regardless of data loading state */}
+        <Card className="mt-6">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -1470,8 +1471,8 @@ export default function BulkAnalysis() {
                 )}
               </div>
             </CardContent>
-          </Card>
-      )}
+        </Card>
+      </div>
     </div>
   );
 }
