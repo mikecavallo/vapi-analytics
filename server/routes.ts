@@ -700,6 +700,199 @@ Please provide optimization suggestions in JSON format:
     return Math.max(score, 0);
   }
 
+  // Assistant Studio endpoints
+  app.post("/api/assistant-studio/generate", async (req, res) => {
+    try {
+      const { description, conversationFlow, voiceSettings, targetAudience } = req.body;
+      const openaiApiKey = process.env.OPENAI_API_KEY;
+      
+      if (!openaiApiKey) {
+        return res.status(500).json({ error: "OpenAI API key not configured" });
+      }
+
+      if (!description) {
+        return res.status(400).json({ error: "Assistant description is required" });
+      }
+
+      const openai = new (await import('openai')).default({ apiKey: openaiApiKey });
+      
+      const systemPrompt = `You are an expert AI assistant configuration specialist for healthcare voice AI systems. Your job is to create comprehensive assistant configurations for the Vapi platform based on user descriptions.
+
+Key Requirements:
+1. Generate healthcare-compliant conversation scripts
+2. Include proper HIPAA-compliant language
+3. Create natural conversation flows with error handling
+4. Optimize for voice interaction (clear, concise responses)
+5. Include appropriate interruption handling
+6. Design for appointment booking, prescription inquiries, and general healthcare support
+
+Return a JSON configuration that follows this structure:
+{
+  "name": "Assistant name",
+  "firstMessage": "Initial greeting message",
+  "systemMessage": "Detailed system prompt for the assistant behavior",
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4",
+    "temperature": 0.7,
+    "maxTokens": 150,
+    "emotionRecognitionEnabled": true
+  },
+  "voice": {
+    "provider": "11labs",
+    "voiceId": "recommended voice ID based on target audience",
+    "stability": 0.5,
+    "similarityBoost": 0.8,
+    "style": 0.0,
+    "useSpeakerBoost": true
+  },
+  "transcriber": {
+    "provider": "deepgram",
+    "model": "nova-2",
+    "language": "en-US",
+    "smartFormat": true,
+    "keywords": ["appointment", "prescription", "doctor", "symptoms"]
+  },
+  "conversationConfig": {
+    "maxDurationSeconds": 300,
+    "backgroundSound": "office",
+    "backgroundDenoising": true,
+    "modelOutputInMessagesEnabled": false
+  },
+  "analysisSettings": {
+    "summaryPrompt": "Summarize this healthcare call focusing on patient needs, outcomes, and follow-up requirements",
+    "structuredDataSchema": {
+      "type": "object",
+      "properties": {
+        "callType": {"type": "string", "enum": ["appointment", "prescription", "inquiry", "emergency"]},
+        "patientSatisfaction": {"type": "number", "minimum": 1, "maximum": 5},
+        "followUpRequired": {"type": "boolean"},
+        "urgencyLevel": {"type": "string", "enum": ["low", "medium", "high", "emergency"]}
+      }
+    }
+  },
+  "expectedOutcomes": ["What this assistant should accomplish"],
+  "complianceNotes": ["HIPAA and healthcare compliance considerations"]
+}`;
+
+      const userPrompt = `Create a healthcare voice assistant configuration with the following requirements:
+
+Description: ${description}
+
+Conversation Flow: ${conversationFlow || 'Standard healthcare support flow'}
+
+Voice Settings: ${voiceSettings || 'Professional and caring tone'}
+
+Target Audience: ${targetAudience || 'Healthcare patients and general public'}
+
+Make sure the assistant is:
+- HIPAA compliant and privacy-focused
+- Capable of handling appointment scheduling
+- Professional yet empathetic in tone
+- Efficient in call duration while being thorough
+- Able to escalate to human agents when needed
+- Designed for clear voice interaction`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.3,
+      });
+
+      const assistantConfig = JSON.parse(response.choices[0].message.content || '{}');
+      
+      console.log(`[${new Date().toLocaleTimeString()}] Generated assistant configuration: ${assistantConfig.name}`);
+      res.json({
+        config: assistantConfig,
+        generatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Assistant generation error:", error);
+      res.status(500).json({ error: "Failed to generate assistant configuration" });
+    }
+  });
+
+  app.post("/api/assistant-studio/create", async (req, res) => {
+    try {
+      const { config } = req.body;
+      const vapiApiKey = process.env.VAPI_API_KEY || "";
+      
+      if (!vapiApiKey) {
+        return res.status(500).json({ error: "Vapi API key not configured" });
+      }
+
+      if (!config) {
+        return res.status(400).json({ error: "Assistant configuration is required" });
+      }
+
+      // Create assistant through Vapi API
+      const vapiPayload = {
+        name: config.name,
+        firstMessage: config.firstMessage,
+        systemMessage: config.systemMessage,
+        model: {
+          provider: config.model.provider,
+          model: config.model.model,
+          temperature: config.model.temperature,
+          maxTokens: config.model.maxTokens,
+          emotionRecognitionEnabled: config.model.emotionRecognitionEnabled
+        },
+        voice: {
+          provider: config.voice.provider,
+          voiceId: config.voice.voiceId,
+          stability: config.voice.stability,
+          similarityBoost: config.voice.similarityBoost,
+          style: config.voice.style,
+          useSpeakerBoost: config.voice.useSpeakerBoost
+        },
+        transcriber: {
+          provider: config.transcriber.provider,
+          model: config.transcriber.model,
+          language: config.transcriber.language,
+          smartFormat: config.transcriber.smartFormat,
+          keywords: config.transcriber.keywords
+        },
+        analysisSettings: {
+          summaryPrompt: config.analysisSettings.summaryPrompt,
+          structuredDataSchema: config.analysisSettings.structuredDataSchema
+        },
+        maxDurationSeconds: config.conversationConfig.maxDurationSeconds,
+        backgroundSound: config.conversationConfig.backgroundSound,
+        backgroundDenoising: config.conversationConfig.backgroundDenoising,
+        modelOutputInMessagesEnabled: config.conversationConfig.modelOutputInMessagesEnabled
+      };
+
+      const response = await fetch("https://api.vapi.ai/assistant", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${vapiApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(vapiPayload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Vapi API error: ${response.status} - ${JSON.stringify(errorData)}`);
+      }
+
+      const createdAssistant = await response.json();
+      
+      console.log(`[${new Date().toLocaleTimeString()}] Created assistant: ${createdAssistant.id}`);
+      res.json({
+        assistant: createdAssistant,
+        createdAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Assistant creation error:", error);
+      res.status(500).json({ error: "Failed to create assistant via Vapi API" });
+    }
+  });
+
   app.post("/api/bulk-analysis/analyze", async (req, res) => {
     try {
       const { query, filters, callIds } = req.body;

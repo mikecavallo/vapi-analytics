@@ -14,7 +14,7 @@ import MostSuccessfulAgent from "@/components/analytics/most-successful-agent";
 import DailyMetricsCharts from "@/components/analytics/daily-metrics-charts";
 import AIChatbot from "@/components/ai-chatbot";
 import { Button } from "@/components/ui/button";
-import { Download, ChartLine, User, Sun, Moon, Brain, Activity } from "lucide-react";
+import { Download, ChartLine, User, Sun, Moon, Brain, Activity, Wand2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
@@ -105,6 +105,10 @@ export default function Dashboard() {
                 <Link href="/performance-benchmarks" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
                   <Activity size={16} />
                   <span>Benchmarks</span>
+                </Link>
+                <Link href="/assistant-studio" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
+                  <Wand2 size={16} />
+                  <span>Studio</span>
                 </Link>
                 <a href="#" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
                   Reports
