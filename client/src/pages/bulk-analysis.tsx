@@ -35,7 +35,8 @@ import {
   Eye,
   AlertTriangle,
   CheckCircle,
-  Copy
+  Copy,
+  Activity
 } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -68,6 +69,10 @@ export default function BulkAnalysis() {
   // Prompt optimization states
   const [currentPrompt, setCurrentPrompt] = useState('');
   const [optimizationResults, setOptimizationResults] = useState<any>(null);
+  
+  // Conversation flow analysis states
+  const [activeTab, setActiveTab] = useState<'analysis' | 'optimization' | 'flows'>('analysis');
+  const [flowAnalysisResults, setFlowAnalysisResults] = useState<any>(null);
   
   // Filter states
   const [selectedDateRange, setSelectedDateRange] = useState<{from?: Date; to?: Date}>({});
@@ -237,6 +242,41 @@ export default function BulkAnalysis() {
     },
   });
 
+  // Conversation Flow Analysis mutation
+  const flowAnalysisMutation = useMutation({
+    mutationFn: async (analysisType: string) => {
+      const response = await fetch('/api/conversation-flow/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          callIds: (filteredCalls as any[])?.map((call: any) => call.id) || [],
+          analysisType
+        }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Flow analysis failed');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setFlowAnalysisResults(data);
+      toast({
+        title: "Flow Analysis Complete",
+        description: `Analyzed conversation patterns for ${data.summary.totalCallsAnalyzed} calls`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Flow Analysis Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const clearAllFilters = () => {
     setSelectedDateRange({});
     setSelectedCallType('all');
@@ -275,45 +315,6 @@ export default function BulkAnalysis() {
     return;
   };
   
-  // Legacy function kept for compatibility
-  const oldAddFilter = () => {
-    return;
-    
-    let label = '';
-    switch ('duration') {
-      case 'duration':
-        label = `Duration ${newFilterOperator} ${newFilterValue}${newFilterValue2 && newFilterOperator === 'between' ? ` and ${newFilterValue2}` : ''} seconds`;
-        break;
-      case 'cost':
-        label = `Cost ${newFilterOperator} $${newFilterValue}${newFilterValue2 && newFilterOperator === 'between' ? ` and $${newFilterValue2}` : ''}`;
-        break;
-      case 'outcome':
-        label = `Outcome ${newFilterOperator} "${newFilterValue}"`;
-        break;
-      case 'timeRange':
-        label = `Date ${newFilterOperator} ${newFilterValue}${newFilterValue2 && newFilterOperator === 'between' ? ` and ${newFilterValue2}` : ''}`;
-        break;
-      case 'assistantId':
-        label = `Assistant ${newFilterOperator} "${newFilterValue}"`;
-        break;
-    }
-
-    const newFilter: FilterCriteria = {
-      id: filterId,
-      type: newFilterType,
-      operator: newFilterOperator,
-      value: newFilterValue,
-      value2: newFilterValue2 || undefined,
-      label,
-    };
-
-    setFilters(prev => [...prev, newFilter]);
-    setNewFilterValue('');
-    setNewFilterValue2('');
-    
-    // Invalidate queries to refetch with new filters
-    queryClient.invalidateQueries({ queryKey: ['/api/bulk-analysis/calls'] });
-  };
 
 
   const handleAnalysis = () => {
@@ -463,7 +464,52 @@ export default function BulkAnalysis() {
           </div>
         </div>
 
+        {/* Tab Navigation */}
+        <div className="mb-6">
+          <div className="border-b border-border">
+            <nav className="flex space-x-8">
+              <button
+                onClick={() => setActiveTab('analysis')}
+                className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'analysis'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+                data-testid="tab-analysis"
+              >
+                <MessageSquare size={16} className="inline mr-2" />
+                Transcript Analysis
+              </button>
+              <button
+                onClick={() => setActiveTab('optimization')}
+                className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'optimization'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+                data-testid="tab-optimization"
+              >
+                <Brain size={16} className="inline mr-2" />
+                Prompt Optimization
+              </button>
+              <button
+                onClick={() => setActiveTab('flows')}
+                className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'flows'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+                data-testid="tab-flows"
+              >
+                <Activity size={16} className="inline mr-2" />
+                Conversation Flows
+              </button>
+            </nav>
+          </div>
+        </div>
+
         {/* AI Prompt Optimization Section */}
+        {activeTab === 'optimization' && (
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -667,8 +713,11 @@ export default function BulkAnalysis() {
             )}
           </CardContent>
         </Card>
+        )}
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* Transcript Analysis Section */}
+        {activeTab === 'analysis' && (
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Filters Section */}
           <Card className="xl:col-span-1">
             <CardHeader>
@@ -1020,20 +1069,19 @@ export default function BulkAnalysis() {
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        {/* Summary Statistics */}
-        {filteredCalls && filteredCalls.length > 0 && (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <TrendingUp size={20} />
-                <span>Filtered Dataset Summary</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-3 bg-muted/50 rounded-lg">
+          {/* Summary Statistics */}
+          {filteredCalls && filteredCalls.length > 0 && (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <TrendingUp size={20} />
+                  <span>Filtered Dataset Summary</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-3 bg-muted/50 rounded-lg">
                   <div className="flex items-center justify-center mb-1">
                     <Users className="text-chart-1 mr-1" size={16} />
                     <span className="text-xs text-muted-foreground">Total Calls</span>
@@ -1081,11 +1129,11 @@ export default function BulkAnalysis() {
               </div>
             </CardContent>
           </Card>
-        )}
+          )}
 
-        {/* Dataset Preview - Always show when data is available */}
-        {(filteredCalls || allCalls) && (
-          <Card className="mt-6">
+          {/* Dataset Preview - Always show when data is available */}
+          {(filteredCalls || allCalls) && (
+            <Card className="mt-6">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -1227,6 +1275,170 @@ export default function BulkAnalysis() {
               </div>
             </CardContent>
           </Card>
+          )}
+        </div>
+        )}
+
+        {/* Conversation Flow Analysis Section */}
+        {activeTab === 'flows' && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Activity size={20} />
+                  <span>Conversation Flow Analysis</span>
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Analyze conversation patterns, healthcare-specific flows, and compliance adherence across your calls
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Button 
+                    onClick={() => flowAnalysisMutation.mutate('healthcare')}
+                    disabled={!filteredCalls?.length || flowAnalysisMutation.isPending}
+                    className="h-24 flex flex-col items-center justify-center space-y-2"
+                    data-testid="button-analyze-healthcare"
+                  >
+                    {flowAnalysisMutation.isPending ? (
+                      <Loader2 className="animate-spin" size={20} />
+                    ) : (
+                      <Users size={20} />
+                    )}
+                    <div className="text-center">
+                      <div className="font-medium">Healthcare Flows</div>
+                      <div className="text-xs opacity-80">Appointment booking, prescriptions</div>
+                    </div>
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => flowAnalysisMutation.mutate('compliance')}
+                    disabled={!filteredCalls?.length || flowAnalysisMutation.isPending}
+                    variant="outline"
+                    className="h-24 flex flex-col items-center justify-center space-y-2"
+                    data-testid="button-analyze-compliance"
+                  >
+                    {flowAnalysisMutation.isPending ? (
+                      <Loader2 className="animate-spin" size={20} />
+                    ) : (
+                      <CheckCircle size={20} />
+                    )}
+                    <div className="text-center">
+                      <div className="font-medium">Compliance Check</div>
+                      <div className="text-xs opacity-80">HIPAA, privacy patterns</div>
+                    </div>
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => flowAnalysisMutation.mutate('efficiency')}
+                    disabled={!filteredCalls?.length || flowAnalysisMutation.isPending}
+                    variant="outline"
+                    className="h-24 flex flex-col items-center justify-center space-y-2"
+                    data-testid="button-analyze-efficiency"
+                  >
+                    {flowAnalysisMutation.isPending ? (
+                      <Loader2 className="animate-spin" size={20} />
+                    ) : (
+                      <TrendingUp size={20} />
+                    )}
+                    <div className="text-center">
+                      <div className="font-medium">Flow Efficiency</div>
+                      <div className="text-xs opacity-80">Conversation structure, timing</div>
+                    </div>
+                  </Button>
+                </div>
+
+                {flowAnalysisResults && (
+                  <div className="space-y-4 mt-6 pt-6 border-t">
+                    <h3 className="font-semibold text-lg">Flow Analysis Results</h3>
+                    
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <Card className="p-4">
+                        <div className="text-2xl font-bold">{flowAnalysisResults.summary.totalCallsAnalyzed}</div>
+                        <div className="text-xs text-muted-foreground">Calls Analyzed</div>
+                      </Card>
+                      <Card className="p-4">
+                        <div className="text-2xl font-bold">{flowAnalysisResults.summary.avgConversationTurns.toFixed(1)}</div>
+                        <div className="text-xs text-muted-foreground">Avg Turns</div>
+                      </Card>
+                      <Card className="p-4">
+                        <div className="text-2xl font-bold">{(flowAnalysisResults.summary.avgCompletionScore * 100).toFixed(0)}%</div>
+                        <div className="text-xs text-muted-foreground">Completion Score</div>
+                      </Card>
+                      <Card className="p-4">
+                        <div className="text-2xl font-bold">{(flowAnalysisResults.summary.structuralIntegrity * 100).toFixed(0)}%</div>
+                        <div className="text-xs text-muted-foreground">Structure Quality</div>
+                      </Card>
+                    </div>
+
+                    {/* Healthcare Insights */}
+                    {flowAnalysisResults.healthcareInsights && (
+                      <div className="space-y-4">
+                        <h4 className="font-medium">Healthcare Flow Insights</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <Card className="p-4">
+                            <h5 className="font-medium mb-2">Appointment Flow</h5>
+                            <div className="text-sm space-y-1">
+                              <div>Success Rate: {flowAnalysisResults.healthcareInsights.appointmentFlowOptimization.successRate.toFixed(1)}%</div>
+                              <div>Avg Duration: {flowAnalysisResults.healthcareInsights.appointmentFlowOptimization.avgDuration.toFixed(0)}s</div>
+                            </div>
+                          </Card>
+                          <Card className="p-4">
+                            <h5 className="font-medium mb-2">Compliance Adherence</h5>
+                            <div className="text-sm space-y-1">
+                              <div>Privacy Score: {flowAnalysisResults.healthcareInsights.complianceAdherence.privacyScore.toFixed(0)}%</div>
+                              <div>Risk Calls: {flowAnalysisResults.healthcareInsights.complianceAdherence.riskCalls}</div>
+                            </div>
+                          </Card>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Recommendations */}
+                    {flowAnalysisResults.recommendations?.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="font-medium">Flow Improvement Recommendations</h4>
+                        <div className="space-y-2">
+                          {flowAnalysisResults.recommendations.map((rec: string, index: number) => (
+                            <div key={index} className="flex items-start space-x-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                              <CheckCircle size={14} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                              <span className="text-sm">{rec}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Flow Improvements */}
+                    {flowAnalysisResults.flowImprovements?.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="font-medium">Specific Flow Improvements</h4>
+                        <div className="space-y-3">
+                          {flowAnalysisResults.flowImprovements.map((improvement: any, index: number) => (
+                            <Card key={index} className="p-4">
+                              <div className="space-y-2">
+                                <div className="font-medium">{improvement.scenario}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  <strong>Current Issues:</strong> {improvement.currentIssues}
+                                </div>
+                                <div className="text-sm">
+                                  <strong>Suggested Flow:</strong> {improvement.suggestedFlow}
+                                </div>
+                                <div className="text-sm text-green-600 dark:text-green-400">
+                                  <strong>Expected Impact:</strong> {improvement.expectedImpact}
+                                </div>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         )}
       </main>
     </div>

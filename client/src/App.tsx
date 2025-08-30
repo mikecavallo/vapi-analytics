@@ -9,6 +9,7 @@ import Dashboard from "@/pages/dashboard";
 import BulkAnalysis from "@/pages/bulk-analysis";
 import PerformanceBenchmarks from "@/pages/performance-benchmarks";
 import AssistantStudio from "@/pages/assistant-studio";
+import Reports from "@/pages/reports";
 
 function Router() {
   return (
@@ -18,6 +19,7 @@ function Router() {
       <Route path="/bulk-analysis" component={BulkAnalysis} />
       <Route path="/performance-benchmarks" component={PerformanceBenchmarks} />
       <Route path="/assistant-studio" component={AssistantStudio} />
+      <Route path="/reports" component={Reports} />
       <Route component={NotFound} />
     </Switch>
   );
