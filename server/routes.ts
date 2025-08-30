@@ -375,6 +375,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Prompt Optimization endpoint
+  app.post("/api/voicescope/optimize-prompt", async (req, res) => {
+    try {
+      const { assistantId, currentPrompt, transcriptIds } = req.body;
+      const openaiApiKey = process.env.OPENAI_API_KEY;
+      
+      if (!openaiApiKey) {
+        return res.status(500).json({ error: "OpenAI API key not configured" });
+      }
+
+      if (!assistantId || !currentPrompt || !transcriptIds?.length) {
+        return res.status(400).json({ error: "Missing required fields: assistantId, currentPrompt, or transcriptIds" });
+      }
+
+      const vapiApiKey = process.env.VAPI_API_KEY || "";
+      
+      // Fetch transcripts for analysis
+      const transcriptPromises = transcriptIds.slice(0, 10).map(async (callId: string) => {
+        try {
+          const response = await fetch(`https://api.vapi.ai/call/${callId}`, {
+            method: "GET",
+            headers: {
+              "Authorization": `Bearer ${vapiApiKey}`,
+              "Content-Type": "application/json",
+            },
+          });
+          
+          if (response.ok) {
+            const callData = await response.json();
+            return {
+              id: callId,
+              transcript: callData.transcript || "",
+              duration: callData.duration || 0,
+              status: callData.status,
+              endedReason: callData.endedReason
+            };
+          }
+          return null;
+        } catch (error) {
+          console.error(`Error fetching call ${callId}:`, error);
+          return null;
+        }
+      });
+
+      const transcripts = (await Promise.all(transcriptPromises)).filter(Boolean);
+      
+      if (transcripts.length === 0) {
+        return res.status(400).json({ error: "No valid transcripts found for analysis" });
+      }
+
+      // Analyze transcripts with AI
+      const openai = new (await import('openai')).default({ apiKey: openaiApiKey });
+      
+      const analysisPrompt = `As an AI conversation optimization expert, analyze these healthcare voice agent transcripts and current prompt to suggest improvements.
+
+Current Assistant Prompt:
+"""
+${currentPrompt}
+"""
+
+Transcripts to analyze (${transcripts.length} calls):
+${transcripts.map(t => `
+Call ${t.id} (Status: ${t.status}, Ended: ${t.endedReason}):
+${t.transcript}
+---`).join('\n')}
+
+Please provide optimization suggestions in JSON format:
+{
+  "overallScore": "1-10 rating of current prompt effectiveness",
+  "keyIssues": ["List of main problems identified"],
+  "suggestions": [
+    {
+      "category": "timing|barge_in|transcription|flow|tone|clarity",
+      "issue": "Specific problem found",
+      "solution": "Concrete improvement suggestion",
+      "priority": "high|medium|low",
+      "promptUpdate": "Specific text to add/modify in prompt"
+    }
+  ],
+  "improvedPrompt": "Complete rewritten prompt with improvements",
+  "expectedImprovements": ["What should improve with these changes"]
+}`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4", // Using GPT-4 for better analysis
+        messages: [{ role: "user", content: analysisPrompt }],
+        response_format: { type: "json_object" },
+        temperature: 0.3,
+      });
+
+      const analysis = JSON.parse(response.choices[0].message.content || '{}');
+      
+      console.log(`[${new Date().toLocaleTimeString()}] Generated prompt optimization for assistant ${assistantId}`);
+      res.json({
+        assistantId,
+        analysis,
+        transcriptsAnalyzed: transcripts.length,
+        generatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Prompt optimization error:", error);
+      res.status(500).json({ error: "Failed to generate prompt optimization" });
+    }
+  });
+
   app.post("/api/bulk-analysis/analyze", async (req, res) => {
     try {
       const { query, filters, callIds } = req.body;
