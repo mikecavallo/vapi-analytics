@@ -1309,7 +1309,7 @@ export default function BulkAnalysis() {
       </main>
 
       {/* Dataset Preview - Full width spanning below all content */}
-      {allCalls && (
+      {(allCalls || isLoadingCalls) && (
           <Card className="mt-6">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -1338,21 +1338,35 @@ export default function BulkAnalysis() {
             </CardHeader>
             <CardContent>
               <div className="max-h-96 overflow-auto border rounded-lg" data-testid="dataset-preview">
-                <Table>
-                  <TableHeader className="sticky top-0 bg-background z-10 border-b">
-                    <TableRow>
-                      <TableHead className="w-28">Call ID</TableHead>
-                      <TableHead className="w-16">Type</TableHead>
-                      <TableHead className="w-20">Duration</TableHead>
-                      <TableHead className="w-18">Cost</TableHead>
-                      <TableHead className="w-28">Date</TableHead>
-                      <TableHead className="w-24">Status</TableHead>
-                      <TableHead className="w-32">Assistant</TableHead>
-                      <TableHead className="w-20">Transcript</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(filteredCalls || allCalls || []).slice(0, 100).map((call: any) => {
+                {isLoadingCalls ? (
+                  <div className="flex items-center justify-center p-8">
+                    <Loader2 className="animate-spin mr-2" size={20} />
+                    <span>Loading dataset...</span>
+                  </div>
+                ) : !allCalls || allCalls.length === 0 ? (
+                  <div className="flex items-center justify-center p-8 text-muted-foreground">
+                    <div className="text-center">
+                      <Eye size={48} className="mx-auto mb-2 opacity-50" />
+                      <p>No call data available</p>
+                      <p className="text-sm">Check your Vapi API connection</p>
+                    </div>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-background z-10 border-b">
+                      <TableRow>
+                        <TableHead className="w-28">Call ID</TableHead>
+                        <TableHead className="w-16">Type</TableHead>
+                        <TableHead className="w-20">Duration</TableHead>
+                        <TableHead className="w-18">Cost</TableHead>
+                        <TableHead className="w-28">Date</TableHead>
+                        <TableHead className="w-24">Status</TableHead>
+                        <TableHead className="w-32">Assistant</TableHead>
+                        <TableHead className="w-20">Transcript</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(filteredCalls || allCalls || []).slice(0, 100).map((call: any) => {
                       const hasTranscript = call.transcript && call.transcript.length > 0;
                       const isRecent = new Date().getTime() - new Date(call.createdAt).getTime() < 24 * 60 * 60 * 1000;
                       
@@ -1437,17 +1451,22 @@ export default function BulkAnalysis() {
                         </TableRow>
                       );
                     })}
-                  </TableBody>
-                </Table>
-                {(filteredCalls || allCalls || []).length > 100 && (
-                  <div className="text-center py-3 text-xs text-muted-foreground border-t bg-muted/20">
-                    <div className="flex items-center justify-center space-x-2">
-                      <span>Showing first 100 of {(filteredCalls || allCalls || []).length} calls</span>
-                      <Button variant="outline" size="sm" className="h-6 text-xs px-2">
-                        Load More
-                      </Button>
-                    </div>
-                  </div>
+                    </TableBody>
+                    <tfoot>
+                      {(filteredCalls || allCalls || []).length > 100 && (
+                        <tr>
+                          <td colSpan={8} className="text-center py-3 text-xs text-muted-foreground border-t bg-muted/20">
+                            <div className="flex items-center justify-center space-x-2">
+                              <span>Showing first 100 of {(filteredCalls || allCalls || []).length} calls</span>
+                              <Button variant="outline" size="sm" className="h-6 text-xs px-2">
+                                Load More
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tfoot>
+                  </Table>
                 )}
               </div>
             </CardContent>
