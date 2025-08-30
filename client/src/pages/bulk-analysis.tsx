@@ -1130,151 +1130,6 @@ export default function BulkAnalysis() {
             </CardContent>
           </Card>
           )}
-          {/* Dataset Preview - Full width */}
-          {allCalls && (
-            <Card className="mt-6">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Eye size={20} />
-                    <span>Dataset Preview</span>
-                    <Badge variant="outline" className="ml-2">
-                      {(filteredCalls || allCalls)?.length || 0} calls
-                    </Badge>
-                  {filteredCalls && filteredCalls.length !== allCalls?.length && (
-                    <Badge variant="secondary" className="text-xs">
-                      Filtered
-                    </Badge>
-                  )}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Scroll to explore • Click rows for details
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {filteredCalls ? 
-                  `Preview of ${filteredCalls.length} filtered calls for AI analysis` : 
-                  `All ${allCalls?.length || 0} calls from your dataset`
-                }
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="max-h-96 overflow-auto border rounded-lg" data-testid="dataset-preview">
-                <Table>
-                  <TableHeader className="sticky top-0 bg-background z-10 border-b">
-                    <TableRow>
-                      <TableHead className="w-28">Call ID</TableHead>
-                      <TableHead className="w-16">Type</TableHead>
-                      <TableHead className="w-20">Duration</TableHead>
-                      <TableHead className="w-18">Cost</TableHead>
-                      <TableHead className="w-28">Date</TableHead>
-                      <TableHead className="w-24">Status</TableHead>
-                      <TableHead className="w-32">Assistant</TableHead>
-                      <TableHead className="w-20">Transcript</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(filteredCalls || allCalls || []).slice(0, 100).map((call: any) => {
-                      const hasTranscript = call.transcript && call.transcript.length > 0;
-                      const isRecent = new Date().getTime() - new Date(call.createdAt).getTime() < 24 * 60 * 60 * 1000;
-                      
-                      return (
-                        <TableRow 
-                          key={call.id} 
-                          className="text-xs hover:bg-muted/50 cursor-pointer transition-colors"
-                          data-testid={`call-row-${call.id}`}
-                        >
-                          <TableCell className="font-mono">
-                            <div className="flex items-center space-x-1">
-                              <span>{call.id.substring(0, 8)}...</span>
-                              {isRecent && <div className="w-1 h-1 bg-green-500 rounded-full" title="Recent call"></div>}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant={call.type === 'inbound' ? 'default' : 'secondary'} 
-                              className="text-xs px-1 py-0"
-                            >
-                              {call.type === 'inbound' ? 'In' : 'Out'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="font-mono">
-                            {call.duration ? 
-                              `${Math.floor(call.duration / 60)}:${(call.duration % 60).toString().padStart(2, '0')}` : 
-                              '--'
-                            }
-                          </TableCell>
-                          <TableCell className="font-mono">
-                            ${call.cost?.toFixed(2) || '0.00'}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span>{new Date(call.createdAt).toLocaleDateString()}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(call.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col space-y-1">
-                              <Badge 
-                                variant={
-                                  call.status === 'ended' ? 'default' : 
-                                  call.status === 'in-progress' ? 'secondary' : 
-                                  'outline'
-                                } 
-                                className="text-xs px-1 py-0 w-fit"
-                              >
-                                {call.status || 'unknown'}
-                              </Badge>
-                              {call.endedReason && (
-                                <span className="text-xs text-muted-foreground truncate max-w-20" title={call.endedReason}>
-                                  {call.endedReason}
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="max-w-32 truncate" title={call.assistantName || call.assistantId}>
-                              {call.assistantName || call.assistantId?.substring(0, 8) + '...' || '--'}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-1">
-                              {hasTranscript ? (
-                                <>
-                                  <div className="w-2 h-2 bg-green-500 rounded-full" title="Has transcript"></div>
-                                  <span className="text-xs text-muted-foreground">
-                                    {call.transcript.length > 100 ? `${Math.floor(call.transcript.length / 100)}k` : call.transcript.length} chars
-                                  </span>
-                                </>
-                              ) : (
-                                <>
-                                  <div className="w-2 h-2 bg-gray-300 rounded-full" title="No transcript"></div>
-                                  <span className="text-xs text-muted-foreground">--</span>
-                                </>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-                {(filteredCalls || allCalls || []).length > 100 && (
-                  <div className="text-center py-3 text-xs text-muted-foreground border-t bg-muted/20">
-                    <div className="flex items-center justify-center space-x-2">
-                      <span>Showing first 100 of {(filteredCalls || allCalls || []).length} calls</span>
-                      <Button variant="outline" size="sm" className="h-6 text-xs px-2">
-                        Load More
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-          )}
         </div>
         )}
 
@@ -1438,6 +1293,152 @@ export default function BulkAnalysis() {
               </CardContent>
             </Card>
           </div>
+        )}
+
+        {/* Dataset Preview - Full width spanning below tabs */}
+        {allCalls && (
+          <Card className="mt-6">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Eye size={20} />
+                  <span>Dataset Preview</span>
+                  <Badge variant="outline" className="ml-2">
+                    {(filteredCalls || allCalls)?.length || 0} calls
+                  </Badge>
+                  {filteredCalls && filteredCalls.length !== allCalls?.length && (
+                    <Badge variant="secondary" className="text-xs">
+                      Filtered
+                    </Badge>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Scroll to explore • Click rows for details
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {filteredCalls ? 
+                  `Preview of ${filteredCalls.length} filtered calls for AI analysis` : 
+                  `All ${allCalls?.length || 0} calls from your dataset`
+                }
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="max-h-96 overflow-auto border rounded-lg" data-testid="dataset-preview">
+                <Table>
+                  <TableHeader className="sticky top-0 bg-background z-10 border-b">
+                    <TableRow>
+                      <TableHead className="w-28">Call ID</TableHead>
+                      <TableHead className="w-16">Type</TableHead>
+                      <TableHead className="w-20">Duration</TableHead>
+                      <TableHead className="w-18">Cost</TableHead>
+                      <TableHead className="w-28">Date</TableHead>
+                      <TableHead className="w-24">Status</TableHead>
+                      <TableHead className="w-32">Assistant</TableHead>
+                      <TableHead className="w-20">Transcript</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(filteredCalls || allCalls || []).slice(0, 100).map((call: any) => {
+                      const hasTranscript = call.transcript && call.transcript.length > 0;
+                      const isRecent = new Date().getTime() - new Date(call.createdAt).getTime() < 24 * 60 * 60 * 1000;
+                      
+                      return (
+                        <TableRow 
+                          key={call.id} 
+                          className="text-xs hover:bg-muted/50 cursor-pointer transition-colors"
+                          data-testid={`call-row-${call.id}`}
+                        >
+                          <TableCell className="font-mono">
+                            <div className="flex items-center space-x-1">
+                              <span>{call.id.substring(0, 8)}...</span>
+                              {isRecent && <div className="w-1 h-1 bg-green-500 rounded-full" title="Recent call"></div>}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={call.type === 'inbound' ? 'default' : 'secondary'} 
+                              className="text-xs px-1 py-0"
+                            >
+                              {call.type === 'inbound' ? 'In' : 'Out'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-mono">
+                            {call.duration ? 
+                              `${Math.floor(call.duration / 60)}:${(call.duration % 60).toString().padStart(2, '0')}` : 
+                              '--'
+                            }
+                          </TableCell>
+                          <TableCell className="font-mono">
+                            ${call.cost?.toFixed(2) || '0.00'}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span>{new Date(call.createdAt).toLocaleDateString()}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(call.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col space-y-1">
+                              <Badge 
+                                variant={
+                                  call.status === 'ended' ? 'default' : 
+                                  call.status === 'in-progress' ? 'secondary' : 
+                                  'outline'
+                                } 
+                                className="text-xs px-1 py-0 w-fit"
+                              >
+                                {call.status || 'unknown'}
+                              </Badge>
+                              {call.endedReason && (
+                                <span className="text-xs text-muted-foreground truncate max-w-20" title={call.endedReason}>
+                                  {call.endedReason}
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="max-w-32 truncate" title={call.assistantName || call.assistantId}>
+                              {call.assistantName || call.assistantId?.substring(0, 8) + '...' || '--'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-1">
+                              {hasTranscript ? (
+                                <>
+                                  <div className="w-2 h-2 bg-green-500 rounded-full" title="Has transcript"></div>
+                                  <span className="text-xs text-muted-foreground">
+                                    {call.transcript.length > 100 ? `${Math.floor(call.transcript.length / 100)}k` : call.transcript.length} chars
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="w-2 h-2 bg-gray-300 rounded-full" title="No transcript"></div>
+                                  <span className="text-xs text-muted-foreground">--</span>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+                {(filteredCalls || allCalls || []).length > 100 && (
+                  <div className="text-center py-3 text-xs text-muted-foreground border-t bg-muted/20">
+                    <div className="flex items-center justify-center space-x-2">
+                      <span>Showing first 100 of {(filteredCalls || allCalls || []).length} calls</span>
+                      <Button variant="outline" size="sm" className="h-6 text-xs px-2">
+                        Load More
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         )}
       </main>
     </div>
