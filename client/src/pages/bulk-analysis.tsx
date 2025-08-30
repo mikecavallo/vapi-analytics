@@ -36,7 +36,9 @@ import {
   AlertTriangle,
   CheckCircle,
   Copy,
-  Activity
+  Activity,
+  Wand2,
+  FileText
 } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -404,9 +406,18 @@ export default function BulkAnalysis() {
                   <Brain size={16} />
                   <span>VoiceScope</span>
                 </Link>
-                <a href="#" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
-                  Reports
-                </a>
+                <Link href="/performance-benchmarks" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
+                  <Activity size={16} />
+                  <span>Benchmarks</span>
+                </Link>
+                <Link href="/assistant-studio" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
+                  <Wand2 size={16} />
+                  <span>Studio</span>
+                </Link>
+                <Link href="/reports" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
+                  <FileText size={16} />
+                  <span>Reports</span>
+                </Link>
                 <a href="#" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
                   Settings
                 </a>
