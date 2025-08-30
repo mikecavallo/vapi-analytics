@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/contexts/theme-context";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import BulkAnalysis from "@/pages/bulk-analysis";
+import PerformanceBenchmarks from "@/pages/performance-benchmarks";
 
 function Router() {
   return (
@@ -14,6 +15,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/bulk-analysis" component={BulkAnalysis} />
+      <Route path="/performance-benchmarks" component={PerformanceBenchmarks} />
       <Route component={NotFound} />
     </Switch>
   );

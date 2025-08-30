@@ -32,7 +32,10 @@ import {
   Download,
   CalendarDays,
   Phone,
-  Eye
+  Eye,
+  AlertTriangle,
+  CheckCircle,
+  Copy
 } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -61,6 +64,10 @@ export default function BulkAnalysis() {
   const [filters, setFilters] = useState<FilterCriteria[]>([]);
   const [analysisQuery, setAnalysisQuery] = useState('');
   const [conversationHistory, setConversationHistory] = useState<AnalysisMessage[]>([]);
+  
+  // Prompt optimization states
+  const [currentPrompt, setCurrentPrompt] = useState('');
+  const [optimizationResults, setOptimizationResults] = useState<any>(null);
   
   // Filter states
   const [selectedDateRange, setSelectedDateRange] = useState<{from?: Date; to?: Date}>({});
@@ -194,6 +201,42 @@ export default function BulkAnalysis() {
     },
   });
 
+  // AI Prompt Optimization mutation
+  const optimizationMutation = useMutation({
+    mutationFn: async ({ assistantId, currentPrompt, transcriptIds }: { 
+      assistantId: string; 
+      currentPrompt: string; 
+      transcriptIds: string[] 
+    }) => {
+      const response = await fetch('/api/voicescope/optimize-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assistantId, currentPrompt, transcriptIds }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Optimization failed');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setOptimizationResults(data);
+      toast({
+        title: "Optimization Complete",
+        description: `Generated ${data.analysis.suggestions?.length || 0} improvement suggestions`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Optimization Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const clearAllFilters = () => {
     setSelectedDateRange({});
     setSelectedCallType('all');
@@ -289,6 +332,26 @@ export default function BulkAnalysis() {
 
   const clearConversation = () => {
     setConversationHistory([]);
+  };
+
+  const handlePromptOptimization = () => {
+    if (!selectedAssistant || selectedAssistant === 'all' || !currentPrompt.trim() || !filteredCalls?.length) {
+      toast({
+        title: "Missing Information",
+        description: "Please select an assistant, enter a prompt, and ensure you have filtered calls for analysis.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const assistantCalls = filteredCalls.filter(call => call.assistantId === selectedAssistant);
+    const transcriptIds = assistantCalls.slice(0, 10).map(call => call.id); // Limit to 10 calls for analysis
+
+    optimizationMutation.mutate({
+      assistantId: selectedAssistant,
+      currentPrompt: currentPrompt.trim(),
+      transcriptIds
+    });
   };
 
   const exportConversation = () => {
@@ -399,6 +462,211 @@ export default function BulkAnalysis() {
             )}
           </div>
         </div>
+
+        {/* AI Prompt Optimization Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Brain size={20} />
+              <span>AI Prompt Optimizer</span>
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Upload your assistant prompts and get AI-powered optimization suggestions based on call transcript analysis
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Assistant Selection */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Select Assistant</Label>
+                <Select value={selectedAssistant} onValueChange={setSelectedAssistant}>
+                  <SelectTrigger data-testid="select-assistant-optimize">
+                    <SelectValue placeholder="Choose assistant to optimize" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Assistants</SelectItem>
+                    {assistants.map((assistant) => (
+                      <SelectItem key={assistant} value={assistant}>{assistant}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Optimization Button */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Analyze & Optimize</Label>
+                <Button 
+                  className="w-full" 
+                  disabled={!selectedAssistant || selectedAssistant === 'all' || !filteredCalls?.length || !currentPrompt.trim() || optimizationMutation.isPending}
+                  onClick={handlePromptOptimization}
+                  data-testid="button-optimize-prompt"
+                >
+                  {optimizationMutation.isPending ? (
+                    <Loader2 className="mr-2 animate-spin" size={16} />
+                  ) : (
+                    <Brain className="mr-2" size={16} />
+                  )}
+                  {optimizationMutation.isPending ? 'Analyzing...' : 'Generate Optimizations'}
+                </Button>
+              </div>
+            </div>
+
+            {/* Current Prompt Upload */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Current Assistant Prompt</Label>
+              <Textarea 
+                placeholder="Paste your current assistant prompt here for analysis..."
+                className="min-h-24"
+                value={currentPrompt}
+                onChange={(e) => setCurrentPrompt(e.target.value)}
+                data-testid="textarea-current-prompt"
+              />
+              <div className="text-xs text-muted-foreground">
+                Upload your current prompt to get specific improvement suggestions
+              </div>
+            </div>
+
+            {/* Optimization Results */}
+            {optimizationResults && (
+              <div className="space-y-4 mt-6 pt-6 border-t">
+                <h3 className="font-semibold text-lg flex items-center space-x-2">
+                  <Brain size={18} />
+                  <span>Optimization Results</span>
+                  <Badge variant="outline" className="ml-2">
+                    Score: {optimizationResults.analysis.overallScore}/10
+                  </Badge>
+                </h3>
+
+                {/* Key Issues */}
+                {optimizationResults.analysis.keyIssues?.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm text-muted-foreground">Key Issues Identified:</h4>
+                    <div className="space-y-1">
+                      {optimizationResults.analysis.keyIssues.map((issue: string, index: number) => (
+                        <div key={index} className="flex items-start space-x-2 text-sm">
+                          <AlertTriangle size={14} className="text-amber-500 mt-0.5 flex-shrink-0" />
+                          <span>{issue}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Suggestions */}
+                {optimizationResults.analysis.suggestions?.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm text-muted-foreground">Improvement Suggestions:</h4>
+                    <div className="space-y-3">
+                      {optimizationResults.analysis.suggestions.map((suggestion: any, index: number) => (
+                        <Card key={index} className="p-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Badge variant={
+                                suggestion.priority === 'high' ? 'destructive' : 
+                                suggestion.priority === 'medium' ? 'default' : 'secondary'
+                              }>
+                                {suggestion.priority} priority
+                              </Badge>
+                              <Badge variant="outline">{suggestion.category}</Badge>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">{suggestion.issue}</p>
+                              <p className="text-sm text-muted-foreground mt-1">{suggestion.solution}</p>
+                            </div>
+                            {suggestion.promptUpdate && (
+                              <div className="mt-2 p-2 bg-muted rounded text-xs font-mono">
+                                {suggestion.promptUpdate}
+                              </div>
+                            )}
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Improved Prompt */}
+                {optimizationResults.analysis.improvedPrompt && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm text-muted-foreground">Optimized Prompt:</h4>
+                    <div className="p-4 bg-muted rounded-lg">
+                      <pre className="text-sm whitespace-pre-wrap font-mono">
+                        {optimizationResults.analysis.improvedPrompt}
+                      </pre>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(optimizationResults.analysis.improvedPrompt);
+                        toast({ title: "Copied to clipboard", description: "Optimized prompt copied successfully" });
+                      }}
+                      data-testid="button-copy-prompt"
+                    >
+                      <Copy size={14} className="mr-1" />
+                      Copy Optimized Prompt
+                    </Button>
+                  </div>
+                )}
+
+                {/* Expected Improvements */}
+                {optimizationResults.analysis.expectedImprovements?.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm text-muted-foreground">Expected Improvements:</h4>
+                    <div className="space-y-1">
+                      {optimizationResults.analysis.expectedImprovements.map((improvement: string, index: number) => (
+                        <div key={index} className="flex items-start space-x-2 text-sm">
+                          <CheckCircle size={14} className="text-green-500 mt-0.5 flex-shrink-0" />
+                          <span>{improvement}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end space-x-2 pt-4 border-t">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setOptimizationResults(null)}
+                    data-testid="button-clear-results"
+                  >
+                    Clear Results
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      const reportData = {
+                        assistant: selectedAssistant,
+                        originalPrompt: currentPrompt,
+                        analysis: optimizationResults.analysis,
+                        generatedAt: optimizationResults.generatedAt,
+                        transcriptsAnalyzed: optimizationResults.transcriptsAnalyzed
+                      };
+                      const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `prompt-optimization-${selectedAssistant}-${new Date().toISOString().split('T')[0]}.json`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    data-testid="button-export-report"
+                  >
+                    <Download size={14} className="mr-1" />
+                    Export Report
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Loading State */}
+            {optimizationMutation.isPending && (
+              <div className="flex items-center justify-center py-8 space-x-3">
+                <Loader2 className="animate-spin" size={20} />
+                <span className="text-sm text-muted-foreground">Analyzing transcripts and generating optimizations...</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Filters Section */}
