@@ -1130,18 +1130,17 @@ export default function BulkAnalysis() {
             </CardContent>
           </Card>
           )}
-
-          {/* Dataset Preview - Always show when data is available */}
-          {(filteredCalls || allCalls) && (
+          {/* Dataset Preview - Full width */}
+          {allCalls && (
             <Card className="mt-6">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Eye size={20} />
-                  <span>Dataset Preview</span>
-                  <Badge variant="outline" className="ml-2">
-                    {filteredCalls ? filteredCalls.length : allCalls?.length || 0} calls
-                  </Badge>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Eye size={20} />
+                    <span>Dataset Preview</span>
+                    <Badge variant="outline" className="ml-2">
+                      {(filteredCalls || allCalls)?.length || 0} calls
+                    </Badge>
                   {filteredCalls && filteredCalls.length !== allCalls?.length && (
                     <Badge variant="secondary" className="text-xs">
                       Filtered
