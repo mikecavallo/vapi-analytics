@@ -404,62 +404,8 @@ export default function BulkAnalysis() {
 
       {/* Results Section */}
       {callsData.length > 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Dataset Preview */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Dataset Preview ({callsData.length} calls)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-96">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Call ID</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Assistant</TableHead>
-                      <TableHead>Date & Time</TableHead>
-                      <TableHead>Duration</TableHead>
-                      <TableHead>Cost</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {callsData.slice(0, 50).map((call) => (
-                      <TableRow key={call.id}>
-                        <TableCell className="font-mono text-xs">
-                          {call.id.substring(0, 8)}...
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={call.type === 'inbound' ? 'default' : 'secondary'}>
-                            {call.type || 'N/A'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {call.assistantName || call.assistant?.name || 'N/A'}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {call.createdAt ? new Date(call.createdAt).toLocaleDateString() : 'N/A'}
-                        </TableCell>
-                        <TableCell>{call.duration ? `${Math.round(call.duration)}s` : 'N/A'}</TableCell>
-                        <TableCell>${call.cost?.toFixed(4) || '0.00'}</TableCell>
-                        <TableCell>
-                          <Badge variant={call.status === 'ended' ? 'default' : 'secondary'}>
-                            {call.status || 'N/A'}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-
-          {/* Analysis Panel */}
+        <div className="space-y-6">
+          {/* AI Analysis Panel - Full Width */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -469,50 +415,7 @@ export default function BulkAnalysis() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Textarea
-                  placeholder="Ask AI to analyze your call data (e.g., 'Analyze sentiment patterns', 'Find common failure points', 'Suggest improvements')"
-                  value={analysisQuery}
-                  onChange={(e) => setAnalysisQuery(e.target.value)}
-                  className="min-h-20"
-                  data-testid="textarea-analysis-query"
-                />
-                <Button
-                  onClick={() => {
-                    if (analysisQuery.trim() && callsData.length > 0) {
-                      const selectedCalls = callsData.slice(0, 20).map(call => call.id);
-                      performAnalysisMutation.mutate({
-                        callIds: selectedCalls,
-                        analysisType: analysisQuery
-                      });
-                      
-                      const userMessage: AnalysisMessage = {
-                        id: Math.random().toString(36).substr(2, 9),
-                        role: 'user',
-                        content: analysisQuery,
-                        timestamp: new Date()
-                      };
-                      setConversationHistory(prev => [...prev, userMessage]);
-                      setAnalysisQuery('');
-                    }
-                  }}
-                  disabled={!analysisQuery.trim() || callsData.length === 0 || performAnalysisMutation.isPending}
-                  className="w-full"
-                  data-testid="button-submit-analysis"
-                >
-                  {performAnalysisMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Analyzing...
-                    </>
-                  ) : (
-                    <>
-                      <Wand2 className="mr-2 h-4 w-4" />
-                      Analyze with AI
-                    </>
-                  )}
-                </Button>
-
-                {/* Conversation History */}
+                {/* Conversation History - Above Input */}
                 <ScrollArea className="h-64 border rounded-lg p-3">
                   {conversationHistory.length === 0 ? (
                     <div className="text-center text-muted-foreground py-8">
@@ -550,7 +453,145 @@ export default function BulkAnalysis() {
                     </div>
                   )}
                 </ScrollArea>
+
+                {/* Input Box - Below Conversation */}
+                <div className="flex gap-2">
+                  <Textarea
+                    placeholder="Ask AI to analyze your call data (e.g., 'Analyze sentiment patterns', 'Find common failure points', 'Suggest improvements')"
+                    value={analysisQuery}
+                    onChange={(e) => setAnalysisQuery(e.target.value)}
+                    className="min-h-20 flex-1"
+                    data-testid="textarea-analysis-query"
+                  />
+                  <Button
+                    onClick={() => {
+                      if (analysisQuery.trim() && callsData.length > 0) {
+                        const selectedCalls = callsData.slice(0, 20).map(call => call.id);
+                        performAnalysisMutation.mutate({
+                          callIds: selectedCalls,
+                          analysisType: analysisQuery
+                        });
+                        
+                        const userMessage: AnalysisMessage = {
+                          id: Math.random().toString(36).substr(2, 9),
+                          role: 'user',
+                          content: analysisQuery,
+                          timestamp: new Date()
+                        };
+                        setConversationHistory(prev => [...prev, userMessage]);
+                        setAnalysisQuery('');
+                      }
+                    }}
+                    disabled={!analysisQuery.trim() || callsData.length === 0 || performAnalysisMutation.isPending}
+                    className="self-end"
+                    data-testid="button-submit-analysis"
+                  >
+                    {performAnalysisMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="mr-2 h-4 w-4" />
+                        Analyze
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Dataset Preview - Full Width Below */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Dataset Preview ({callsData.length} calls)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-96">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted">
+                      <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Call ID</TableHead>
+                      <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Type</TableHead>
+                      <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">
+                        <div className="flex items-center space-x-1">
+                          <span>Assistant</span>
+                          <Phone size={12} />
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">
+                        <div className="flex items-center space-x-1">
+                          <span>Customer</span>
+                          <Phone size={12} />
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Assistant Name</TableHead>
+                      <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Date & Time</TableHead>
+                      <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Duration</TableHead>
+                      <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Cost</TableHead>
+                      <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Success Evaluation</TableHead>
+                      <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Details</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {callsData.slice(0, 100).map((call) => (
+                      <TableRow key={call.id}>
+                        <TableCell className="font-mono text-xs">
+                          <div className="flex items-center gap-2">
+                            <span>{call.id.substring(0, 8)}...</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigator.clipboard.writeText(call.id)}
+                              className="h-6 w-6 p-0"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={call.type === 'inbound' ? 'default' : 'secondary'}>
+                            {call.type || 'N/A'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {call.assistantPhoneNumber || call.phoneNumber || 'N/A'}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {call.customerPhoneNumber || call.customer?.number || 'N/A'}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {call.assistantName || call.assistant?.name || 'N/A'}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {call.createdAt ? new Date(call.createdAt).toLocaleString() : 'N/A'}
+                        </TableCell>
+                        <TableCell>{call.duration ? `${Math.round(call.duration)}s` : 'N/A'}</TableCell>
+                        <TableCell>${call.cost?.toFixed(4) || '0.00'}</TableCell>
+                        <TableCell>
+                          <Badge variant={call.status === 'ended' ? 'default' : 'secondary'}>
+                            {call.analysis?.successEvaluation || call.status || 'N/A'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
             </CardContent>
           </Card>
         </div>
