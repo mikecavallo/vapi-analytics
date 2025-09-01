@@ -5,7 +5,7 @@ import { vapiAnalyticsQuerySchema, type VapiAnalyticsQuery, type DashboardData }
 import { z } from "zod";
 import { VapiClient } from "@vapi-ai/server-sdk";
 
-// Function to fetch calls from Vapi API for a specific date range
+// Function to fetch calls from Vapi API and filter by date range
 async function fetchCallsInDateRange(startDate: string, endDate: string): Promise<any[]> {
   const vapiApiKey = process.env.VAPI_API_KEY || process.env.VAPI_TOKEN || "";
   
@@ -14,7 +14,7 @@ async function fetchCallsInDateRange(startDate: string, endDate: string): Promis
   }
 
   try {
-    console.log(`[${new Date().toLocaleTimeString()}] Fetching calls from ${startDate} to ${endDate}`);
+    console.log(`[${new Date().toLocaleTimeString()}] Fetching calls and filtering from ${startDate} to ${endDate}`);
     
     // Create an abort controller for timeout - 30 seconds
     const controller = new AbortController();
@@ -25,13 +25,8 @@ async function fetchCallsInDateRange(startDate: string, endDate: string): Promis
       "Content-Type": "application/json",
     };
 
-    // Build URL with date range parameters
-    const url = new URL("https://api.vapi.ai/call");
-    url.searchParams.append("limit", "1000");
-    if (startDate) url.searchParams.append("createdAtGte", startDate);
-    if (endDate) url.searchParams.append("createdAtLte", endDate);
-
-    const response = await fetch(url.toString(), {
+    // Use the same approach as dashboard - fetch all calls without date filtering
+    const response = await fetch("https://api.vapi.ai/call?limit=1000", {
       method: "GET",
       headers: requestHeaders,
       signal: controller.signal,
@@ -71,8 +66,17 @@ async function fetchCallsInDateRange(startDate: string, endDate: string): Promis
       createdAt: call.createdAt || call.startedAt,
     }));
     
-    console.log(`Successfully fetched ${processedCalls.length} calls for date range`);
-    return processedCalls;
+    // Filter by date range on the backend
+    const startDateTime = new Date(startDate);
+    const endDateTime = new Date(endDate);
+    
+    const filteredCalls = processedCalls.filter(call => {
+      const callDate = new Date(call.createdAt);
+      return callDate >= startDateTime && callDate <= endDateTime;
+    });
+    
+    console.log(`Successfully fetched ${processedCalls.length} total calls, ${filteredCalls.length} match date range`);
+    return filteredCalls;
   } catch (error: any) {
     if (error.name === 'AbortError') {
       throw new Error("Request timeout - Vapi API took too long to respond");
