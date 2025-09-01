@@ -312,12 +312,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
       try {
-        // Fetch calls with minimal parameters to test connection
+        // Fetch calls using the same pattern as the working analytics endpoint
         console.log(`[${new Date().toLocaleTimeString()}] Attempting to fetch calls from Vapi API...`);
-        const response = await fetch("https://api.vapi.ai/call", {
+        const response = await fetch("https://api.vapi.ai/call?limit=100", {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${vapiApiKey}`,
+            "Content-Type": "application/json",
           },
           signal: controller.signal,
         });
