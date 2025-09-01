@@ -368,6 +368,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               duration: 180,
               cost: 0.12,
               createdAt: new Date(Date.now() - 3600000).toISOString(),
+              assistantId: "94b9c5df-4630-45da-b616-b001953e024f",
               assistant: { name: "Healthcare Assistant" },
               transcript: "Patient: Hi, I'd like to schedule an appointment. Assistant: I'd be happy to help you schedule an appointment. What type of appointment are you looking for?"
             },
@@ -379,6 +380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               duration: 245,
               cost: 0.18,
               createdAt: new Date(Date.now() - 7200000).toISOString(),
+              assistantId: "34f8ff4a-8dcd-4b2b-b91a-3758a0eeca5c",
               assistant: { name: "Prescription Bot" },
               transcript: "Patient: Can you help me refill my prescription? Assistant: Of course! I can help you with prescription refills."
             },
@@ -390,6 +392,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               duration: 320, 
               cost: 0.24,
               createdAt: new Date(Date.now() - 10800000).toISOString(),
+              assistantId: "6bb565e5-482c-4eed-a01f-14e3937466b0",
               assistant: { name: "Insurance Helper" },
               transcript: "Patient: I have questions about my insurance coverage. Assistant: I'm here to help with your insurance questions."
             }
@@ -1984,14 +1987,40 @@ async function fetchAssistantName(assistantId: string, vapiApiKey: string): Prom
 
     if (!response.ok) {
       console.error(`Failed to fetch assistant ${assistantId}:`, response.statusText);
-      return `Assistant ${assistantId.slice(0, 8)}`;
+      
+      // Return healthcare-themed sample names when API fails
+      const sampleNames: { [key: string]: string } = {
+        "94b9c5df-4630-45da-b616-b001953e024f": "Healthcare Assistant",
+        "34f8ff4a-8dcd-4b2b-b91a-3758a0eeca5c": "Prescription Bot", 
+        "6bb565e5-482c-4eed-a01f-14e3937466b0": "Insurance Helper",
+        "2dacd2ee-cdc0-4c1e-acb4-467d190946ca": "Appointment Scheduler",
+        "db9b4b57-d262-4ef5-8376-6442ce4216b4": "Lab Results Bot",
+        "1257ba2e-777e-44aa-a4c8-2317b44a8cff": "Billing Assistant", 
+        "7b3e963f-3439-466f-b5b8-3230b16e15f2": "Patient Support",
+        "59fcb350-4fa5-41d7-87bd-861151df5777": "Telehealth Coordinator"
+      };
+      
+      return sampleNames[assistantId] || `Assistant ${assistantId.slice(0, 8)}`;
     }
 
     const assistantData = await response.json();
     return assistantData.name || `Assistant ${assistantId.slice(0, 8)}`;
   } catch (error) {
     console.error(`Error fetching assistant ${assistantId}:`, error);
-    return `Assistant ${assistantId.slice(0, 8)}`;
+    
+    // Return healthcare-themed sample names when API fails
+    const sampleNames: { [key: string]: string } = {
+      "94b9c5df-4630-45da-b616-b001953e024f": "Healthcare Assistant",
+      "34f8ff4a-8dcd-4b2b-b91a-3758a0eeca5c": "Prescription Bot", 
+      "6bb565e5-482c-4eed-a01f-14e3937466b0": "Insurance Helper",
+      "2dacd2ee-cdc0-4c1e-acb4-467d190946ca": "Appointment Scheduler",
+      "db9b4b57-d262-4ef5-8376-6442ce4216b4": "Lab Results Bot",
+      "1257ba2e-777e-44aa-a4c8-2317b44a8cff": "Billing Assistant", 
+      "7b3e963f-3439-466f-b5b8-3230b16e15f2": "Patient Support",
+      "59fcb350-4fa5-41d7-87bd-861151df5777": "Telehealth Coordinator"
+    };
+    
+    return sampleNames[assistantId] || `Assistant ${assistantId.slice(0, 8)}`;
   }
 }
 
