@@ -250,32 +250,64 @@ export default function BulkAnalysis() {
   const hasFilters = callIdFilter || assistantIdFilter || phoneNumberIdFilter || (selectedDateRange.from && selectedDateRange.to);
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div className="flex items-center gap-4">
-          <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg">
-            <Brain className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              VoiceScope
-            </h1>
-            <p className="text-muted-foreground">AI-Powered Bulk Voice Analytics</p>
+      <header className="bg-card border-b border-border sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                <h1 className="text-2xl font-bold text-primary flex items-center">
+                  <ChartLine className="mr-2" size={24} />
+                  Vapi Analytics
+                </h1>
+              </div>
+              <nav className="hidden md:flex space-x-8">
+                <Link href="/dashboard" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
+                  Dashboard
+                </Link>
+                <Link href="/bulk-analysis" className="text-primary border-b-2 border-primary pb-4 px-1 text-sm font-medium flex items-center space-x-1">
+                  <Brain size={16} />
+                  <span>VoiceScope</span>
+                </Link>
+                <Link href="/performance-benchmarks" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
+                  <Activity size={16} />
+                  <span>Benchmarks</span>
+                </Link>
+                <Link href="/assistant-studio" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
+                  <Wand2 size={16} />
+                  <span>Studio</span>
+                </Link>
+                <Link href="/reports" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
+                  <FileText size={16} />
+                  <span>Reports</span>
+                </Link>
+                <a href="#" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
+                  Settings
+                </a>
+              </nav>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={toggleTheme}
+                className="w-8 h-8 rounded-full p-0"
+                data-testid="button-toggle-theme"
+              >
+                {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
+              </Button>
+              <div className="relative">
+                <Button variant="secondary" size="sm" className="w-8 h-8 rounded-full p-0" data-testid="button-user">
+                  <User size={16} />
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
-        
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={toggleTheme}
-            data-testid="button-toggle-theme"
-          >
-            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </Button>
-        </div>
-      </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
       {/* Filter Section */}
       <Card className="mb-6">
@@ -608,6 +640,7 @@ export default function BulkAnalysis() {
           </CardContent>
         </Card>
       )}
+      </main>
     </div>
   );
 }
