@@ -1405,7 +1405,7 @@ export default function BulkAnalysis() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(filteredCalls || allCalls || []).slice(0, 100).map((call: any) => {
+                      {(filteredCalls || allCalls || []).map((call: any) => {
                       const isRecent = new Date().getTime() - new Date(call.createdAt).getTime() < 24 * 60 * 60 * 1000;
                       
                       // Success evaluation logic matching dashboard
@@ -1505,14 +1505,11 @@ export default function BulkAnalysis() {
                     })}
                     </TableBody>
                     <tfoot>
-                      {(filteredCalls || allCalls || []).length > 100 && (
+                      {(filteredCalls || allCalls || []).length > 500 && (
                         <tr>
-                          <td colSpan={8} className="text-center py-3 text-xs text-muted-foreground border-t bg-muted/20">
+                          <td colSpan={10} className="text-center py-3 text-xs text-muted-foreground border-t bg-muted/20">
                             <div className="flex items-center justify-center space-x-2">
-                              <span>Showing first 100 of {(filteredCalls || allCalls || []).length} calls</span>
-                              <Button variant="outline" size="sm" className="h-6 text-xs px-2">
-                                Load More
-                              </Button>
+                              <span>Showing all {(filteredCalls || allCalls || []).length} calls</span>
                             </div>
                           </td>
                         </tr>

@@ -37,7 +37,7 @@ async function refreshCallCache(): Promise<void> {
       "Content-Type": "application/json",
     };
 
-    const response = await fetch("https://api.vapi.ai/call?limit=100", {
+    const response = await fetch("https://api.vapi.ai/call?limit=1000", {
       method: "GET",
       headers: requestHeaders,
       signal: controller.signal,
