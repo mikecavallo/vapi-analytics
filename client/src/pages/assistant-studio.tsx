@@ -27,7 +27,13 @@ import {
   Sparkles,
   Heart,
   Shield,
-  Volume2
+  Volume2,
+  ChartLine,
+  Activity,
+  FileText,
+  User,
+  Sun,
+  Moon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
@@ -73,7 +79,7 @@ interface AssistantConfig {
 }
 
 export default function AssistantStudio() {
-  const { theme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const [location] = useLocation();
   const { toast } = useToast();
 
@@ -197,32 +203,79 @@ export default function AssistantStudio() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Link to="/dashboard">
-              <Button variant="ghost" size="sm" data-testid="button-back-dashboard">
-                <ArrowLeft size={16} className="mr-2" />
-                Back to Dashboard
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="bg-card border-b border-border sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                <h1 className="text-2xl font-bold text-primary flex items-center">
+                  <ChartLine className="mr-2" size={24} />
+                  Vapi Analytics
+                </h1>
+              </div>
+              <nav className="hidden md:flex space-x-8">
+                <Link href="/dashboard" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
+                  Dashboard
+                </Link>
+                <Link href="/bulk-analysis" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
+                  <Brain size={16} />
+                  <span>VoiceScope</span>
+                </Link>
+                <Link href="/performance-benchmarks" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
+                  <Activity size={16} />
+                  <span>Benchmarks</span>
+                </Link>
+                <Link href="/assistant-studio" className="text-primary border-b-2 border-primary pb-4 px-1 text-sm font-medium flex items-center space-x-1">
+                  <Wand2 size={16} />
+                  <span>Studio</span>
+                </Link>
+                <Link href="/reports" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
+                  <FileText size={16} />
+                  <span>Reports</span>
+                </Link>
+                <a href="#" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
+                  Settings
+                </a>
+              </nav>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Badge variant="outline" className="px-3 py-1">
+                <Sparkles size={14} className="mr-1" />
+                AI-Powered
+              </Badge>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={toggleTheme}
+                className="w-8 h-8 rounded-full p-0"
+                data-testid="button-toggle-theme"
+              >
+                {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
               </Button>
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold flex items-center space-x-3">
-                <Wand2 size={32} />
-                <span>Assistant Studio</span>
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                Create AI-powered voice assistants with natural language descriptions
-              </p>
+              <div className="relative">
+                <Button variant="secondary" size="sm" className="w-8 h-8 rounded-full p-0" data-testid="button-user">
+                  <User size={16} />
+                </Button>
+              </div>
             </div>
           </div>
-          <Badge variant="outline" className="px-3 py-1">
-            <Sparkles size={14} className="mr-1" />
-            AI-Powered
-          </Badge>
         </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="space-y-6">
+          {/* Page Title */}
+          <div>
+            <h1 className="text-3xl font-bold flex items-center space-x-3">
+              <Wand2 size={32} />
+              <span>Assistant Studio</span>
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Create AI-powered voice assistants with natural language descriptions
+            </p>
+          </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Input Section */}
@@ -533,7 +586,8 @@ export default function AssistantStudio() {
             </CardContent>
           </Card>
         </div>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }
