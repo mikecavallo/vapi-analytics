@@ -1612,7 +1612,7 @@ Generate professional insights in JSON format:
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-5", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+          model: "gpt-4o", // Using GPT-4o for analysis
           messages: [
             {
               role: "system",
@@ -1642,7 +1642,9 @@ Generate professional insights in JSON format:
       });
 
       if (!openaiResponse.ok) {
-        throw new Error("OpenAI analysis failed");
+        const errorData = await openaiResponse.text();
+        console.error("OpenAI API error:", openaiResponse.status, errorData);
+        throw new Error(`OpenAI analysis failed: ${openaiResponse.status} - ${errorData}`);
       }
 
       const openaiResult = await openaiResponse.json();
