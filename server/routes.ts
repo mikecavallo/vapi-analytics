@@ -5,28 +5,16 @@ import { vapiAnalyticsQuerySchema, type VapiAnalyticsQuery, type DashboardData }
 import { z } from "zod";
 import { VapiClient } from "@vapi-ai/server-sdk";
 
-// Server-side call cache
-let cachedCalls: any[] = [];
-let lastCacheUpdate = 0;
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
-
-// Function to refresh call cache from Vapi API with enhanced debugging
-async function refreshCallCache(): Promise<void> {
+// Function to fetch calls from Vapi API for a specific date range
+async function fetchCallsInDateRange(startDate: string, endDate: string): Promise<any[]> {
   const vapiApiKey = process.env.VAPI_API_KEY || process.env.VAPI_TOKEN || "";
   
   if (!vapiApiKey) {
-    console.error("Vapi API key not configured - cannot refresh call cache");
-    return;
+    throw new Error("Vapi API key not configured");
   }
-
-  // Prevent multiple concurrent refresh attempts
-  if (refreshCallCache.isRefreshing) {
-    return;
-  }
-  refreshCallCache.isRefreshing = true;
 
   try {
-    console.log(`[${new Date().toLocaleTimeString()}] Refreshing call cache from Vapi API...`);
+    console.log(`[${new Date().toLocaleTimeString()}] Fetching calls from ${startDate} to ${endDate}`);
     
     // Create an abort controller for timeout - 30 seconds
     const controller = new AbortController();
@@ -37,7 +25,13 @@ async function refreshCallCache(): Promise<void> {
       "Content-Type": "application/json",
     };
 
-    const response = await fetch("https://api.vapi.ai/call?limit=1000", {
+    // Build URL with date range parameters
+    const url = new URL("https://api.vapi.ai/call");
+    url.searchParams.append("limit", "1000");
+    if (startDate) url.searchParams.append("createdAtGte", startDate);
+    if (endDate) url.searchParams.append("createdAtLte", endDate);
+
+    const response = await fetch(url.toString(), {
       method: "GET",
       headers: requestHeaders,
       signal: controller.signal,
@@ -46,18 +40,18 @@ async function refreshCallCache(): Promise<void> {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      console.error(`Failed to refresh cache: ${response.status} ${response.statusText}`);
+      console.error(`Failed to fetch calls: ${response.status} ${response.statusText}`);
       if (response.status === 401 || response.status === 403) {
-        console.error("Invalid API key or insufficient permissions");
+        throw new Error("Invalid API key or insufficient permissions");
       }
-      return;
+      throw new Error(`API call failed: ${response.status} ${response.statusText}`);
     }
 
     const callsData = await response.json();
     const calls = Array.isArray(callsData) ? callsData : (callsData.data || []);
     
     // Process calls and add missing fields for filtering compatibility
-    cachedCalls = calls.map(call => ({
+    const processedCalls = calls.map(call => ({
       ...call,
       assistantName: call.assistant?.name || null,
       customerPhoneNumber: call.customer?.number || call.phoneNumberE164 || null,
@@ -77,41 +71,20 @@ async function refreshCallCache(): Promise<void> {
       createdAt: call.createdAt || call.startedAt,
     }));
     
-    lastCacheUpdate = Date.now();
-    console.log(`Successfully cached ${cachedCalls.length} calls`);
+    console.log(`Successfully fetched ${processedCalls.length} calls for date range`);
+    return processedCalls;
   } catch (error: any) {
     if (error.name === 'AbortError') {
-      console.error("Cache refresh timeout - Vapi API took too long to respond");
+      throw new Error("Request timeout - Vapi API took too long to respond");
     } else if (error.cause?.code === 'UND_ERR_SOCKET') {
-      console.error("Network connection error with Vapi API - connection closed unexpectedly");
+      throw new Error("Network connection error with Vapi API");
     } else {
-      console.error("Error refreshing call cache:", error.message);
+      throw error;
     }
-  } finally {
-    refreshCallCache.isRefreshing = false;
   }
 }
 
-// Add flag to prevent concurrent refreshes
-refreshCallCache.isRefreshing = false;
-
-// Check if cache needs refresh
-function shouldRefreshCache(): boolean {
-  return cachedCalls.length === 0 || (Date.now() - lastCacheUpdate) > CACHE_DURATION;
-}
-
 export async function registerRoutes(app: Express): Promise<Server> {
-  
-  // Initialize call cache on server startup
-  console.log("Initializing call cache...");
-  
-  // Clear any existing cache and try to get real data from API
-  cachedCalls = [];
-  lastCacheUpdate = 0;
-  
-  // Attempt to refresh from API immediately with await to debug
-  console.log("Attempting to fetch real data from Vapi API...");
-  await refreshCallCache();
   
   // Analytics endpoint - proxy to Vapi API and cache results
   app.post("/api/analytics", async (req, res) => {
@@ -405,36 +378,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Bulk analysis endpoints - now uses server-side cache for fast filtering
-  app.get("/api/bulk-analysis/calls", async (req, res) => {
+  // Bulk analysis endpoint - fetch calls based on date range
+  app.post("/api/bulk-analysis/calls", async (req, res) => {
     try {
-      // Check if cache needs refresh
-      if (shouldRefreshCache()) {
-        await refreshCallCache();
+      const { startDate, endDate } = req.body;
+      
+      if (!startDate || !endDate) {
+        return res.status(400).json({ error: "startDate and endDate are required" });
       }
 
-      // Return cached data immediately - no API delays
-      console.log(`[${new Date().toLocaleTimeString()}] Serving ${cachedCalls.length} cached calls for VoiceScope`);
-      res.json(cachedCalls);
-    } catch (error: any) {
-      console.error("Error serving cached calls:", error);
-      res.status(500).json({ error: "Failed to load call data" });
-    }
-  });
+      const calls = await fetchCallsInDateRange(startDate, endDate);
+      
+      // Check if dataset is too large (more than 500 calls)
+      if (calls.length > 500) {
+        return res.status(400).json({ 
+          error: "Dataset too large", 
+          message: `Found ${calls.length} calls. Please select a smaller timeframe to analyze fewer than 500 calls.`,
+          callCount: calls.length
+        });
+      }
 
-  // Manual cache refresh endpoint for VoiceScope
-  app.post("/api/bulk-analysis/refresh-cache", async (req, res) => {
-    try {
-      console.log("Manual cache refresh requested");
-      await refreshCallCache();
-      res.json({ 
-        success: true, 
-        message: `Cache refreshed with ${cachedCalls.length} calls`,
-        timestamp: new Date().toISOString() 
-      });
+      console.log(`[${new Date().toLocaleTimeString()}] Serving ${calls.length} calls for date range ${startDate} to ${endDate}`);
+      res.json(calls);
     } catch (error: any) {
-      console.error("Error manually refreshing cache:", error);
-      res.status(500).json({ error: "Failed to refresh cache" });
+      console.error("Error fetching calls for date range:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch call data" });
     }
   });
 

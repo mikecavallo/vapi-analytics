@@ -31,6 +31,7 @@ import {
   Moon,
   Download,
   CalendarDays,
+  Calendar as CalendarIcon,
   Phone,
   Eye,
   AlertTriangle,
@@ -89,10 +90,34 @@ export default function BulkAnalysis() {
   const [costRange, setCostRange] = useState<{min?: string; max?: string}>({});
   const [durationRange, setDurationRange] = useState<{min?: string; max?: string}>({});
 
-  // Fetch all calls first, then filter on frontend
-  const { data: allCalls, isLoading: isLoadingCalls } = useQuery<any[]>({
-    queryKey: ['/api/bulk-analysis/calls'],
-    enabled: true,
+  // Fetch calls based on selected date range
+  const { data: allCalls, isLoading: isLoadingCalls, error: callsError } = useQuery<any[]>({
+    queryKey: ['/api/bulk-analysis/calls', selectedDateRange],
+    enabled: !!(selectedDateRange.from && selectedDateRange.to),
+    queryFn: async () => {
+      if (!selectedDateRange.from || !selectedDateRange.to) {
+        return [];
+      }
+      
+      const response = await fetch('/api/bulk-analysis/calls', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startDate: selectedDateRange.from.toISOString(),
+          endDate: selectedDateRange.to.toISOString()
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.error === 'Dataset too large') {
+          throw new Error(errorData.message);
+        }
+        throw new Error(errorData.error || 'Failed to fetch calls');
+      }
+      
+      return response.json();
+    },
   });
   
   // Get unique assistants with preference for names over IDs
@@ -1364,18 +1389,37 @@ export default function BulkAnalysis() {
                     <Loader2 className="animate-spin mr-2" size={20} />
                     <span>Loading dataset...</span>
                   </div>
+                ) : callsError ? (
+                  <div className="flex items-center justify-center p-8 text-muted-foreground">
+                    <div className="text-center">
+                      <AlertTriangle size={48} className="mx-auto mb-4 text-orange-500" />
+                      <p className="font-semibold mb-2">
+                        {callsError.message.includes('Dataset too large') ? 'Dataset Too Large' : 'Error Loading Data'}
+                      </p>
+                      <p className="text-sm max-w-md mx-auto mb-4">
+                        {callsError.message}
+                      </p>
+                      {callsError.message.includes('Dataset too large') && (
+                        <p className="text-xs text-muted-foreground">
+                          Try selecting a smaller date range (e.g., last 30 days) to analyze fewer calls.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ) : !selectedDateRange.from || !selectedDateRange.to ? (
+                  <div className="flex items-center justify-center p-8 text-muted-foreground">
+                    <div className="text-center">
+                      <CalendarIcon size={48} className="mx-auto mb-4 opacity-50" />
+                      <p className="font-semibold mb-2">Select Date Range</p>
+                      <p className="text-sm">Choose a date range to load call data for analysis</p>
+                    </div>
+                  </div>
                 ) : !allCalls || allCalls.length === 0 ? (
                   <div className="flex items-center justify-center p-8 text-muted-foreground">
                     <div className="text-center">
                       <Eye size={48} className="mx-auto mb-2 opacity-50" />
-                      <p>No call data available</p>
-                      <p className="text-sm">The API connection timed out</p>
-                      <button 
-                        onClick={() => window.location.reload()} 
-                        className="mt-3 px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-                      >
-                        Refresh Page
-                      </button>
+                      <p>No call data found</p>
+                      <p className="text-sm">No calls found for the selected date range</p>
                     </div>
                   </div>
                 ) : (
