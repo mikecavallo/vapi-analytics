@@ -5,7 +5,76 @@ import { vapiAnalyticsQuerySchema, type VapiAnalyticsQuery, type DashboardData }
 import { z } from "zod";
 import { VapiClient } from "@vapi-ai/server-sdk";
 
+// Server-side call cache
+let cachedCalls: any[] = [];
+let lastCacheUpdate = 0;
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+
+// Function to refresh call cache from Vapi API
+async function refreshCallCache(): Promise<void> {
+  const vapiApiKey = process.env.VAPI_API_KEY || process.env.VAPI_TOKEN || "";
+  if (!vapiApiKey) {
+    console.error("Vapi API key not configured - cannot refresh call cache");
+    return;
+  }
+
+  try {
+    console.log(`[${new Date().toLocaleTimeString()}] Refreshing call cache from Vapi API...`);
+    
+    const response = await fetch("https://api.vapi.ai/call?limit=1000", {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${vapiApiKey}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`Failed to refresh cache: ${response.status} ${response.statusText}`);
+      return;
+    }
+
+    const callsData = await response.json();
+    const calls = Array.isArray(callsData) ? callsData : (callsData.data || []);
+    
+    // Process calls and add missing fields for filtering compatibility
+    cachedCalls = calls.map(call => ({
+      ...call,
+      assistantName: call.assistant?.name || null,
+      customerPhoneNumber: call.customer?.number || call.phoneNumberE164 || null,
+      assistantPhoneNumber: call.assistant?.phoneNumber || call.phoneNumber || null,
+      // Ensure duration is in seconds (Vapi provides in minutes)
+      duration: call.duration ? Math.round(call.duration * 60) : 
+               (call.endedAt && call.startedAt) 
+                 ? Math.round((new Date(call.endedAt).getTime() - new Date(call.startedAt).getTime()) / 1000)
+                 : 0,
+      // Normalize type field for filtering
+      type: call.type === 'inboundPhoneCall' ? 'inbound' : 'outbound',
+      // Ensure we have the transcript field
+      transcript: call.transcript || "",
+      // Add any missing cost field
+      cost: call.cost || 0,
+      // Ensure createdAt field exists
+      createdAt: call.createdAt || call.startedAt,
+    }));
+    
+    lastCacheUpdate = Date.now();
+    console.log(`[${new Date().toLocaleTimeString()}] Successfully cached ${cachedCalls.length} calls`);
+  } catch (error) {
+    console.error("Error refreshing call cache:", error);
+  }
+}
+
+// Check if cache needs refresh
+function shouldRefreshCache(): boolean {
+  return cachedCalls.length === 0 || (Date.now() - lastCacheUpdate) > CACHE_DURATION;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Initialize call cache on server startup
+  console.log("Initializing call cache...");
+  refreshCallCache(); // Don't await - let it run in background
   
   // Analytics endpoint - proxy to Vapi API and cache results
   app.post("/api/analytics", async (req, res) => {
@@ -299,80 +368,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Bulk analysis endpoints
+  // Bulk analysis endpoints - now uses server-side cache for fast filtering
   app.get("/api/bulk-analysis/calls", async (req, res) => {
     try {
-      const vapiApiKey = process.env.VAPI_API_KEY || "";
-      if (!vapiApiKey) {
-        return res.status(500).json({ error: "Vapi API key not configured." });
+      // Check if cache needs refresh
+      if (shouldRefreshCache()) {
+        await refreshCallCache();
       }
 
-      // Create an abort controller for timeout - increase to 60 seconds
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
-
-      try {
-        // Fetch calls using the same pattern as the working analytics endpoint
-        console.log(`[${new Date().toLocaleTimeString()}] Attempting to fetch calls from Vapi API...`);
-        const response = await fetch("https://api.vapi.ai/call?limit=100", {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${vapiApiKey}`,
-            "Content-Type": "application/json",
-          },
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          console.error(`Vapi API responded with status ${response.status}: ${response.statusText}`);
-          return res.status(response.status).json({ error: `Failed to fetch calls: ${response.statusText}` });
-        }
-
-        const callsData = await response.json();
-        const calls = Array.isArray(callsData) ? callsData : (callsData.data || []);
-        
-        // Return calls with transcripts and basic info
-        const enrichedCalls = calls.map((call: any) => ({
-          id: call.id,
-          transcript: call.transcript || "",
-          duration: (call.endedAt && call.startedAt) 
-            ? Math.round((new Date(call.endedAt).getTime() - new Date(call.startedAt).getTime()) / 1000)
-            : (call.duration ? Math.round(call.duration * 60 * 100) / 100 : 0), // Convert Vapi duration from minutes to seconds
-          cost: call.cost || 0,
-          status: call.status || 'ended',
-          endedReason: call.endedReason || 'unknown',
-          assistantId: call.assistantId,
-          assistantName: call.assistant?.name || call.assistantName || '',
-          createdAt: call.createdAt || call.startedAt,
-          type: call.type === 'inboundPhoneCall' ? 'inbound' : 'outbound',
-          assistantPhoneNumber: call.phoneNumber || '',
-          customerPhoneNumber: call.customer?.number || call.customerPhoneNumber || '',
-        }));
-
-        console.log(`[${new Date().toLocaleTimeString()}] Successfully fetched ${enrichedCalls.length} calls for VoiceScope analysis`);
-        res.json(enrichedCalls);
-      } catch (fetchError: any) {
-        clearTimeout(timeoutId);
-        
-        if (fetchError.name === 'AbortError') {
-          console.error("VoiceScope calls error: Request timeout");
-          return res.status(408).json({ error: "Request timeout - Vapi API took too long to respond" });
-        }
-        
-        console.error("VoiceScope calls fetch error:", fetchError);
-        throw fetchError; // Re-throw to be caught by outer try-catch
-      }
+      // Return cached data immediately - no API delays
+      console.log(`[${new Date().toLocaleTimeString()}] Serving ${cachedCalls.length} cached calls for VoiceScope`);
+      res.json(cachedCalls);
     } catch (error: any) {
-      console.error("VoiceScope calls error:", error);
-      
-      // Provide more specific error messages
-      if (error.cause?.code === 'UND_ERR_SOCKET') {
-        return res.status(503).json({ error: "Service temporarily unavailable - connection issue with Vapi API" });
-      }
-      
-      res.status(500).json({ error: "Internal server error" });
+      console.error("Error serving cached calls:", error);
+      res.status(500).json({ error: "Failed to load call data" });
+    }
+  });
+
+  // Manual cache refresh endpoint for VoiceScope
+  app.post("/api/bulk-analysis/refresh-cache", async (req, res) => {
+    try {
+      console.log("Manual cache refresh requested");
+      await refreshCallCache();
+      res.json({ 
+        success: true, 
+        message: `Cache refreshed with ${cachedCalls.length} calls`,
+        timestamp: new Date().toISOString() 
+      });
+    } catch (error: any) {
+      console.error("Error manually refreshing cache:", error);
+      res.status(500).json({ error: "Failed to refresh cache" });
     }
   });
 

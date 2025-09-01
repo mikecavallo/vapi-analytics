@@ -763,7 +763,7 @@ export default function BulkAnalysis() {
                     <Calendar
                       initialFocus
                       mode="range"
-                      selected={selectedDateRange}
+                      selected={selectedDateRange.from || selectedDateRange.to ? selectedDateRange as any : undefined}
                       onSelect={(range) => setSelectedDateRange(range || {})}
                       numberOfMonths={2}
                     />
@@ -952,6 +952,46 @@ export default function BulkAnalysis() {
                       Ready for AI analysis
                     </div>
                   )}
+                </CardContent>
+              </Card>
+
+              {/* Cache Status */}
+              <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Activity size={14} className="text-blue-600 dark:text-blue-400" />
+                      <span className="text-sm text-blue-800 dark:text-blue-200">Cache Status</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        fetch('/api/bulk-analysis/refresh-cache', { method: 'POST' })
+                          .then(() => {
+                            queryClient.invalidateQueries({ queryKey: ['/api/bulk-analysis/calls'] });
+                            toast({
+                              title: "Cache Refreshed",
+                              description: "Latest call data has been loaded"
+                            });
+                          })
+                          .catch(() => {
+                            toast({
+                              title: "Refresh Failed",
+                              description: "Unable to refresh cache",
+                              variant: "destructive"
+                            });
+                          });
+                      }}
+                      className="h-6 text-xs px-2 border-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900"
+                      data-testid="button-refresh-cache"
+                    >
+                      Refresh
+                    </Button>
+                  </div>
+                  <div className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                    Fast filtering enabled - data cached for performance
+                  </div>
                 </CardContent>
               </Card>
             </CardContent>
