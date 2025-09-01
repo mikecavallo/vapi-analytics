@@ -1612,7 +1612,7 @@ Generate professional insights in JSON format:
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4o", // Using GPT-4o for analysis
+          model: "gpt-4", // Using GPT-4 for analysis
           messages: [
             {
               role: "system",
