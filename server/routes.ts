@@ -307,13 +307,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Vapi API key not configured." });
       }
 
-      // Create an abort controller for timeout
+      // Create an abort controller for timeout - increase to 60 seconds
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
       try {
-        // Fetch all calls with transcripts (using high limit to get all available calls)
-        const response = await fetch("https://api.vapi.ai/call?limit=1000", {
+        // Fetch calls with a more reasonable limit and add pagination support
+        const response = await fetch("https://api.vapi.ai/call?limit=500&sortOrder=desc", {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${vapiApiKey}`,
@@ -357,49 +357,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (fetchError.name === 'AbortError') {
           console.error("VoiceScope calls error: Request timeout");
-          
-          // Return sample data when API times out so user can see interface
-          const sampleCalls = [
-            {
-              id: "sample-1",
-              type: "outbound",
-              status: "ended", 
-              endedReason: "assistant-ended",
-              duration: 180,
-              cost: 0.12,
-              createdAt: new Date(Date.now() - 3600000).toISOString(),
-              assistantId: "94b9c5df-4630-45da-b616-b001953e024f",
-              assistant: { name: "Healthcare Assistant" },
-              transcript: "Patient: Hi, I'd like to schedule an appointment. Assistant: I'd be happy to help you schedule an appointment. What type of appointment are you looking for?"
-            },
-            {
-              id: "sample-2",
-              type: "outbound",
-              status: "ended",
-              endedReason: "assistant-ended", 
-              duration: 245,
-              cost: 0.18,
-              createdAt: new Date(Date.now() - 7200000).toISOString(),
-              assistantId: "34f8ff4a-8dcd-4b2b-b91a-3758a0eeca5c",
-              assistant: { name: "Prescription Bot" },
-              transcript: "Patient: Can you help me refill my prescription? Assistant: Of course! I can help you with prescription refills."
-            },
-            {
-              id: "sample-3",
-              type: "outbound",
-              status: "ended",
-              endedReason: "assistant-ended",
-              duration: 320, 
-              cost: 0.24,
-              createdAt: new Date(Date.now() - 10800000).toISOString(),
-              assistantId: "6bb565e5-482c-4eed-a01f-14e3937466b0",
-              assistant: { name: "Insurance Helper" },
-              transcript: "Patient: I have questions about my insurance coverage. Assistant: I'm here to help with your insurance questions."
-            }
-          ];
-          
-          console.log(`[${new Date().toLocaleTimeString()}] API timeout - returning sample data for interface testing`);
-          return res.json(sampleCalls);
+          return res.status(408).json({ error: "Request timeout - Vapi API took too long to respond" });
         }
         
         console.error("VoiceScope calls fetch error:", fetchError);
