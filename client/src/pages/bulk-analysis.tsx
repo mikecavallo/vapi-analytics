@@ -110,7 +110,7 @@ export default function BulkAnalysis() {
       }
       
       // Always set a reasonable limit
-      queryParams.append('limit', '500');
+      queryParams.append('limit', '1000');
       
       const response = await fetch(`/api/bulk-analysis/calls?${queryParams.toString()}`);
       
