@@ -14,45 +14,28 @@ const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 async function refreshCallCache(): Promise<void> {
   const vapiApiKey = process.env.VAPI_API_KEY || process.env.VAPI_TOKEN || "";
   
-  console.log("=== VAPI API DEBUG ===");
-  console.log(`API Key present: ${vapiApiKey ? 'YES' : 'NO'}`);
-  console.log(`API Key length: ${vapiApiKey ? vapiApiKey.length : 0}`);
-  console.log(`API Key starts with: ${vapiApiKey ? vapiApiKey.substring(0, 10) + '...' : 'N/A'}`);
-  
   if (!vapiApiKey) {
-    console.error("❌ Vapi API key not configured - cannot refresh call cache");
-    console.log("Available env vars:", Object.keys(process.env).filter(key => key.toLowerCase().includes('vapi')));
+    console.error("Vapi API key not configured - cannot refresh call cache");
     return;
   }
 
   // Prevent multiple concurrent refresh attempts
   if (refreshCallCache.isRefreshing) {
-    console.log("Cache refresh already in progress, skipping...");
     return;
   }
   refreshCallCache.isRefreshing = true;
 
   try {
-    console.log(`[${new Date().toLocaleTimeString()}] 🔄 Refreshing call cache from Vapi API...`);
-    console.log(`Making request to: https://api.vapi.ai/call?limit=100`);
+    console.log(`[${new Date().toLocaleTimeString()}] Refreshing call cache from Vapi API...`);
     
-    // Create an abort controller for timeout - increase to 60 seconds for debugging
+    // Create an abort controller for timeout - 30 seconds
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.log("⏰ Request timeout after 60 seconds");
-      controller.abort();
-    }, 60000);
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
     const requestHeaders = {
       "Authorization": `Bearer ${vapiApiKey}`,
       "Content-Type": "application/json",
-      "User-Agent": "VoiceScope/1.0"
     };
-    
-    console.log("Request headers:", {
-      ...requestHeaders,
-      Authorization: "Bearer " + vapiApiKey.substring(0, 10) + "..."
-    });
 
     const response = await fetch("https://api.vapi.ai/call?limit=100", {
       method: "GET",
@@ -61,42 +44,17 @@ async function refreshCallCache(): Promise<void> {
     });
 
     clearTimeout(timeoutId);
-    
-    console.log(`📡 Response status: ${response.status} ${response.statusText}`);
-    console.log(`Response headers:`, Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ Failed to refresh cache: ${response.status} ${response.statusText}`);
-      console.error(`Response body:`, errorText);
-      
-      // For 401/403 errors, provide specific guidance
+      console.error(`Failed to refresh cache: ${response.status} ${response.statusText}`);
       if (response.status === 401 || response.status === 403) {
-        console.error("🔑 Invalid API key or insufficient permissions");
-        console.error("Check your VAPI_API_KEY environment variable");
+        console.error("Invalid API key or insufficient permissions");
       }
       return;
     }
 
-    const responseText = await response.text();
-    console.log(`📝 Raw response length: ${responseText.length} characters`);
-    console.log(`📝 Raw response preview: ${responseText.substring(0, 200)}...`);
-    
-    let callsData;
-    try {
-      callsData = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error("❌ Failed to parse JSON response:", parseError);
-      console.error("Response text:", responseText);
-      return;
-    }
-    
+    const callsData = await response.json();
     const calls = Array.isArray(callsData) ? callsData : (callsData.data || []);
-    console.log(`📊 Parsed ${calls.length} calls from API`);
-    
-    if (calls.length > 0) {
-      console.log("Sample call structure:", JSON.stringify(calls[0], null, 2));
-    }
     
     // Process calls and add missing fields for filtering compatibility
     cachedCalls = calls.map(call => ({
@@ -120,25 +78,15 @@ async function refreshCallCache(): Promise<void> {
     }));
     
     lastCacheUpdate = Date.now();
-    console.log(`✅ Successfully cached ${cachedCalls.length} calls`);
-    console.log("=== END VAPI API DEBUG ===");
+    console.log(`Successfully cached ${cachedCalls.length} calls`);
   } catch (error: any) {
-    console.log("=== ERROR DEBUG ===");
-    console.error("❌ Error refreshing call cache:", error);
-    console.error("Error name:", error.name);
-    console.error("Error message:", error.message);
-    console.error("Error cause:", error.cause);
-    console.error("Error stack:", error.stack);
-    
     if (error.name === 'AbortError') {
-      console.error("⏰ Cache refresh timeout - Vapi API took too long to respond");
+      console.error("Cache refresh timeout - Vapi API took too long to respond");
     } else if (error.cause?.code === 'UND_ERR_SOCKET') {
-      console.error("🔌 Network connection error with Vapi API - connection closed unexpectedly");
-      console.error("Socket details:", error.cause.socket);
+      console.error("Network connection error with Vapi API - connection closed unexpectedly");
     } else {
-      console.error("🚨 Unknown error type");
+      console.error("Error refreshing call cache:", error.message);
     }
-    console.log("=== END ERROR DEBUG ===");
   } finally {
     refreshCallCache.isRefreshing = false;
   }

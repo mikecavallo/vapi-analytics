@@ -1383,19 +1383,84 @@ export default function BulkAnalysis() {
                     <TableHeader className="sticky top-0 bg-background z-10 border-b">
                       <TableRow>
                         <TableHead className="w-28">Call ID</TableHead>
-                        <TableHead className="w-16">Type</TableHead>
+                        <TableHead className="w-20">Type</TableHead>
+                        <TableHead className="w-24">
+                          <div className="flex items-center space-x-1">
+                            <span>Assistant</span>
+                            <Phone size={12} />
+                          </div>
+                        </TableHead>
+                        <TableHead className="w-24">
+                          <div className="flex items-center space-x-1">
+                            <span>Customer</span>
+                            <Phone size={12} />
+                          </div>
+                        </TableHead>
+                        <TableHead className="w-32">Assistant Name</TableHead>
+                        <TableHead className="w-28">Date & Time</TableHead>
                         <TableHead className="w-20">Duration</TableHead>
                         <TableHead className="w-18">Cost</TableHead>
-                        <TableHead className="w-28">Date</TableHead>
-                        <TableHead className="w-24">Status</TableHead>
-                        <TableHead className="w-32">Assistant</TableHead>
-                        <TableHead className="w-20">Transcript</TableHead>
+                        <TableHead className="w-24">Success Evaluation</TableHead>
+                        <TableHead className="w-16">Details</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {(filteredCalls || allCalls || []).slice(0, 100).map((call: any) => {
-                      const hasTranscript = call.transcript && call.transcript.length > 0;
                       const isRecent = new Date().getTime() - new Date(call.createdAt).getTime() < 24 * 60 * 60 * 1000;
+                      
+                      // Success evaluation logic matching dashboard
+                      const getSuccessEvaluationBadge = () => {
+                        let isSuccess = false;
+                        if (call.successEvaluation !== null && call.successEvaluation !== undefined) {
+                          isSuccess = typeof call.successEvaluation === 'string' ? 
+                            call.successEvaluation === 'true' : Boolean(call.successEvaluation);
+                        } else {
+                          const validEndReasons = ['customer-ended-call', 'assistant-ended-call', 'completed', 'assistant-forwarded-call'];
+                          const validStatuses = ['ended', 'completed'];
+                          isSuccess = validEndReasons.includes(call.endedReason) && 
+                                     validStatuses.includes(call.status) && 
+                                     call.duration >= 10;
+                        }
+                        return (
+                          <Badge className={`${
+                            isSuccess 
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+                              : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                          } border-0`}>
+                            {isSuccess ? 'Pass' : 'Fail'}
+                          </Badge>
+                        );
+                      };
+
+                      const getTypeBadge = () => {
+                        const isInbound = call.type === 'inbound';
+                        return (
+                          <Badge className={`${
+                            isInbound 
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' 
+                              : 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
+                          } border-0`}>
+                            {isInbound ? 'Inbound' : 'Outbound'}
+                          </Badge>
+                        );
+                      };
+
+                      const formatDuration = (seconds: number) => {
+                        if (isNaN(seconds) || seconds === null || seconds === undefined) return "0:00";
+                        const minutes = Math.floor(seconds / 60);
+                        const remainingSeconds = Math.floor(seconds % 60);
+                        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+                      };
+
+                      const formatCurrency = (amount: number) => {
+                        if (isNaN(amount) || amount === null || amount === undefined) return "$0.00";
+                        return new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: 'USD',
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        }).format(amount);
+                      };
                       
                       return (
                         <TableRow 
@@ -1403,77 +1468,37 @@ export default function BulkAnalysis() {
                           className="text-xs hover:bg-muted/50 cursor-pointer transition-colors"
                           data-testid={`call-row-${call.id}`}
                         >
-                          <TableCell className="font-mono">
+                          <TableCell className="font-mono text-sm">
                             <div className="flex items-center space-x-1">
                               <span>{call.id.substring(0, 8)}...</span>
                               {isRecent && <div className="w-1 h-1 bg-green-500 rounded-full" title="Recent call"></div>}
                             </div>
                           </TableCell>
+                          <TableCell>{getTypeBadge()}</TableCell>
+                          <TableCell className="font-mono text-xs">{call.assistantPhoneNumber || '--'}</TableCell>
+                          <TableCell className="font-mono text-xs">{call.customerPhoneNumber || '--'}</TableCell>
+                          <TableCell className="text-sm font-medium">{call.assistantName || call.assistantId || 'Unknown'}</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {new Date(call.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: '2-digit',
+                            })}
+                            <br />
+                            <span className="text-xs text-muted-foreground/70">
+                              {new Date(call.createdAt).toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </TableCell>
+                          <TableCell>{formatDuration(call.duration)}</TableCell>
+                          <TableCell>{formatCurrency(call.cost)}</TableCell>
+                          <TableCell>{getSuccessEvaluationBadge()}</TableCell>
                           <TableCell>
-                            <Badge 
-                              variant={call.type === 'inbound' ? 'default' : 'secondary'} 
-                              className="text-xs px-1 py-0"
-                            >
-                              {call.type === 'inbound' ? 'In' : 'Out'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="font-mono">
-                            {call.duration ? 
-                              `${Math.floor(call.duration / 60)}:${(call.duration % 60).toString().padStart(2, '0')}` : 
-                              '--'
-                            }
-                          </TableCell>
-                          <TableCell className="font-mono">
-                            ${call.cost?.toFixed(2) || '0.00'}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span>{new Date(call.createdAt).toLocaleDateString()}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(call.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col space-y-1">
-                              <Badge 
-                                variant={
-                                  call.status === 'ended' ? 'default' : 
-                                  call.status === 'in-progress' ? 'secondary' : 
-                                  'outline'
-                                } 
-                                className="text-xs px-1 py-0 w-fit"
-                              >
-                                {call.status || 'unknown'}
-                              </Badge>
-                              {call.endedReason && (
-                                <span className="text-xs text-muted-foreground truncate max-w-20" title={call.endedReason}>
-                                  {call.endedReason}
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="max-w-32 truncate" title={call.assistantName || call.assistantId}>
-                              {call.assistantName || call.assistantId?.substring(0, 8) + '...' || '--'}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-1">
-                              {hasTranscript ? (
-                                <>
-                                  <div className="w-2 h-2 bg-green-500 rounded-full" title="Has transcript"></div>
-                                  <span className="text-xs text-muted-foreground">
-                                    {call.transcript.length > 100 ? `${Math.floor(call.transcript.length / 100)}k` : call.transcript.length} chars
-                                  </span>
-                                </>
-                              ) : (
-                                <>
-                                  <div className="w-2 h-2 bg-gray-300 rounded-full" title="No transcript"></div>
-                                  <span className="text-xs text-muted-foreground">--</span>
-                                </>
-                              )}
-                            </div>
+                            <Button size="sm" variant="ghost" data-testid={`button-view-${call.id}`}>
+                              <Eye size={14} />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       );
