@@ -5,8 +5,8 @@ import { vapiAnalyticsQuerySchema, type VapiAnalyticsQuery, type DashboardData }
 import { z } from "zod";
 import { VapiClient } from "@vapi-ai/server-sdk";
 
-// Function to fetch calls from Vapi API and filter by date range
-async function fetchCallsInDateRange(startDate: string, endDate: string): Promise<any[]> {
+// Function to fetch calls from Vapi API with proper query parameters
+async function fetchCallsWithFilters(queryParams: Record<string, string>): Promise<any[]> {
   const vapiApiKey = process.env.VAPI_API_KEY || process.env.VAPI_TOKEN || "";
   
   if (!vapiApiKey) {
@@ -14,7 +14,7 @@ async function fetchCallsInDateRange(startDate: string, endDate: string): Promis
   }
 
   try {
-    console.log(`[${new Date().toLocaleTimeString()}] Fetching calls and filtering from ${startDate} to ${endDate}`);
+    console.log(`[${new Date().toLocaleTimeString()}] Fetching calls with filters:`, queryParams);
     
     // Create an abort controller for timeout - 30 seconds
     const controller = new AbortController();
@@ -25,8 +25,17 @@ async function fetchCallsInDateRange(startDate: string, endDate: string): Promis
       "Content-Type": "application/json",
     };
 
-    // Use the same approach as dashboard - fetch all calls without date filtering
-    const response = await fetch("https://api.vapi.ai/call?limit=1000", {
+    // Build URL with the provided query parameters
+    const url = new URL("https://api.vapi.ai/call");
+    Object.entries(queryParams).forEach(([key, value]) => {
+      if (value) {
+        url.searchParams.append(key, value);
+      }
+    });
+
+    console.log(`Making API request to: ${url.toString()}`);
+
+    const response = await fetch(url.toString(), {
       method: "GET",
       headers: requestHeaders,
       signal: controller.signal,
@@ -66,17 +75,8 @@ async function fetchCallsInDateRange(startDate: string, endDate: string): Promis
       createdAt: call.createdAt || call.startedAt,
     }));
     
-    // Filter by date range on the backend
-    const startDateTime = new Date(startDate);
-    const endDateTime = new Date(endDate);
-    
-    const filteredCalls = processedCalls.filter(call => {
-      const callDate = new Date(call.createdAt);
-      return callDate >= startDateTime && callDate <= endDateTime;
-    });
-    
-    console.log(`Successfully fetched ${processedCalls.length} total calls, ${filteredCalls.length} match date range`);
-    return filteredCalls;
+    console.log(`Successfully fetched ${processedCalls.length} calls`);
+    return processedCalls;
   } catch (error: any) {
     if (error.name === 'AbortError') {
       throw new Error("Request timeout - Vapi API took too long to respond");
@@ -382,31 +382,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Bulk analysis endpoint - fetch calls based on date range
-  app.post("/api/bulk-analysis/calls", async (req, res) => {
+  // Bulk analysis endpoint - fetch calls with query parameter filters
+  app.get("/api/bulk-analysis/calls", async (req, res) => {
     try {
-      const { startDate, endDate } = req.body;
+      // Extract query parameters - only use supported Vapi API parameters
+      const allowedParams = ['id', 'assistantId', 'phoneNumberId', 'limit', 'createdAtGt', 'createdAtLt', 'createdAtGe', 'createdAtLe', 'updatedAtGt', 'updatedAtLt', 'updatedAtGe', 'updatedAtLe'];
+      const queryParams: Record<string, string> = {};
       
-      if (!startDate || !endDate) {
-        return res.status(400).json({ error: "startDate and endDate are required" });
+      allowedParams.forEach(param => {
+        if (req.query[param]) {
+          queryParams[param] = req.query[param] as string;
+        }
+      });
+
+      // Ensure a reasonable default limit if not provided
+      if (!queryParams.limit) {
+        queryParams.limit = '500';
       }
 
-      const calls = await fetchCallsInDateRange(startDate, endDate);
-      
-      // Check if dataset is too large (more than 500 calls)
-      if (calls.length > 500) {
+      // Validate limit is within allowed range
+      const limit = parseInt(queryParams.limit);
+      if (limit > 1000) {
         return res.status(400).json({ 
-          error: "Dataset too large", 
-          message: `Found ${calls.length} calls. Please select a smaller timeframe to analyze fewer than 500 calls.`,
-          callCount: calls.length
+          error: "Limit too high", 
+          message: "Maximum limit is 1000 calls per request"
         });
       }
 
-      console.log(`[${new Date().toLocaleTimeString()}] Serving ${calls.length} calls for date range ${startDate} to ${endDate}`);
+      const calls = await fetchCallsWithFilters(queryParams);
+      
+      console.log(`[${new Date().toLocaleTimeString()}] Serving ${calls.length} calls with filters:`, queryParams);
       res.json(calls);
     } catch (error: any) {
-      console.error("Error fetching calls for date range:", error);
-      res.status(500).json({ error: error.message || "Failed to fetch call data" });
+      console.error("Error fetching calls with filters:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch calls" });
     }
   });
 
