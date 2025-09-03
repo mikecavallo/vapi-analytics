@@ -234,11 +234,33 @@ export default function AssistantStudio() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (config: AssistantConfig) => {
+    mutationFn: async (params: {
+      assistantName: string;
+      description: string;
+      conversationFlow: string;
+      voiceSettings: string;
+      targetAudience: string;
+      modelProvider: string;
+      model: string;
+      voiceProvider: string;
+      voiceId: string;
+      cachingEnabled: boolean;
+      chunkPlan: boolean;
+      chunkPlanMinCharacters: number;
+      punctuationBoundaries: string;
+      firstMessage: string;
+      firstMessageMode: string;
+      firstMessageInterruptionsEnabled: boolean;
+      maxDurationSeconds: number;
+      voicemailDetection: boolean;
+      backgroundSound: string;
+      voicemailMessage: string;
+      endCallMessage: string;
+    }) => {
       const response = await fetch('/api/assistant-studio/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config }),
+        body: JSON.stringify(params),
       });
       
       if (!response.ok) {
@@ -318,8 +340,47 @@ export default function AssistantStudio() {
   };
 
   const handleCreate = () => {
-    if (!generatedConfig) return;
-    createMutation.mutate(generatedConfig);
+    if (!assistantName.trim() || !description.trim()) {
+      toast({
+        title: "Missing Required Fields",
+        description: "Please provide assistant name and description before creating",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createMutation.mutate({
+      // Basic config
+      assistantName: assistantName.trim(),
+      description: description.trim(),
+      conversationFlow: conversationFlow.trim(),
+      voiceSettings: voiceSettings.trim(),
+      targetAudience: targetAudience.trim(),
+      
+      // Model config
+      modelProvider,
+      model,
+      
+      // Voice config
+      voiceProvider,
+      voiceId,
+      cachingEnabled,
+      chunkPlan,
+      chunkPlanMinCharacters,
+      punctuationBoundaries,
+      
+      // First message config
+      firstMessage: firstMessage.trim(),
+      firstMessageMode,
+      firstMessageInterruptionsEnabled,
+      
+      // Call settings
+      maxDurationSeconds,
+      voicemailDetection,
+      backgroundSound,
+      voicemailMessage: voicemailMessage.trim(),
+      endCallMessage: endCallMessage.trim()
+    });
   };
 
   const exportConfig = () => {
