@@ -185,3 +185,38 @@ export const dashboardDataSchema = z.object({
 });
 
 export type DashboardData = z.infer<typeof dashboardDataSchema>;
+
+// Agency Management Schema
+export const companies = pgTable("companies", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: varchar("name", { length: 255 }).notNull(),
+  apiKey: varchar("api_key", { length: 255 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertCompanySchema = createInsertSchema(companies).pick({
+  name: true,
+  apiKey: true,
+});
+
+export type InsertCompany = z.infer<typeof insertCompanySchema>;
+export type Company = typeof companies.$inferSelect;
+
+// Company Metrics Schema
+export const companyMetricsSchema = z.object({
+  companyId: z.number(),
+  totalCalls: z.number(),
+  totalCost: z.number(),
+  callOutcomes: z.array(z.object({
+    outcome: z.string(),
+    count: z.number(),
+    percentage: z.number(),
+  })),
+  callVolumeData: z.array(z.object({
+    date: z.string(),
+    calls: z.number(),
+  })),
+});
+
+export type CompanyMetrics = z.infer<typeof companyMetricsSchema>;

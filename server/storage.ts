@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type VapiAnalyticsQuery, type VapiAnalyticsResponse, type DashboardData } from "@shared/schema";
+import { type User, type InsertUser, type VapiAnalyticsQuery, type VapiAnalyticsResponse, type DashboardData, type Company, type InsertCompany, type CompanyMetrics } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -9,15 +9,25 @@ export interface IStorage {
   // Analytics caching
   getCachedAnalytics(cacheKey: string): Promise<DashboardData | undefined>;
   setCachedAnalytics(cacheKey: string, data: DashboardData, ttl?: number): Promise<void>;
+  
+  // Agency management
+  getCompanies(): Promise<Company[]>;
+  getCompany(id: number): Promise<Company | undefined>;
+  createCompany(company: InsertCompany): Promise<Company>;
+  deleteCompany(id: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
+  private companies: Map<number, Company>;
   private analyticsCache: Map<string, { data: DashboardData; expires: number }>;
+  private companyIdCounter: number;
 
   constructor() {
     this.users = new Map();
+    this.companies = new Map();
     this.analyticsCache = new Map();
+    this.companyIdCounter = 1;
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -56,6 +66,30 @@ export class MemStorage implements IStorage {
       data,
       expires: Date.now() + ttl, // 5 minutes default TTL
     });
+  }
+
+  async getCompanies(): Promise<Company[]> {
+    return Array.from(this.companies.values());
+  }
+
+  async getCompany(id: number): Promise<Company | undefined> {
+    return this.companies.get(id);
+  }
+
+  async createCompany(insertCompany: InsertCompany): Promise<Company> {
+    const id = this.companyIdCounter++;
+    const company: Company = {
+      ...insertCompany,
+      id,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.companies.set(id, company);
+    return company;
+  }
+
+  async deleteCompany(id: number): Promise<void> {
+    this.companies.delete(id);
   }
 }
 

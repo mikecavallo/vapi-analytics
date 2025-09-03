@@ -36,7 +36,8 @@ import {
   Sun,
   Moon,
   Phone,
-  Mail
+  Mail,
+  Building2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
@@ -428,6 +429,10 @@ export default function AssistantStudio() {
                 <Link href="/assistant-studio" className="text-primary border-b-2 border-primary pb-4 px-1 text-sm font-medium flex items-center space-x-1">
                   <Wand2 size={16} />
                   <span>Studio</span>
+                </Link>
+                <Link href="/agency" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
+                  <Building2 size={16} />
+                  <span>Agency</span>
                 </Link>
                 <Link href="/reports" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
                   <FileText size={16} />
