@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Wand2,
   ArrowLeft,
@@ -33,7 +34,9 @@ import {
   FileText,
   User,
   Sun,
-  Moon
+  Moon,
+  Phone,
+  Mail
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
@@ -89,6 +92,88 @@ export default function AssistantStudio() {
   const [voiceSettings, setVoiceSettings] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
   
+  // Basic Assistant Settings
+  const [assistantName, setAssistantName] = useState('');
+  
+  // Model Settings
+  const [modelProvider, setModelProvider] = useState('');
+  const [model, setModel] = useState('');
+  
+  // Voice Settings
+  const [voiceProvider, setVoiceProvider] = useState('');
+  const [voiceId, setVoiceId] = useState('');
+  const [cachingEnabled, setCachingEnabled] = useState(true);
+  const [chunkPlan, setChunkPlan] = useState(false);
+  const [chunkPlanMinCharacters, setChunkPlanMinCharacters] = useState(10);
+  const [punctuationBoundaries, setPunctuationBoundaries] = useState('');
+  
+  // First Message Settings
+  const [firstMessage, setFirstMessage] = useState('');
+  const [firstMessageMode, setFirstMessageMode] = useState('assistant-speaks-first');
+  const [firstMessageInterruptionsEnabled, setFirstMessageInterruptionsEnabled] = useState(false);
+  
+  // Call Settings
+  const [maxDurationSeconds, setMaxDurationSeconds] = useState(1800);
+  const [voicemailDetection, setVoicemailDetection] = useState(false);
+  const [backgroundSound, setBackgroundSound] = useState('off');
+  const [voicemailMessage, setVoicemailMessage] = useState('');
+  const [endCallMessage, setEndCallMessage] = useState('');
+  
+  // Provider data structures
+  const modelProviders = [
+    'Anthropic', 'Anyscale', 'Cerebras', 'CustomLLM', 'DeepInfra', 'DeepSeek', 
+    'Google', 'Groq', 'InflectionAI', 'OpenAI', 'OpenRouter', 'PerplexityAI', 'Together', 'XAI'
+  ];
+
+  const voiceProviders = [
+    'AzureVoice', 'CartesiaVoice', 'CustomVoice', 'DeepgramVoice', 'ElevenLabsVoice', 
+    'HumeVoice', 'LMNTVoice', 'NeuphonicVoice', 'OpenAIVoice', 'PlayHTVoice', 
+    'RimeAIVoice', 'SmallestAIVoice', 'TavusVoice', 'SesameVoice', 'InworldVoice', 'MinimaxVoice'
+  ];
+
+  const modelsByProvider: Record<string, string[]> = {
+    'OpenAI': ['gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+    'Anthropic': ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku'],
+    'Google': ['gemini-pro', 'gemini-pro-vision'],
+    'Groq': ['llama3-70b', 'llama3-8b', 'mixtral-8x7b'],
+    'Together': ['llama-2-70b', 'llama-2-13b', 'mistral-7b'],
+    'Anyscale': ['meta-llama/Llama-2-70b-chat-hf', 'meta-llama/Llama-2-13b-chat-hf'],
+    'Cerebras': ['llama3.1-8b', 'llama3.1-70b'],
+    'DeepInfra': ['meta-llama/Llama-2-70b-chat-hf', 'mistralai/Mixtral-8x7B-Instruct-v0.1'],
+    'DeepSeek': ['deepseek-chat', 'deepseek-coder'],
+    'InflectionAI': ['inflection-2.5'],
+    'OpenRouter': ['openrouter/auto', 'anthropic/claude-3-opus'],
+    'PerplexityAI': ['llama-3-sonar-small-32k-chat', 'llama-3-sonar-large-32k-chat'],
+    'XAI': ['grok-beta'],
+    'CustomLLM': ['custom-model']
+  };
+
+  const voiceIdsByProvider: Record<string, string[]> = {
+    'OpenAIVoice': ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'],
+    'ElevenLabsVoice': ['21m00Tcm4TlvDq8ikWAM', 'AZnzlk1XvdvUeBnXmlld', 'EXAVITQu4vr4xnSDxMaL'],
+    'CartesiaVoice': ['sonic', 'sonic-english', 'sonic-multilingual'],
+    'DeepgramVoice': ['aura-asteria-en', 'aura-luna-en', 'aura-stella-en'],
+    'PlayHTVoice': ['jennifer', 'melissa', 'will'],
+    'AzureVoice': ['en-US-JennyNeural', 'en-US-GuyNeural', 'en-US-AriaNeural'],
+    'HumeVoice': ['sample_voice_1', 'sample_voice_2'],
+    'LMNTVoice': ['lily', 'daniel'],
+    'NeuphonicVoice': ['maya', 'michael'],
+    'RimeAIVoice': ['raya', 'josh'],
+    'SmallestAIVoice': ['nova', 'echo'],
+    'TavusVoice': ['tavus_1', 'tavus_2'],
+    'SesameVoice': ['sesame_1', 'sesame_2'],
+    'InworldVoice': ['inworld_1', 'inworld_2'],
+    'MinimaxVoice': ['minimax_1', 'minimax_2'],
+    'CustomVoice': ['custom-voice']
+  };
+
+  const punctuationBoundariesOptions = [
+    'PUNCTUATION_BOUNDARY_COMMA',
+    'PUNCTUATION_BOUNDARY_PERIOD',
+    'PUNCTUATION_BOUNDARY_QUESTION_MARK',
+    'PUNCTUATION_BOUNDARY_EXCLAMATION_MARK'
+  ];
+  
   // Generated config state
   const [generatedConfig, setGeneratedConfig] = useState<AssistantConfig | null>(null);
   const [createdAssistant, setCreatedAssistant] = useState<any>(null);
@@ -96,16 +181,33 @@ export default function AssistantStudio() {
 
   // Mutations
   const generateMutation = useMutation({
-    mutationFn: async ({ description, conversationFlow, voiceSettings, targetAudience }: {
+    mutationFn: async (params: {
+      assistantName: string;
       description: string;
       conversationFlow: string;
       voiceSettings: string;
       targetAudience: string;
+      modelProvider: string;
+      model: string;
+      voiceProvider: string;
+      voiceId: string;
+      cachingEnabled: boolean;
+      chunkPlan: boolean;
+      chunkPlanMinCharacters: number;
+      punctuationBoundaries: string;
+      firstMessage: string;
+      firstMessageMode: string;
+      firstMessageInterruptionsEnabled: boolean;
+      maxDurationSeconds: number;
+      voicemailDetection: boolean;
+      backgroundSound: string;
+      voicemailMessage: string;
+      endCallMessage: string;
     }) => {
       const response = await fetch('/api/assistant-studio/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description, conversationFlow, voiceSettings, targetAudience }),
+        body: JSON.stringify(params),
       });
       
       if (!response.ok) {
@@ -172,11 +274,46 @@ export default function AssistantStudio() {
       return;
     }
 
+    if (!assistantName.trim()) {
+      toast({
+        title: "Assistant Name Required",
+        description: "Please provide a name for your assistant",
+        variant: "destructive",
+      });
+      return;
+    }
+
     generateMutation.mutate({
+      // Basic config
+      assistantName: assistantName.trim(),
       description: description.trim(),
       conversationFlow: conversationFlow.trim(),
       voiceSettings: voiceSettings.trim(),
-      targetAudience: targetAudience.trim()
+      targetAudience: targetAudience.trim(),
+      
+      // Model config
+      modelProvider,
+      model,
+      
+      // Voice config
+      voiceProvider,
+      voiceId,
+      cachingEnabled,
+      chunkPlan,
+      chunkPlanMinCharacters,
+      punctuationBoundaries,
+      
+      // First message config
+      firstMessage: firstMessage.trim(),
+      firstMessageMode,
+      firstMessageInterruptionsEnabled,
+      
+      // Call settings
+      maxDurationSeconds,
+      voicemailDetection,
+      backgroundSound,
+      voicemailMessage: voicemailMessage.trim(),
+      endCallMessage: endCallMessage.trim()
     });
   };
 
@@ -290,82 +427,299 @@ export default function AssistantStudio() {
               </p>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Main Description */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">
-                  Assistant Description *
-                </Label>
-                <Textarea 
-                  placeholder="Describe what your assistant should do. For example: 'Create a healthcare assistant that helps patients schedule appointments, answers questions about services, and can escalate urgent calls to medical staff. The assistant should be empathetic and professional.'"
-                  className="min-h-20"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  data-testid="textarea-assistant-description"
-                />
-                <div className="text-xs text-muted-foreground">
-                  Be specific about the assistant's purpose, capabilities, and tone
+              <ScrollArea className="h-[600px] pr-4">
+                <div className="space-y-8">
+                  {/* Basic Configuration Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2 pb-2 border-b">
+                      <Settings size={18} className="text-primary" />
+                      <h3 className="text-lg font-semibold">Basic Configuration</h3>
+                    </div>
+                    
+                    {/* Assistant Name */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Assistant Name *</Label>
+                      <Input 
+                        placeholder="Enter assistant name"
+                        value={assistantName}
+                        onChange={(e) => setAssistantName(e.target.value)}
+                        data-testid="input-assistant-name"
+                      />
+                    </div>
+
+                    {/* Main Description */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Assistant Description *</Label>
+                      <Textarea 
+                        placeholder="Describe what your assistant should do using the structured format from examples"
+                        className="min-h-32"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        data-testid="textarea-assistant-description"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Model Configuration Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2 pb-2 border-b">
+                      <Brain size={18} className="text-primary" />
+                      <h3 className="text-lg font-semibold">Model Configuration</h3>
+                    </div>
+                    
+                    {/* Model Provider */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Model Provider *</Label>
+                      <Select value={modelProvider} onValueChange={(value) => {
+                        setModelProvider(value);
+                        setModel(''); // Reset model when provider changes
+                      }}>
+                        <SelectTrigger data-testid="select-model-provider">
+                          <SelectValue placeholder="Choose model provider" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {modelProviders.map(provider => (
+                            <SelectItem key={provider} value={provider}>{provider}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Model */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Model *</Label>
+                      <Select value={model} onValueChange={setModel} disabled={!modelProvider}>
+                        <SelectTrigger data-testid="select-model">
+                          <SelectValue placeholder={modelProvider ? "Choose model" : "Select provider first"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {modelProvider && modelsByProvider[modelProvider]?.map(modelName => (
+                            <SelectItem key={modelName} value={modelName}>{modelName}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Voice Configuration Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2 pb-2 border-b">
+                      <Mic size={18} className="text-primary" />
+                      <h3 className="text-lg font-semibold">Voice Configuration</h3>
+                    </div>
+                    
+                    {/* Voice Provider */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Voice Provider *</Label>
+                      <Select value={voiceProvider} onValueChange={(value) => {
+                        setVoiceProvider(value);
+                        setVoiceId(''); // Reset voice ID when provider changes
+                      }}>
+                        <SelectTrigger data-testid="select-voice-provider">
+                          <SelectValue placeholder="Choose voice provider" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {voiceProviders.map(provider => (
+                            <SelectItem key={provider} value={provider}>{provider}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Voice ID */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Voice ID *</Label>
+                      <Select value={voiceId} onValueChange={setVoiceId} disabled={!voiceProvider}>
+                        <SelectTrigger data-testid="select-voice-id">
+                          <SelectValue placeholder={voiceProvider ? "Choose voice" : "Select provider first"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {voiceProvider && voiceIdsByProvider[voiceProvider]?.map(voice => (
+                            <SelectItem key={voice} value={voice}>{voice}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Voice Options */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="caching-enabled"
+                          checked={cachingEnabled}
+                          onCheckedChange={setCachingEnabled}
+                        />
+                        <Label htmlFor="caching-enabled" className="text-sm">Caching Enabled</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="chunk-plan"
+                          checked={chunkPlan}
+                          onCheckedChange={setChunkPlan}
+                        />
+                        <Label htmlFor="chunk-plan" className="text-sm">Chunk Plan</Label>
+                      </div>
+                    </div>
+
+                    {chunkPlan && (
+                      <>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Min Characters (1-80)</Label>
+                          <Input 
+                            type="number"
+                            min={1}
+                            max={80}
+                            value={chunkPlanMinCharacters}
+                            onChange={(e) => setChunkPlanMinCharacters(Number(e.target.value))}
+                            data-testid="input-chunk-min-chars"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Punctuation Boundaries</Label>
+                          <Select value={punctuationBoundaries} onValueChange={setPunctuationBoundaries}>
+                            <SelectTrigger data-testid="select-punctuation-boundaries">
+                              <SelectValue placeholder="Select punctuation boundary" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {punctuationBoundariesOptions.map(option => (
+                                <SelectItem key={option} value={option}>{option}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* First Message Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2 pb-2 border-b">
+                      <MessageSquare size={18} className="text-primary" />
+                      <h3 className="text-lg font-semibold">First Message Configuration</h3>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">First Message</Label>
+                      <Textarea 
+                        placeholder="What should the assistant say first?"
+                        value={firstMessage}
+                        onChange={(e) => setFirstMessage(e.target.value)}
+                        data-testid="textarea-first-message"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">First Message Mode</Label>
+                      <Select value={firstMessageMode} onValueChange={setFirstMessageMode}>
+                        <SelectTrigger data-testid="select-first-message-mode">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="assistant-speaks-first">Assistant Speaks First</SelectItem>
+                          <SelectItem value="assistant-speaks-first-with-model-generated-message">Assistant Speaks First (AI Generated)</SelectItem>
+                          <SelectItem value="assistant-waits-for-user">Assistant Waits for User</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="first-message-interruptions"
+                        checked={firstMessageInterruptionsEnabled}
+                        onCheckedChange={setFirstMessageInterruptionsEnabled}
+                      />
+                      <Label htmlFor="first-message-interruptions" className="text-sm">Allow First Message Interruptions</Label>
+                    </div>
+                  </div>
+
+                  {/* Call Settings Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2 pb-2 border-b">
+                      <Phone size={18} className="text-primary" />
+                      <h3 className="text-lg font-semibold">Call Settings</h3>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Max Duration (seconds, 10-43200)</Label>
+                      <Input 
+                        type="number"
+                        min={10}
+                        max={43200}
+                        value={maxDurationSeconds}
+                        onChange={(e) => setMaxDurationSeconds(Number(e.target.value))}
+                        data-testid="input-max-duration"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="voicemail-detection"
+                          checked={voicemailDetection}
+                          onCheckedChange={setVoicemailDetection}
+                        />
+                        <Label htmlFor="voicemail-detection" className="text-sm">Voicemail Detection</Label>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Background Sound</Label>
+                      <Select value={backgroundSound} onValueChange={setBackgroundSound}>
+                        <SelectTrigger data-testid="select-background-sound">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="off">Off</SelectItem>
+                          <SelectItem value="office">Office</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Messages Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2 pb-2 border-b">
+                      <Mail size={18} className="text-primary" />
+                      <h3 className="text-lg font-semibold">Message Templates</h3>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Voicemail Message (max 1000 chars)</Label>
+                      <Textarea 
+                        placeholder="Message to leave if voicemail is detected"
+                        maxLength={1000}
+                        value={voicemailMessage}
+                        onChange={(e) => setVoicemailMessage(e.target.value)}
+                        data-testid="textarea-voicemail-message"
+                      />
+                      <div className="text-xs text-muted-foreground">
+                        {voicemailMessage.length}/1000 characters
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">End Call Message (max 1000 chars)</Label>
+                      <Textarea 
+                        placeholder="Message to say when ending the call"
+                        maxLength={1000}
+                        value={endCallMessage}
+                        onChange={(e) => setEndCallMessage(e.target.value)}
+                        data-testid="textarea-end-call-message"
+                      />
+                      <div className="text-xs text-muted-foreground">
+                        {endCallMessage.length}/1000 characters
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-
-              {/* Conversation Flow */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">
-                  Conversation Flow (Optional)
-                </Label>
-                <Textarea 
-                  placeholder="Describe how conversations should flow. For example: 'Start with warm greeting → Identify caller needs → Route to appropriate service → Collect required information → Confirm details → Provide next steps'"
-                  className="min-h-16"
-                  value={conversationFlow}
-                  onChange={(e) => setConversationFlow(e.target.value)}
-                  data-testid="textarea-conversation-flow"
-                />
-              </div>
-
-              {/* Voice Settings */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">
-                  Voice & Tone Preferences (Optional)
-                </Label>
-                <Select value={voiceSettings} onValueChange={setVoiceSettings}>
-                  <SelectTrigger data-testid="select-voice-settings">
-                    <SelectValue placeholder="Choose voice characteristics" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="professional-caring">Professional & Caring</SelectItem>
-                    <SelectItem value="warm-friendly">Warm & Friendly</SelectItem>
-                    <SelectItem value="authoritative-confident">Authoritative & Confident</SelectItem>
-                    <SelectItem value="calm-reassuring">Calm & Reassuring</SelectItem>
-                    <SelectItem value="energetic-upbeat">Energetic & Upbeat</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Target Audience */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">
-                  Target Audience (Optional)
-                </Label>
-                <Select value={targetAudience} onValueChange={setTargetAudience}>
-                  <SelectTrigger data-testid="select-target-audience">
-                    <SelectValue placeholder="Who will be calling?" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="patients-general">Healthcare Patients (General)</SelectItem>
-                    <SelectItem value="patients-elderly">Elderly Patients</SelectItem>
-                    <SelectItem value="patients-pediatric">Pediatric Patients/Parents</SelectItem>
-                    <SelectItem value="healthcare-professionals">Healthcare Professionals</SelectItem>
-                    <SelectItem value="business-customers">Business Customers</SelectItem>
-                    <SelectItem value="general-public">General Public</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              </ScrollArea>
 
               {/* Generate Button */}
               <Button 
                 className="w-full" 
                 size="lg"
                 onClick={handleGenerate}
-                disabled={!description.trim() || generateMutation.isPending}
+                disabled={!description.trim() || !assistantName.trim() || generateMutation.isPending}
                 data-testid="button-generate-assistant"
               >
                 {generateMutation.isPending ? (
