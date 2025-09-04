@@ -55,7 +55,7 @@ async function fetchCallsWithFilters(queryParams: Record<string, string>): Promi
     const calls = Array.isArray(callsData) ? callsData : (callsData.data || []);
     
     // Process calls and add missing fields for filtering compatibility
-    const processedCalls = calls.map(call => ({
+    const processedCalls = calls.map((call: any) => ({
       ...call,
       assistantName: call.assistant?.name || null,
       customerPhoneNumber: call.customer?.number || call.phoneNumberE164 || null,
@@ -88,8 +88,234 @@ async function fetchCallsWithFilters(queryParams: Record<string, string>): Promi
   }
 }
 
+// Function to process raw call data into dashboard format
+function processDashboardData(calls: any[]): DashboardData {
+  const totalCalls = calls.length;
+  const completedCalls = calls.filter(call => call.status === 'completed');
+  const successRate = totalCalls > 0 ? (completedCalls.length / totalCalls) * 100 : 0;
+  
+  // Calculate average duration in seconds
+  const totalDuration = calls.reduce((sum, call) => sum + (call.duration || 0), 0);
+  const avgDuration = totalCalls > 0 ? totalDuration / totalCalls : 0;
+  
+  // Calculate total cost
+  const totalCost = calls.reduce((sum, call) => sum + (call.cost || 0), 0);
+  
+  // Inbound/Outbound success rates
+  const inboundCalls = calls.filter(call => call.type === 'inbound');
+  const outboundCalls = calls.filter(call => call.type === 'outbound');
+  const inboundSuccessRate = inboundCalls.length > 0 ? 
+    (inboundCalls.filter(call => call.status === 'completed').length / inboundCalls.length) * 100 : 0;
+  const outboundSuccessRate = outboundCalls.length > 0 ? 
+    (outboundCalls.filter(call => call.status === 'completed').length / outboundCalls.length) * 100 : 0;
+
+  // Call outcomes
+  const outcomes = calls.reduce((acc: Record<string, number>, call) => {
+    const status = call.status || 'unknown';
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {});
+
+  const callOutcomes = Object.entries(outcomes).map(([outcome, count]) => ({
+    outcome,
+    count: count as number,
+    percentage: Math.round(((count as number) / totalCalls) * 100),
+  }));
+
+  // Call volume trends (last 30 days)
+  const callVolumeTrends = [];
+  for (let i = 29; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const dateString = date.toISOString().split('T')[0];
+    
+    const dayCallsCount = calls.filter(call => {
+      const callDate = new Date(call.createdAt || call.startedAt).toISOString().split('T')[0];
+      return callDate === dateString;
+    }).length;
+
+    callVolumeTrends.push({
+      date: dateString,
+      calls: dayCallsCount,
+    });
+  }
+
+  // Recent calls (last 10)
+  const recentCalls = calls
+    .sort((a, b) => new Date(b.createdAt || b.startedAt).getTime() - new Date(a.createdAt || a.startedAt).getTime())
+    .slice(0, 10)
+    .map(call => ({
+      id: call.id,
+      assistantName: call.assistantName || 'Unknown',
+      duration: call.duration || 0,
+      cost: call.cost || 0,
+      status: call.status || 'unknown',
+      endedReason: call.endedReason || '',
+      createdAt: call.createdAt || call.startedAt,
+      type: call.type || 'unknown',
+      assistantPhoneNumber: call.assistantPhoneNumber || '',
+      customerPhoneNumber: call.customerPhoneNumber || '',
+      successEvaluation: call.successEvaluation,
+    }));
+
+  return {
+    kpis: {
+      totalCalls,
+      avgDuration,
+      successRate,
+      inboundSuccessRate,
+      outboundSuccessRate,
+      totalCost,
+    },
+    mostSuccessfulAgent: null, // Would need assistant data to calculate
+    callVolumeTrends,
+    callOutcomes,
+    assistantPerformance: [], // Would need to group by assistant
+    recentCalls,
+    costAnalysis: {
+      avgCostPerCall: totalCalls > 0 ? totalCost / totalCalls : 0,
+      costPerMinute: totalDuration > 0 ? totalCost / (totalDuration / 60) : 0,
+      monthlyCostTrend: 0, // Would need historical data
+    },
+    durationDistribution: [], // Simplified for now
+    hourlyPatterns: [], // Simplified for now
+    conversationFlow: {
+      stages: [],
+      successPaths: [],
+      dropOffPoints: [],
+    },
+    durationHistogram: {
+      histogram: [],
+      stats: {
+        average: `${Math.floor(avgDuration / 60)}:${String(Math.floor(avgDuration % 60)).padStart(2, '0')}`,
+        median: '0:00',
+        mostCommon: '0:00',
+        longest: '0:00',
+      },
+    },
+    peakUsageHeatmap: {
+      heatmapData: [],
+      insights: {
+        peakHours: 'N/A',
+        busiestDay: 'N/A',
+        quietHours: 'N/A',
+      },
+    },
+    conversationOutcomes: {
+      summary: {
+        totalConversations: totalCalls,
+        successRate,
+        avgDuration: `${Math.floor(avgDuration / 60)}:${String(Math.floor(avgDuration % 60)).padStart(2, '0')}`,
+        avgSatisfaction: 0,
+      },
+      outcomes: [],
+    },
+    dailyMetrics: callVolumeTrends.map(trend => ({
+      date: trend.date,
+      calls: trend.calls,
+      successfulCalls: 0, // Would need to calculate per day
+      failedCalls: 0,
+      avgDuration: 0,
+      totalCost: 0,
+      avgCost: 0,
+      successRate: 0,
+    })),
+  };
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  // Analytics endpoints
+  app.get(["/api/analytics/summary", "/api/analytics/summary/"], async (req, res) => {
+    try {
+      const timeRange = req.query.timeRange as string || "all-time";
+      const queryParams: Record<string, string> = {};
+
+      // Set date range based on timeRange
+      if (timeRange !== "all-time") {
+        const endDate = new Date();
+        const startDate = new Date();
+        
+        switch (timeRange) {
+          case "7-days":
+            startDate.setDate(startDate.getDate() - 7);
+            break;
+          case "30-days":
+            startDate.setDate(startDate.getDate() - 30);
+            break;
+          case "90-days":
+            startDate.setDate(startDate.getDate() - 90);
+            break;
+        }
+        
+        queryParams.createdAtGt = startDate.toISOString();
+        queryParams.createdAtLt = endDate.toISOString();
+      }
+
+      const calls = await fetchCallsWithFilters(queryParams);
+      
+      // Process the calls data into dashboard format
+      const dashboardData = processDashboardData(calls);
+      res.json(dashboardData);
+    } catch (error) {
+      console.error("Error fetching analytics summary:", error);
+      res.status(500).json({ error: error instanceof Error ? error.message : "Failed to fetch analytics data" });
+    }
+  });
+
+  app.get("/api/analytics", async (req, res) => {
+    try {
+      const timeRange = req.query.timeRange as string || "all-time";
+      const format = req.query.format as string;
+      
+      const queryParams: Record<string, string> = {};
+
+      // Set date range based on timeRange
+      if (timeRange !== "all-time") {
+        const endDate = new Date();
+        const startDate = new Date();
+        
+        switch (timeRange) {
+          case "7-days":
+            startDate.setDate(startDate.getDate() - 7);
+            break;
+          case "30-days":
+            startDate.setDate(startDate.getDate() - 30);
+            break;
+          case "90-days":
+            startDate.setDate(startDate.getDate() - 90);
+            break;
+        }
+        
+        queryParams.createdAtGt = startDate.toISOString();
+        queryParams.createdAtLt = endDate.toISOString();
+      }
+
+      const calls = await fetchCallsWithFilters(queryParams);
+
+      if (format === "csv") {
+        // Generate CSV
+        const csvHeader = "Call ID,Started At,Ended At,Duration (min),Status,Assistant,Customer,Cost,Type,Transcript\n";
+        const csvRows = calls.map(call => {
+          const duration = call.duration ? (call.duration / 60).toFixed(2) : "0";
+          const transcript = (call.transcript || "").replace(/"/g, '""').substring(0, 100);
+          return `"${call.id}","${call.startedAt}","${call.endedAt || ''}","${duration}","${call.status}","${call.assistantName || ''}","${call.customerPhoneNumber || ''}","${call.cost || 0}","${call.type}","${transcript}"`;
+        }).join("\n");
+
+        const csvContent = csvHeader + csvRows;
+        
+        res.setHeader("Content-Type", "text/csv");
+        res.setHeader("Content-Disposition", `attachment; filename=analytics-${timeRange}-${new Date().toISOString().split('T')[0]}.csv`);
+        res.send(csvContent);
+      } else {
+        res.json(calls);
+      }
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      res.status(500).json({ error: error instanceof Error ? error.message : "Failed to fetch analytics data" });
+    }
+  });
+
   // Agency management endpoints
   app.get("/api/agency/companies", async (req, res) => {
     try {
