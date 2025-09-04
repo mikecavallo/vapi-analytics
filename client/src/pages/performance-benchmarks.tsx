@@ -27,8 +27,7 @@ import {
   FileText,
   User,
   Sun,
-  Moon,
-  Building2
+  Moon
 } from "lucide-react";
 import { 
   LineChart, 
@@ -218,10 +217,6 @@ export default function PerformanceBenchmarks() {
                 <Link href="/assistant-studio" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
                   <Wand2 size={16} />
                   <span>Studio</span>
-                </Link>
-                <Link href="/agency" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
-                  <Building2 size={16} />
-                  <span>Agency</span>
                 </Link>
                 <Link href="/reports" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
                   <FileText size={16} />
