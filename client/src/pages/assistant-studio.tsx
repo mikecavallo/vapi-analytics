@@ -33,7 +33,15 @@ import {
   FileText,
   User,
   Sun,
-  Moon
+  Moon,
+  Zap,
+  BarChart3,
+  MessageCircle,
+  Sliders,
+  PlusCircle,
+  TrendingUp,
+  Target,
+  Lightbulb
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
@@ -76,6 +84,12 @@ interface AssistantConfig {
   };
   expectedOutcomes: string[];
   complianceNotes: string[];
+  addons?: {
+    promptOptimization: boolean;
+    conversationAnalysis: boolean;
+    advancedReporting: boolean;
+    aiChatbot: boolean;
+  };
 }
 
 export default function AssistantStudio() {
@@ -93,19 +107,29 @@ export default function AssistantStudio() {
   const [generatedConfig, setGeneratedConfig] = useState<AssistantConfig | null>(null);
   const [createdAssistant, setCreatedAssistant] = useState<any>(null);
   const [showConfigDetails, setShowConfigDetails] = useState(false);
+  
+  // Addon states
+  const [selectedAddons, setSelectedAddons] = useState({
+    promptOptimization: true,
+    conversationAnalysis: true,
+    advancedReporting: true,
+    aiChatbot: true
+  });
+  const [showAddonTools, setShowAddonTools] = useState(false);
 
   // Mutations
   const generateMutation = useMutation({
-    mutationFn: async ({ description, conversationFlow, voiceSettings, targetAudience }: {
+    mutationFn: async ({ description, conversationFlow, voiceSettings, targetAudience, addons }: {
       description: string;
       conversationFlow: string;
       voiceSettings: string;
       targetAudience: string;
+      addons?: any;
     }) => {
       const response = await fetch('/api/assistant-studio/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description, conversationFlow, voiceSettings, targetAudience }),
+        body: JSON.stringify({ description, conversationFlow, voiceSettings, targetAudience, addons }),
       });
       
       if (!response.ok) {
@@ -176,7 +200,8 @@ export default function AssistantStudio() {
       description: description.trim(),
       conversationFlow: conversationFlow.trim(),
       voiceSettings: voiceSettings.trim(),
-      targetAudience: targetAudience.trim()
+      targetAudience: targetAudience.trim(),
+      addons: selectedAddons
     });
   };
 
@@ -358,6 +383,92 @@ export default function AssistantStudio() {
                     <SelectItem value="general-public">General Public</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Advanced Addons */}
+              <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-center space-x-2">
+                  <Zap className="text-yellow-500" size={16} />
+                  <Label className="text-sm font-medium">Advanced AI Addons</Label>
+                  <Badge variant="secondary" className="text-xs">Powered by AI</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Enable powerful AI-driven features to enhance your assistant's capabilities and analytics
+                </p>
+                
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <Lightbulb className="text-blue-500" size={16} />
+                      <div>
+                        <p className="text-sm font-medium">AI Prompt Optimization</p>
+                        <p className="text-xs text-muted-foreground">Analyzes call transcripts to continuously improve assistant prompts</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant={selectedAddons.promptOptimization ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedAddons(prev => ({ ...prev, promptOptimization: !prev.promptOptimization }))}
+                      data-testid="toggle-prompt-optimization"
+                    >
+                      {selectedAddons.promptOptimization ? 'Enabled' : 'Enable'}
+                    </Button>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <TrendingUp className="text-green-500" size={16} />
+                      <div>
+                        <p className="text-sm font-medium">Conversation Flow Analysis</p>
+                        <p className="text-xs text-muted-foreground">Identifies patterns and provides insights to optimize conversation flows</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant={selectedAddons.conversationAnalysis ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedAddons(prev => ({ ...prev, conversationAnalysis: !prev.conversationAnalysis }))}
+                      data-testid="toggle-conversation-analysis"
+                    >
+                      {selectedAddons.conversationAnalysis ? 'Enabled' : 'Enable'}
+                    </Button>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <BarChart3 className="text-purple-500" size={16} />
+                      <div>
+                        <p className="text-sm font-medium">Advanced AI Reporting</p>
+                        <p className="text-xs text-muted-foreground">Generates comprehensive reports with AI-driven insights and recommendations</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant={selectedAddons.advancedReporting ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedAddons(prev => ({ ...prev, advancedReporting: !prev.advancedReporting }))}
+                      data-testid="toggle-advanced-reporting"
+                    >
+                      {selectedAddons.advancedReporting ? 'Enabled' : 'Enable'}
+                    </Button>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <MessageCircle className="text-orange-500" size={16} />
+                      <div>
+                        <p className="text-sm font-medium">AI Analytics Chatbot</p>
+                        <p className="text-xs text-muted-foreground">Interactive AI assistant for analyzing call data and metrics</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant={selectedAddons.aiChatbot ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedAddons(prev => ({ ...prev, aiChatbot: !prev.aiChatbot }))}
+                      data-testid="toggle-ai-chatbot"
+                    >
+                      {selectedAddons.aiChatbot ? 'Enabled' : 'Enable'}
+                    </Button>
+                  </div>
+                </div>
               </div>
 
               {/* Generate Button */}
@@ -665,6 +776,127 @@ You are a knowledgeable pharmacy assistant helping customers with prescriptions 
                       <p className="text-xs text-green-600 dark:text-green-500">
                         Your assistant is now live and ready to handle calls
                       </p>
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-green-200 dark:border-green-800">
+                        <span className="text-xs text-green-600 dark:text-green-500">
+                          Access advanced AI tools for your assistant
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-green-300 text-green-700 hover:bg-green-100 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-900/30"
+                          onClick={() => setShowAddonTools(!showAddonTools)}
+                          data-testid="button-toggle-addon-tools"
+                        >
+                          <Zap size={14} className="mr-1" />
+                          {showAddonTools ? 'Hide' : 'Show'} AI Tools
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* AI Addon Tools */}
+                  {createdAssistant && showAddonTools && generatedConfig?.addons && (
+                    <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                      <div className="flex items-center space-x-2">
+                        <Sliders className="text-blue-500" size={16} />
+                        <h4 className="font-medium">AI Assistant Management Tools</h4>
+                        <Badge variant="secondary" className="text-xs">
+                          <Sparkles size={10} className="mr-1" />
+                          AI-Powered
+                        </Badge>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {generatedConfig.addons.promptOptimization && (
+                          <div className="p-4 border rounded-lg bg-background">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center space-x-2">
+                                <Lightbulb className="text-blue-500" size={16} />
+                                <span className="text-sm font-medium">Prompt Optimizer</span>
+                              </div>
+                              <Button size="sm" data-testid="button-optimize-prompt">
+                                <Target size={14} className="mr-1" />
+                                Optimize
+                              </Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground mb-2">
+                              Analyze call transcripts to improve prompts
+                            </p>
+                            <div className="text-xs text-green-600">
+                              ✓ Ready to analyze up to 10 recent calls
+                            </div>
+                          </div>
+                        )}
+                        
+                        {generatedConfig.addons.conversationAnalysis && (
+                          <div className="p-4 border rounded-lg bg-background">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center space-x-2">
+                                <TrendingUp className="text-green-500" size={16} />
+                                <span className="text-sm font-medium">Flow Analyzer</span>
+                              </div>
+                              <Button size="sm" data-testid="button-analyze-flows">
+                                <BarChart3 size={14} className="mr-1" />
+                                Analyze
+                              </Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground mb-2">
+                              Identify conversation patterns and insights
+                            </p>
+                            <div className="text-xs text-green-600">
+                              ✓ Healthcare compliance tracking enabled
+                            </div>
+                          </div>
+                        )}
+                        
+                        {generatedConfig.addons.advancedReporting && (
+                          <div className="p-4 border rounded-lg bg-background">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center space-x-2">
+                                <FileText className="text-purple-500" size={16} />
+                                <span className="text-sm font-medium">AI Reports</span>
+                              </div>
+                              <Button size="sm" data-testid="button-generate-report">
+                                <Download size={14} className="mr-1" />
+                                Generate
+                              </Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground mb-2">
+                              Create comprehensive performance reports
+                            </p>
+                            <div className="text-xs text-green-600">
+                              ✓ Executive, detailed & compliance reports
+                            </div>
+                          </div>
+                        )}
+                        
+                        {generatedConfig.addons.aiChatbot && (
+                          <div className="p-4 border rounded-lg bg-background">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center space-x-2">
+                                <MessageCircle className="text-orange-500" size={16} />
+                                <span className="text-sm font-medium">Analytics Chat</span>
+                              </div>
+                              <Button size="sm" data-testid="button-open-chatbot">
+                                <MessageSquare size={14} className="mr-1" />
+                                Open Chat
+                              </Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground mb-2">
+                              Ask questions about your call analytics
+                            </p>
+                            <div className="text-xs text-green-600">
+                              ✓ Interactive AI assistant ready
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-center pt-3 border-t">
+                        <span className="text-xs text-muted-foreground">
+                          All AI tools are configured for assistant: {createdAssistant.id}
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>

@@ -747,7 +747,7 @@ Please provide optimization suggestions in JSON format:
   // Assistant Studio endpoints
   app.post("/api/assistant-studio/generate", async (req, res) => {
     try {
-      const { description, conversationFlow, voiceSettings, targetAudience } = req.body;
+      const { description, conversationFlow, voiceSettings, targetAudience, addons } = req.body;
       const openaiApiKey = process.env.OPENAI_API_KEY;
       
       if (!openaiApiKey) {
@@ -816,7 +816,13 @@ Return a JSON configuration that follows this structure:
     }
   },
   "expectedOutcomes": ["What this assistant should accomplish"],
-  "complianceNotes": ["HIPAA and healthcare compliance considerations"]
+  "complianceNotes": ["HIPAA and healthcare compliance considerations"],
+  "addons": {
+    "promptOptimization": boolean,
+    "conversationAnalysis": boolean,
+    "advancedReporting": boolean,
+    "aiChatbot": boolean
+  }
 }`;
 
       const userPrompt = `Create a healthcare voice assistant configuration with the following requirements:
@@ -829,13 +835,18 @@ Voice Settings: ${voiceSettings || 'Professional and caring tone'}
 
 Target Audience: ${targetAudience || 'Healthcare patients and general public'}
 
+AI Addons Enabled: ${addons ? JSON.stringify(addons) : 'All addons enabled by default'}
+
 Make sure the assistant is:
 - HIPAA compliant and privacy-focused
 - Capable of handling appointment scheduling
 - Professional yet empathetic in tone
 - Efficient in call duration while being thorough
 - Able to escalate to human agents when needed
-- Designed for clear voice interaction`;
+- Designed for clear voice interaction
+- Configured with the specified AI addons for enhanced capabilities
+
+Set the addons field in the response to match the enabled addons. If no addons are specified, enable all of them by default.`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
