@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardData } from "@shared/schema";
 import KpiCards from "@/components/analytics/kpi-cards";
-import ChartsSection from "@/components/analytics/charts-section";
 import CallVolumeTrends from "@/components/analytics/call-volume-trends";
 import CallOutcomes from "@/components/analytics/call-outcomes";
 import RecentCallsTable from "@/components/analytics/recent-calls-table";
@@ -111,6 +110,7 @@ export default function Dashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Key Performance Indicators - Main dashboard metrics with time range selector */}
         {/* Key Metrics */}
         <section className="mb-8">
           <div className="flex items-center justify-between mb-6">
@@ -124,11 +124,13 @@ export default function Dashboard() {
           <KpiCards data={data} isLoading={isLoading} />
         </section>
 
+        {/* System Status - Warnings and alerts displayed in full-width section */}
         {/* System Alerts & Warnings */}
         <section className="mb-8">
           <WarningsPanel data={data} isLoading={isLoading} />
         </section>
 
+        {/* Core Analytics Overview - 3-column layout showing key performance data */}
         {/* Analytics Row: Most Successful Agent, Call Volume, Call Outcomes */}
         <section className="mb-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -138,10 +140,6 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Charts */}
-        <section className="mb-8">
-          <ChartsSection data={data} isLoading={isLoading} />
-        </section>
 
         {/* Daily Metrics Charts */}
         <section className="mb-8">

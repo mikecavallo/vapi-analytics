@@ -5,6 +5,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { DashboardData } from "@shared/schema";
 
+/**
+ * Call Volume Trends Chart Component
+ * Displays a line chart showing call volumes over time with filtering options for different time ranges
+ */
+
 interface CallVolumeTrendsProps {
   data?: DashboardData;
   isLoading: boolean;

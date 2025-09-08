@@ -3,6 +3,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { DashboardData } from "@shared/schema";
 
+/**
+ * Call Outcomes Chart Component
+ * Displays a pie chart showing the distribution of call outcomes with automatic grouping of small segments
+ */
+
 interface CallOutcomesProps {
   data?: DashboardData;
   isLoading: boolean;
