@@ -16,6 +16,8 @@ import SettingsPage from "@/pages/settings";
 import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
 import VerifyEmailPage from "@/pages/verify-email";
+import AgencyPage from "@/pages/agency";
+import LandingPage from "@/pages/landing";
 import { useEffect } from "react";
 
 function AppRouter() {
@@ -27,24 +29,21 @@ function AppRouter() {
     if (!isLoading && !isAuthenticated && 
         !location.startsWith('/login') && 
         !location.startsWith('/signup') && 
-        !location.startsWith('/verify-email')) {
-      setLocation('/login');
+        !location.startsWith('/verify-email') &&
+        location !== '/') {
+      setLocation('/');
     }
   }, [isAuthenticated, isLoading, location, setLocation]);
 
   return (
     <Switch>
-      {/* Public authentication routes */}
+      {/* Public routes */}
+      <Route path="/" component={LandingPage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/signup" component={SignupPage} />
       <Route path="/verify-email" component={VerifyEmailPage} />
       
       {/* Protected dashboard routes */}
-      <Route path="/">
-        <ProtectedRoute>
-          <Dashboard />
-        </ProtectedRoute>
-      </Route>
       <Route path="/dashboard">
         <ProtectedRoute>
           <Dashboard />
@@ -68,6 +67,11 @@ function AppRouter() {
       <Route path="/settings">
         <ProtectedRoute>
           <SettingsPage />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/agency">
+        <ProtectedRoute>
+          <AgencyPage />
         </ProtectedRoute>
       </Route>
       

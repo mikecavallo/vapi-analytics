@@ -7,12 +7,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useWarningSettings } from "@/contexts/warning-settings-context";
+import { useAuth } from "@/contexts/auth-context";
 import { defaultWarningSettings, warningDescriptions, WarningSettings } from "@shared/warning-settings";
-import { Settings, AlertTriangle, RotateCcw, Save, User, Sun, Moon, ChartLine, Brain, Activity, Wand2, FileText } from "lucide-react";
+import { Settings, AlertTriangle, RotateCcw, Save, User, Sun, Moon, ChartLine, Brain, Activity, Wand2, FileText, Key, Building } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/contexts/theme-context";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 /**
  * Settings Page Component
@@ -24,7 +28,33 @@ export default function SettingsPage() {
   const [hasChanges, setHasChanges] = useState(false);
   const { toast } = useToast();
   const { theme, toggleTheme } = useTheme();
+  const { user, customerId, isSuperAdmin } = useAuth();
   const [location] = useLocation();
+  const [vapiApiKey, setVapiApiKey] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
+
+  // Fetch current customer details to get API key
+  const { data: customer } = useQuery({
+    queryKey: ['/api/customer/details'],
+    enabled: !!customerId,
+  });
+
+  // Update API key mutation
+  const updateApiKeyMutation = useMutation({
+    mutationFn: async (newApiKey: string) => {
+      const response = await apiRequest('PATCH', '/api/customer/api-key', { vapiApiKey: newApiKey });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'Success', description: 'Vapi API key updated successfully' });
+      queryClient.invalidateQueries({ queryKey: ['/api/customer/details'] });
+      setVapiApiKey('');
+      setShowApiKey(false);
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: 'Failed to update API key', variant: 'destructive' });
+    },
+  });
 
   // Update local settings when context settings change
   useState(() => {
@@ -117,6 +147,12 @@ export default function SettingsPage() {
                   <Wand2 size={16} />
                   <span>Studio</span>
                 </Link>
+                {isSuperAdmin && (
+                  <Link href="/agency" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
+                    <Building size={16} />
+                    <span>Agency</span>
+                  </Link>
+                )}
                 <Link href="/settings" className="text-primary border-b-2 border-primary pb-4 px-1 text-sm font-medium">
                   Settings
                 </Link>
@@ -145,45 +181,130 @@ export default function SettingsPage() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Settings className="text-primary" size={28} />
-              <div>
-                <h1 className="text-3xl font-bold text-foreground">Settings</h1>
-                <p className="text-muted-foreground mt-1">Configure warning thresholds and system alerts</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              {hasChanges && (
-                <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
-                  Unsaved Changes
-                </Badge>
-              )}
-              <Button
-                onClick={handleReset}
-                variant="outline"
-                size="sm"
-                className="flex items-center space-x-2"
-                data-testid="button-reset-defaults"
-              >
-                <RotateCcw size={16} />
-                <span>Reset to Defaults</span>
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={!hasChanges}
-                className="flex items-center space-x-2"
-                data-testid="button-save-settings"
-              >
-                <Save size={16} />
-                <span>Save Changes</span>
-              </Button>
+          <div className="flex items-center space-x-3">
+            <Settings className="text-primary" size={28} />
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+              <p className="text-muted-foreground mt-1">Configure API keys, warning thresholds and system alerts</p>
             </div>
           </div>
         </div>
 
-        {/* Warning Settings */}
-        <Card className="mb-8">
+        <Tabs defaultValue="api" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="api" className="flex items-center gap-2">
+              <Key className="w-4 h-4" />
+              API Configuration
+            </TabsTrigger>
+            <TabsTrigger value="warnings" className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              Warning Settings
+            </TabsTrigger>
+            <TabsTrigger value="appearance" className="flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Appearance
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="api" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Key className="w-5 h-5" />
+                  Vapi API Configuration
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Configure your Vapi API key to access your voice AI analytics data
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {customer && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium mb-2">Current Configuration</h4>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Customer: <span className="font-medium">{customer.name}</span>
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      API Key Status: {customer.vapiApiKey ? (
+                        <span className="text-green-600 font-medium">✓ Configured</span>
+                      ) : (
+                        <span className="text-orange-600 font-medium">⚠ Not configured</span>
+                      )}
+                    </p>
+                  </div>
+                )}
+                
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="vapiApiKey">New Vapi API Key</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input
+                        id="vapiApiKey"
+                        type={showApiKey ? "text" : "password"}
+                        value={vapiApiKey}
+                        onChange={(e) => setVapiApiKey(e.target.value)}
+                        placeholder="Enter your Vapi API key"
+                        className="flex-1"
+                        data-testid="input-vapi-api-key"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowApiKey(!showApiKey)}
+                      >
+                        {showApiKey ? "Hide" : "Show"}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Your API key is encrypted and stored securely. Only you can see and modify it.
+                    </p>
+                  </div>
+                  
+                  <Button
+                    onClick={() => updateApiKeyMutation.mutate(vapiApiKey)}
+                    disabled={!vapiApiKey.trim() || updateApiKeyMutation.isPending}
+                    data-testid="button-update-api-key"
+                  >
+                    {updateApiKeyMutation.isPending ? 'Updating...' : 'Update API Key'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="warnings" className="space-y-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-2">
+                {hasChanges && (
+                  <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
+                    Unsaved Changes
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  onClick={handleReset}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center space-x-2"
+                  data-testid="button-reset-defaults"
+                >
+                  <RotateCcw size={16} />
+                  <span>Reset to Defaults</span>
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={!hasChanges}
+                  className="flex items-center space-x-2"
+                  data-testid="button-save-settings"
+                >
+                  <Save size={16} />
+                  <span>Save Changes</span>
+                </Button>
+              </div>
+            </div>
+
+            <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <AlertTriangle className="text-amber-500" size={20} />
@@ -674,32 +795,78 @@ export default function SettingsPage() {
               </div>
             </div>
           </CardContent>
-        </Card>
+            </Card>
 
-        {/* Save Section */}
-        <div className="flex items-center justify-between p-6 bg-card rounded-lg border border-border">
-          <div>
-            <p className="text-sm text-muted-foreground">
-              Changes are saved locally and will persist across sessions. 
-              {hasChanges && " You have unsaved changes."}
-            </p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              onClick={handleReset}
-              variant="outline"
-              size="sm"
-            >
-              Reset All
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={!hasChanges}
-            >
-              Save Changes
-            </Button>
-          </div>
-        </div>
+            {/* Save Section */}
+            <div className="flex items-center justify-between p-6 bg-card rounded-lg border border-border">
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Changes are saved locally and will persist across sessions. 
+                  {hasChanges && " You have unsaved changes."}
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  onClick={handleReset}
+                  variant="outline"
+                  size="sm"
+                >
+                  Reset All
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={!hasChanges}
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="appearance" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Appearance Settings
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Customize the look and feel of your dashboard
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="theme-toggle">Theme</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Switch between light and dark mode
+                    </p>
+                  </div>
+                  <Button
+                    id="theme-toggle"
+                    variant="outline"
+                    size="sm"
+                    onClick={toggleTheme}
+                    className="flex items-center gap-2"
+                    data-testid="button-theme-toggle"
+                  >
+                    {theme === "light" ? (
+                      <>
+                        <Moon size={16} />
+                        Dark Mode
+                      </>
+                    ) : (
+                      <>
+                        <Sun size={16} />
+                        Light Mode
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

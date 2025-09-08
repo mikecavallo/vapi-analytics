@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { randomUUID } from "crypto";
 import { storage } from "./storage";
 import { 
   vapiAnalyticsQuerySchema, 
@@ -319,6 +320,139 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ message: "Logged out successfully" });
   });
   
+  // Customer API key management
+  app.get("/api/customer/details", authenticateUser, requireCustomerAccess, async (req, res) => {
+    try {
+      const customerId = req.customerId;
+      
+      if (!customerId) {
+        return res.status(400).json({ error: "Customer ID required" });
+      }
+      
+      const customer = await storage.getCustomer(customerId);
+      
+      if (!customer) {
+        return res.status(404).json({ error: "Customer not found" });
+      }
+      
+      // Don't expose the full API key in response, just indicate if it's configured
+      const customerDetails = {
+        ...customer,
+        vapiApiKey: customer.vapiApiKey ? true : false
+      };
+      
+      res.json(customerDetails);
+    } catch (error) {
+      console.error("[CUSTOMER DETAILS] Error:", error);
+      res.status(500).json({ error: "Failed to fetch customer details" });
+    }
+  });
+
+  app.patch("/api/customer/api-key", authenticateUser, requireCustomerAccess, async (req, res) => {
+    try {
+      const customerId = req.customerId;
+      const { vapiApiKey } = req.body;
+      
+      if (!customerId) {
+        return res.status(400).json({ error: "Customer ID required" });
+      }
+      
+      if (!vapiApiKey || typeof vapiApiKey !== 'string') {
+        return res.status(400).json({ error: "Valid API key is required" });
+      }
+      
+      // Update customer's API key
+      await storage.updateCustomer(customerId, { vapiApiKey });
+      
+      res.json({ message: "API key updated successfully" });
+    } catch (error) {
+      console.error("[UPDATE API KEY] Error:", error);
+      res.status(500).json({ error: "Failed to update API key" });
+    }
+  });
+
+  // Super-admin endpoints
+  app.get("/api/admin/customers", authenticateUser, requireSuperAdmin, async (req, res) => {
+    try {
+      const customers = await storage.getAllCustomers();
+      res.json(customers);
+    } catch (error) {
+      console.error("[ADMIN CUSTOMERS] Error:", error);
+      res.status(500).json({ error: "Failed to fetch customers" });
+    }
+  });
+
+  app.post("/api/admin/customers", authenticateUser, requireSuperAdmin, async (req, res) => {
+    try {
+      const { name, description, vapiApiKey } = req.body;
+      
+      if (!name || !vapiApiKey) {
+        return res.status(400).json({ error: "Name and API key are required" });
+      }
+      
+      const customerId = randomUUID();
+      const customer = await storage.createCustomer({
+        name,
+        description: description || null,
+        vapiApiKey,
+        createdByUserId: req.user!.id,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      res.json(customer);
+    } catch (error) {
+      console.error("[CREATE CUSTOMER] Error:", error);
+      res.status(500).json({ error: "Failed to create customer" });
+    }
+  });
+
+  app.get("/api/admin/users", authenticateUser, requireSuperAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      // Remove password hashes from response
+      const safeUsers = users.map(user => ({
+        ...user,
+        password: undefined
+      }));
+      res.json(safeUsers);
+    } catch (error) {
+      console.error("[ADMIN USERS] Error:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  app.get("/api/admin/email-whitelist", authenticateUser, requireSuperAdmin, async (req, res) => {
+    try {
+      const whitelist = await storage.getAllEmailWhitelist();
+      res.json(whitelist);
+    } catch (error) {
+      console.error("[ADMIN EMAIL WHITELIST] Error:", error);
+      res.status(500).json({ error: "Failed to fetch email whitelist" });
+    }
+  });
+
+  app.post("/api/admin/email-whitelist", authenticateUser, requireSuperAdmin, async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email || !email.includes('@')) {
+        return res.status(400).json({ error: "Valid email address is required" });
+      }
+      
+      const emailId = randomUUID();
+      const whitelistEntry = await storage.addEmailToWhitelist({
+        email: email.toLowerCase(),
+        createdAt: new Date()
+      });
+      
+      res.json(whitelistEntry);
+    } catch (error) {
+      console.error("[ADD EMAIL WHITELIST] Error:", error);
+      res.status(500).json({ error: "Failed to add email to whitelist" });
+    }
+  });
+
   // Analytics endpoint - proxy to Vapi API and cache results
   app.post("/api/analytics", authenticateUser, requireCustomerAccess, validateCustomerAccess, async (req, res) => {
     try {

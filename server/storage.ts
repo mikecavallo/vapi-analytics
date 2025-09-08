@@ -34,6 +34,10 @@ export interface IStorage {
   isEmailWhitelisted(email: string): Promise<boolean>;
   addEmailToWhitelist(email: InsertEmailWhitelist): Promise<EmailWhitelist>;
   removeEmailFromWhitelist(email: string): Promise<boolean>;
+  getAllEmailWhitelist(): Promise<EmailWhitelist[]>;
+  
+  // Admin methods
+  getAllUsers(): Promise<User[]>;
   
   // Customer management
   getCustomer(id: string): Promise<Customer | undefined>;
@@ -238,6 +242,17 @@ export class DbStorage implements IStorage {
       data,
       expires: Date.now() + ttl, // 5 minutes default TTL
     });
+  }
+
+  // Additional admin methods
+  async getAllUsers(): Promise<User[]> {
+    const result = await db.select().from(users);
+    return result;
+  }
+
+  async getAllEmailWhitelist(): Promise<EmailWhitelist[]> {
+    const result = await db.select().from(emailWhitelist);
+    return result;
   }
 }
 
