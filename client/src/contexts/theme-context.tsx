@@ -23,8 +23,11 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
-    // Clear any stored theme and default to light
-    localStorage.removeItem("theme");
+    // Check localStorage first, then default to light
+    const stored = localStorage.getItem("theme") as Theme;
+    if (stored && (stored === "light" || stored === "dark")) {
+      return stored;
+    }
     return "light";
   });
 
