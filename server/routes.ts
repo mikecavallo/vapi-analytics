@@ -617,7 +617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const vapiData = await vapiResponse.json();
         
         // Transform Vapi data to dashboard format and fetch recent calls
-        const dashboardData = await transformVapiDataToDashboard(vapiData, vapiApiKey);
+        const dashboardData = await transformVapiDataToDashboard(vapiData, customer.vapiApiKey);
         
         // Cache the result
         await storage.setCachedAnalytics(cacheKey, dashboardData);
