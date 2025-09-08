@@ -17,7 +17,7 @@ import AIChatbot from "@/components/ai-chatbot";
 import { Button } from "@/components/ui/button";
 import { Download, ChartLine, User, Sun, Moon, Brain, Activity, Wand2, FileText, Settings, RefreshCw, Users } from "lucide-react";
 import brainLogo from "@assets/brain_logo_1757370299022.png";
-import logoTransparent from "@assets/logo_transparent_1757370299023.png";
+import logoSvg from "@assets/logo_transparent.svg";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
@@ -117,7 +117,7 @@ export default function Dashboard() {
             {/* Logo - Left Aligned */}
             <div className="flex-shrink-0">
               <h1 className="text-2xl text-primary flex items-center" style={{ fontFamily: 'Poppins', fontWeight: 700 }}>
-                <img src={logoTransparent} alt="Invoxa.ai" className="w-8 h-8 mr-3" />
+                <img src={logoSvg} alt="Invoxa.ai" className="h-8 mr-3" style={{ width: 'auto' }} />
                 Invoxa.ai
               </h1>
             </div>
