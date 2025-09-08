@@ -4,6 +4,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle, TrendingDown, TrendingUp, Clock, DollarSign, Users, Activity } from "lucide-react";
 import { DashboardData } from "@shared/schema";
+import { useWarningSettings } from "@/contexts/warning-settings-context";
 
 interface WarningsPanelProps {
   data?: DashboardData;
@@ -22,17 +23,18 @@ interface Warning {
 }
 
 export default function WarningsPanel({ data, isLoading }: WarningsPanelProps) {
+  const { settings } = useWarningSettings();
   const generateWarnings = (): Warning[] => {
     if (!data) return [];
 
     const warnings: Warning[] = [];
     const { kpis, callOutcomes, assistantPerformance, costAnalysis, durationDistribution } = data;
 
-    // 1. Success Rate Warnings
-    if (kpis.successRate < 70) {
+    // 1. Success Rate Warnings (using custom thresholds)
+    if (settings.successRate.critical.enabled && kpis.successRate < settings.successRate.critical.threshold) {
       warnings.push({
         id: 'low-success-rate',
-        type: 'critical',
+        type: settings.successRate.critical.level,
         title: 'Low Success Rate Detected',
         description: `Success rate has dropped to ${kpis.successRate.toFixed(1)}%. Consider reviewing assistant performance.`,
         metric: 'Success Rate',
@@ -40,12 +42,12 @@ export default function WarningsPanel({ data, isLoading }: WarningsPanelProps) {
         trend: 'down',
         icon: TrendingDown,
       });
-    } else if (kpis.successRate < 85) {
+    } else if (settings.successRate.warning.enabled && kpis.successRate < settings.successRate.warning.threshold) {
       warnings.push({
         id: 'moderate-success-rate',
-        type: 'warning',
+        type: settings.successRate.warning.level,
         title: 'Success Rate Below Target',
-        description: `Success rate is ${kpis.successRate.toFixed(1)}%. Target is 85%+.`,
+        description: `Success rate is ${kpis.successRate.toFixed(1)}%. Target is ${settings.successRate.warning.threshold}%+.`,
         metric: 'Success Rate',
         value: `${kpis.successRate.toFixed(1)}%`,
         trend: 'down',
@@ -53,11 +55,11 @@ export default function WarningsPanel({ data, isLoading }: WarningsPanelProps) {
       });
     }
 
-    // 2. Cost Spike Warnings
-    if (costAnalysis.avgCostPerCall > 2.0) {
+    // 2. Cost Spike Warnings (using custom thresholds)
+    if (settings.costPerCall.warning.enabled && costAnalysis.avgCostPerCall > settings.costPerCall.warning.threshold) {
       warnings.push({
         id: 'high-cost-per-call',
-        type: 'warning',
+        type: settings.costPerCall.warning.level,
         title: 'High Cost Per Call',
         description: `Average cost per call is $${costAnalysis.avgCostPerCall.toFixed(2)}. Review call duration and pricing.`,
         metric: 'Cost Per Call',
@@ -67,11 +69,11 @@ export default function WarningsPanel({ data, isLoading }: WarningsPanelProps) {
       });
     }
 
-    // 3. Duration Anomalies
-    if (kpis.avgDuration < 30) {
+    // 3. Duration Anomalies (using custom thresholds)
+    if (settings.callDuration.shortCalls.enabled && kpis.avgDuration < settings.callDuration.shortCalls.threshold) {
       warnings.push({
         id: 'very-short-calls',
-        type: 'warning',
+        type: settings.callDuration.shortCalls.level,
         title: 'Very Short Call Duration',
         description: `Average call duration is only ${Math.round(kpis.avgDuration)}s. Users may be hanging up quickly.`,
         metric: 'Avg Duration',
@@ -79,10 +81,10 @@ export default function WarningsPanel({ data, isLoading }: WarningsPanelProps) {
         trend: 'down',
         icon: Clock,
       });
-    } else if (kpis.avgDuration > 600) {
+    } else if (settings.callDuration.longCalls.enabled && kpis.avgDuration > settings.callDuration.longCalls.threshold) {
       warnings.push({
         id: 'very-long-calls',
-        type: 'info',
+        type: settings.callDuration.longCalls.level,
         title: 'Long Call Duration',
         description: `Average call duration is ${Math.floor(kpis.avgDuration / 60)}:${(kpis.avgDuration % 60).toString().padStart(2, '0')}. Monitor for efficiency.`,
         metric: 'Avg Duration',
@@ -98,10 +100,10 @@ export default function WarningsPanel({ data, isLoading }: WarningsPanelProps) {
     );
     const totalErrorRate = errorOutcomes.reduce((sum, outcome) => sum + outcome.percentage, 0);
     
-    if (totalErrorRate > 15) {
+    if (settings.errorRate.critical.enabled && totalErrorRate > settings.errorRate.critical.threshold) {
       warnings.push({
         id: 'high-error-rate',
-        type: 'critical',
+        type: settings.errorRate.critical.level,
         title: 'High Error Rate',
         description: `${totalErrorRate.toFixed(1)}% of calls are failing due to technical issues. Immediate attention required.`,
         metric: 'Error Rate',
@@ -109,10 +111,10 @@ export default function WarningsPanel({ data, isLoading }: WarningsPanelProps) {
         trend: 'up',
         icon: AlertTriangle,
       });
-    } else if (totalErrorRate > 5) {
+    } else if (settings.errorRate.warning.enabled && totalErrorRate > settings.errorRate.warning.threshold) {
       warnings.push({
         id: 'moderate-error-rate',
-        type: 'warning',
+        type: settings.errorRate.warning.level,
         title: 'Elevated Error Rate',
         description: `${totalErrorRate.toFixed(1)}% of calls have technical errors. Monitor closely.`,
         metric: 'Error Rate',
@@ -122,17 +124,17 @@ export default function WarningsPanel({ data, isLoading }: WarningsPanelProps) {
       });
     }
 
-    // 5. Assistant Performance Issues
+    // 5. Assistant Performance Issues (using custom thresholds)
     const underperformingAssistants = assistantPerformance.filter(assistant => 
-      assistant.successRate < 80 && assistant.calls > 10
+      assistant.successRate < settings.assistantPerformance.threshold.threshold && assistant.calls > settings.assistantPerformance.minCallsRequired
     );
     
-    if (underperformingAssistants.length > 0) {
+    if (settings.assistantPerformance.threshold.enabled && underperformingAssistants.length > 0) {
       warnings.push({
         id: 'assistant-performance',
-        type: 'warning',
+        type: settings.assistantPerformance.threshold.level,
         title: 'Assistant Performance Issues',
-        description: `${underperformingAssistants.length} assistant(s) have success rates below 80%. Review training and setup.`,
+        description: `${underperformingAssistants.length} assistant(s) have success rates below ${settings.assistantPerformance.threshold.threshold}%. Review training and setup.`,
         metric: 'Assistant Performance',
         value: `${underperformingAssistants.length} assistant(s)`,
         trend: 'down',
@@ -140,11 +142,11 @@ export default function WarningsPanel({ data, isLoading }: WarningsPanelProps) {
       });
     }
 
-    // 6. Volume Spike Detection
-    if (kpis.totalCalls > 1000) {
+    // 6. Volume Spike Detection (using custom thresholds)
+    if (settings.callVolume.highVolume.enabled && kpis.totalCalls > settings.callVolume.highVolume.threshold) {
       warnings.push({
         id: 'high-volume',
-        type: 'info',
+        type: settings.callVolume.highVolume.level,
         title: 'High Call Volume',
         description: `Processing ${kpis.totalCalls} calls. Monitor for capacity and quality impacts.`,
         metric: 'Total Calls',
@@ -154,12 +156,12 @@ export default function WarningsPanel({ data, isLoading }: WarningsPanelProps) {
       });
     }
 
-    // 7. Quick Hangup Pattern
+    // 7. Quick Hangup Pattern (using custom thresholds)
     const shortCallOutcome = durationDistribution.find(dist => dist.range === "0-30s");
-    if (shortCallOutcome && shortCallOutcome.count > kpis.totalCalls * 0.3) {
+    if (settings.quickHangups.threshold.enabled && shortCallOutcome && shortCallOutcome.count > kpis.totalCalls * (settings.quickHangups.threshold.threshold / 100)) {
       warnings.push({
         id: 'quick-hangups',
-        type: 'warning',
+        type: settings.quickHangups.threshold.level,
         title: 'High Quick Hangup Rate',
         description: `${((shortCallOutcome.count / kpis.totalCalls) * 100).toFixed(1)}% of calls end within 30 seconds. Check greeting and initial experience.`,
         metric: 'Quick Hangups',
