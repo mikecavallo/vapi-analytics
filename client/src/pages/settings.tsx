@@ -13,7 +13,7 @@ import { useWarningSettings } from "@/contexts/warning-settings-context";
 import { useAuth } from "@/contexts/auth-context";
 import { defaultWarningSettings, warningDescriptions, WarningSettings } from "@shared/warning-settings";
 import { Settings, AlertTriangle, RotateCcw, Save, User, Sun, Moon, ChartLine, Brain, Activity, Wand2, FileText, Key, Building } from "lucide-react";
-import brainLogo from "@assets/brain_logo_1757370299022.png";
+import logoTransparent from "@assets/logo_transparent_1757373439311.png";
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/contexts/theme-context";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -128,7 +128,7 @@ export default function SettingsPage() {
             <div className="flex items-center space-x-4">
               <div className="flex-shrink-0">
                 <h1 className="text-2xl font-bold text-primary flex items-center">
-                  <img src={brainLogo} alt="Invoxa.ai" className="w-6 h-6 mr-2" />
+                  <img src={logoTransparent} alt="Invoxa.ai" className="h-8" style={{ width: 'auto' }} />
                   Invoxa.ai
                 </h1>
               </div>

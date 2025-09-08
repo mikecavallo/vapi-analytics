@@ -47,7 +47,7 @@ import {
 } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
-import brainLogo from "@assets/brain_logo_1757370299022.png";
+import logoTransparent from "@assets/logo_transparent_1757373439311.png";
 
 interface PerformanceBenchmarks {
   callTimingDistribution: {
@@ -198,10 +198,7 @@ export default function PerformanceBenchmarks() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
               <div className="flex-shrink-0">
-                <h1 className="text-2xl font-bold text-primary flex items-center">
-                  <img src={brainLogo} alt="Invoxa.ai" className="w-6 h-6 mr-2" />
-                  Invoxa.ai
-                </h1>
+                <img src={logoTransparent} alt="Invoxa.ai" className="h-8" style={{ width: 'auto' }} />
               </div>
               <nav className="hidden md:flex space-x-8">
                 <Link href="/dashboard" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">

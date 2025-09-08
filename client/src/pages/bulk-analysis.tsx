@@ -44,8 +44,7 @@ import {
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
-import brainLogo from "@assets/brain_logo_1757370299022.png";
-import logoSvg from "@assets/logo_transparent.svg";
+import logoTransparent from "@assets/logo_transparent_1757373439311.png";
 import { useAuth } from "@/contexts/auth-context";
 
 interface FilterCriteria {
@@ -261,10 +260,7 @@ export default function BulkAnalysis() {
           <div className="flex items-center h-16">
             {/* Logo - Left Aligned */}
             <div className="flex-shrink-0">
-              <h1 className="text-2xl text-primary flex items-center" style={{ fontFamily: 'Poppins', fontWeight: 700 }}>
-                <img src={logoSvg} alt="Invoxa.ai" className="h-8 mr-3" style={{ width: 'auto' }} />
-                Invoxa.ai
-              </h1>
+              <img src={logoTransparent} alt="Invoxa.ai" className="h-8" style={{ width: 'auto' }} />
             </div>
             
             {/* Navigation - Center */}

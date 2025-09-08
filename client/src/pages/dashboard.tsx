@@ -16,8 +16,7 @@ import DailyMetricsCharts from "@/components/analytics/daily-metrics-charts";
 import AIChatbot from "@/components/ai-chatbot";
 import { Button } from "@/components/ui/button";
 import { Download, ChartLine, User, Sun, Moon, Brain, Activity, Wand2, FileText, Settings, RefreshCw, Users } from "lucide-react";
-import brainLogo from "@assets/brain_logo_1757370299022.png";
-import logoSvg from "@assets/logo_transparent.svg";
+import logoTransparent from "@assets/logo_transparent_1757373439311.png";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
@@ -116,10 +115,7 @@ export default function Dashboard() {
           <div className="flex items-center h-16">
             {/* Logo - Left Aligned */}
             <div className="flex-shrink-0">
-              <h1 className="text-2xl text-primary flex items-center" style={{ fontFamily: 'Poppins', fontWeight: 700 }}>
-                <img src={logoSvg} alt="Invoxa.ai" className="h-8 mr-3" style={{ width: 'auto' }} />
-                Invoxa.ai
-              </h1>
+              <img src={logoTransparent} alt="Invoxa.ai" className="h-8" style={{ width: 'auto' }} />
             </div>
             
             {/* Navigation - Center */}
@@ -177,7 +173,7 @@ export default function Dashboard() {
           <div className="text-center py-12 bg-card rounded-lg border border-border">
             <div className="max-w-md mx-auto">
               <div className="text-muted-foreground mb-4">
-                <img src={brainLogo} alt="Invoxa.ai" className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <img src={logoTransparent} alt="Invoxa.ai" className="h-16 mx-auto mb-4 opacity-50" style={{ width: 'auto' }} />
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-2">No Analytics Data Available</h3>
               <p className="text-muted-foreground mb-6">
