@@ -23,11 +23,9 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
-    // Check localStorage first, then system preference
-    const stored = localStorage.getItem("theme") as Theme;
-    if (stored) return stored;
-    
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    // Clear any stored theme and default to light
+    localStorage.removeItem("theme");
+    return "light";
   });
 
   useEffect(() => {
