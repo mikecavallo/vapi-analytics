@@ -35,13 +35,19 @@ export default function AssistantUsageChart({ data, isLoading }: AssistantUsageC
     const activeAssistants = data.assistantPerformance
       .filter(assistant => assistant.calls > 0 && assistant.name)
       .map(assistant => {
-        // Clean up the assistant name - if it's just "Assistant {ID}", use a shorter version
+        // Use meaningful names, only clean up generic "Assistant {UUID}" names
         let displayName = assistant.name;
-        if (assistant.name.startsWith('Assistant ') && assistant.name.length > 20) {
-          // Extract the first 8 characters of the ID for a cleaner display
+        
+        // Check if it's a generic Assistant UUID name (like "Assistant 12345678-1234-1234-1234-123456789012")
+        const isGenericName = /^Assistant [a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(assistant.name) ||
+                            /^Assistant [a-f0-9]{8,}$/i.test(assistant.name);
+        
+        if (isGenericName) {
+          // For generic names, create a more readable version using first 8 chars
           const idPart = assistant.name.replace('Assistant ', '').slice(0, 8);
-          displayName = `Assistant ${idPart}`;
+          displayName = `Agent ${idPart}`;
         }
+        // Otherwise keep the original name as-is (for meaningful names like "Customer Support Bot")
         
         return {
           name: displayName,
@@ -82,12 +88,17 @@ export default function AssistantUsageChart({ data, isLoading }: AssistantUsageC
   const assistantNames = data?.assistantPerformance
     ?.filter(assistant => assistant.calls > 0 && assistant.name)
     ?.map(assistant => {
-      // Clean up the assistant name for display
+      // Use same logic as above for consistent naming
       let displayName = assistant.name;
-      if (assistant.name.startsWith('Assistant ') && assistant.name.length > 20) {
+      
+      const isGenericName = /^Assistant [a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(assistant.name) ||
+                            /^Assistant [a-f0-9]{8,}$/i.test(assistant.name);
+      
+      if (isGenericName) {
         const idPart = assistant.name.replace('Assistant ', '').slice(0, 8);
-        displayName = `Assistant ${idPart}`;
+        displayName = `Agent ${idPart}`;
       }
+      
       return displayName;
     }) || [];
   
@@ -154,13 +165,13 @@ export default function AssistantUsageChart({ data, isLoading }: AssistantUsageC
                   connectNulls={false}
                   style={{
                     filter: 'drop-shadow(0px 0px 0px transparent)',
-                    transition: 'all 0.2s ease-in-out'
+                    transition: 'all 0.3s ease-in-out'
                   }}
                   onMouseEnter={(e: any) => {
                     if (e.target && e.target.style) {
                       e.target.style.strokeOpacity = '1';
-                      e.target.style.strokeWidth = '3';
-                      e.target.style.filter = `drop-shadow(0px 0px 8px ${ASSISTANT_COLORS[index % ASSISTANT_COLORS.length]}40)`;
+                      e.target.style.strokeWidth = '4';
+                      e.target.style.filter = `drop-shadow(0px 0px 12px ${ASSISTANT_COLORS[index % ASSISTANT_COLORS.length]}80)`;
                     }
                   }}
                   onMouseLeave={(e: any) => {
