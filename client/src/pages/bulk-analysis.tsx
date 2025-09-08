@@ -278,13 +278,9 @@ export default function BulkAnalysis() {
                   <Wand2 size={16} />
                   <span>Studio</span>
                 </Link>
-                <Link href="/reports" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
-                  <FileText size={16} />
-                  <span>Reports</span>
-                </Link>
-                <a href="#" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
+                <Link href="/settings" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
                   Settings
-                </a>
+                </Link>
               </nav>
             </div>
             <div className="flex items-center space-x-4">
