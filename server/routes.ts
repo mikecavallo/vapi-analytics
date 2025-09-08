@@ -948,7 +948,6 @@ Apply these specific settings and create a comprehensive assistant configuration
         firstMessage: config.firstMessage,
         firstMessageMode: config.firstMessageMode || 'assistant-speaks-first',
         firstMessageInterruptionsEnabled: config.firstMessageInterruptionsEnabled || false,
-        systemMessage: config.systemMessage,
         maxDurationSeconds: config.maxDurationSeconds || config.conversationConfig?.maxDurationSeconds || 600,
         backgroundSound: config.backgroundSound || config.conversationConfig?.backgroundSound || 'office',
         modelOutputInMessagesEnabled: config.modelOutputInMessagesEnabled || config.conversationConfig?.modelOutputInMessagesEnabled || false,
@@ -998,7 +997,7 @@ Apply these specific settings and create a comprehensive assistant configuration
         ...(config.stopSpeakingPlan && {
           stopSpeakingPlan: {
             numWords: config.stopSpeakingPlan.numWords,
-            voiceSeconds: config.stopSpeakingPlan.voiceSeconds,
+            voiceSeconds: Math.min(config.stopSpeakingPlan.voiceSeconds || 0.4, 0.5),
             backoffSeconds: config.stopSpeakingPlan.backoffSeconds
           }
         }),
@@ -1009,10 +1008,7 @@ Apply these specific settings and create a comprehensive assistant configuration
           }
         }),
         ...(config.backgroundSpeechDenoisingPlan && {
-          backgroundSpeechDenoisingPlan: {
-            enabled: config.backgroundSpeechDenoisingPlan.enabled,
-            krispEnabled: config.backgroundSpeechDenoisingPlan.krispEnabled
-          }
+          backgroundSpeechDenoisingPlan: {}
         }),
         ...(config.metadata && { metadata: config.metadata })
       };
