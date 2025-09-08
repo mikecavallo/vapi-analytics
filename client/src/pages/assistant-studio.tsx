@@ -306,6 +306,10 @@ export default function AssistantStudio() {
       description: description.trim(),
       conversationFlow: conversationFlow.trim(),
       voiceSettings: voiceSettings.trim(),
+      modelProvider,
+      selectedModel,
+      voiceProvider, 
+      selectedVoice,
       
       // Call behavior
       firstMessageMode,
@@ -417,7 +421,7 @@ export default function AssistantStudio() {
                 Essential details and description for your voice assistant
               </p>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
               {/* Assistant Name */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
@@ -435,25 +439,73 @@ export default function AssistantStudio() {
                 </div>
               </div>
 
-              {/* Voice Settings */}
+              {/* Model Provider */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">
-                  Voice & Tone (Optional)
-                </Label>
-                <Select value={voiceSettings} onValueChange={setVoiceSettings}>
-                  <SelectTrigger data-testid="select-voice-settings">
-                    <SelectValue placeholder="Choose voice characteristics" />
+                <Label className="text-sm font-medium">Model Provider</Label>
+                <Select value={modelProvider} onValueChange={handleModelProviderChange}>
+                  <SelectTrigger data-testid="select-model-provider">
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="professional-caring">Professional & Caring</SelectItem>
-                    <SelectItem value="warm-friendly">Warm & Friendly</SelectItem>
-                    <SelectItem value="authoritative-confident">Authoritative & Confident</SelectItem>
-                    <SelectItem value="calm-reassuring">Calm & Reassuring</SelectItem>
-                    <SelectItem value="energetic-upbeat">Energetic & Upbeat</SelectItem>
+                    <SelectItem value="openai">OpenAI</SelectItem>
+                    <SelectItem value="anthropic">Anthropic</SelectItem>
+                    <SelectItem value="google">Google</SelectItem>
+                    <SelectItem value="meta">Meta</SelectItem>
+                    <SelectItem value="mistral">Mistral</SelectItem>
+                    <SelectItem value="cohere">Cohere</SelectItem>
+                    <SelectItem value="perplexity">Perplexity</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
+              
+              {/* Model Selection */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Model</Label>
+                <Select value={selectedModel} onValueChange={setSelectedModel}>
+                  <SelectTrigger data-testid="select-model">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {modelProviders[modelProvider as keyof typeof modelProviders]?.map(model => (
+                      <SelectItem key={model} value={model}>{model}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Voice Provider */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Voice Provider</Label>
+                <Select value={voiceProvider} onValueChange={handleVoiceProviderChange}>
+                  <SelectTrigger data-testid="select-voice-provider">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="11labs">ElevenLabs</SelectItem>
+                    <SelectItem value="openai">OpenAI</SelectItem>
+                    <SelectItem value="playht">PlayHT</SelectItem>
+                    <SelectItem value="deepgram">Deepgram</SelectItem>
+                    <SelectItem value="azure">Azure</SelectItem>
+                    <SelectItem value="cartesia">Cartesia</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Voice Selection */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Voice</Label>
+                <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+                  <SelectTrigger data-testid="select-voice">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {voiceProviders[voiceProvider as keyof typeof voiceProviders]?.map(voice => (
+                      <SelectItem key={voice} value={voice}>{voice}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
               {/* First Message Mode */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">First Message Mode</Label>
@@ -531,11 +583,8 @@ export default function AssistantStudio() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="off">Off</SelectItem>
+                    <SelectItem value="off">None</SelectItem>
                     <SelectItem value="office">Office</SelectItem>
-                    <SelectItem value="cafe">Cafe</SelectItem>
-                    <SelectItem value="nature">Nature</SelectItem>
-                    <SelectItem value="music">Light Music</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
