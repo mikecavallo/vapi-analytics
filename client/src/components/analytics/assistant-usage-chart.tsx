@@ -31,30 +31,35 @@ export default function AssistantUsageChart({ data, isLoading }: AssistantUsageC
       return [];
     }
     
-    // Filter to only show active assistants (those with calls > 0)
+    // Filter to only show real assistants with meaningful names (exclude sample/fallback names)
+    const sampleNames = [
+      'Healthcare Assistant', 'Prescription Bot', 'Insurance Helper', 'Appointment Scheduler',
+      'Lab Results Bot', 'Billing Assistant', 'Patient Support', 'Telehealth Coordinator'
+    ];
+    
     const activeAssistants = data.assistantPerformance
-      .filter(assistant => assistant.calls > 0 && assistant.name)
-      .map(assistant => {
-        // Use meaningful names, only clean up generic "Assistant {UUID}" names
-        let displayName = assistant.name;
-        
-        // Check if it's a generic Assistant UUID name (like "Assistant 12345678-1234-1234-1234-123456789012")
-        const isGenericName = /^Assistant [a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(assistant.name) ||
-                            /^Assistant [a-f0-9]{8,}$/i.test(assistant.name);
-        
-        if (isGenericName) {
-          // For generic names, create a more readable version using first 8 chars
-          const idPart = assistant.name.replace('Assistant ', '').slice(0, 8);
-          displayName = `Agent ${idPart}`;
+      .filter(assistant => {
+        // Only show assistants that have calls and meaningful names
+        if (!assistant.calls || assistant.calls === 0 || !assistant.name) {
+          return false;
         }
-        // Otherwise keep the original name as-is (for meaningful names like "Customer Support Bot")
         
-        return {
-          name: displayName,
-          calls: assistant.calls,
-          proportion: assistant.calls / data.assistantPerformance.filter(a => a.calls > 0).reduce((sum, a) => sum + a.calls, 0)
-        };
-      });
+        // Filter out sample/fallback names
+        if (sampleNames.includes(assistant.name)) {
+          return false;
+        }
+        
+        // Filter out generic "Assistant {UUID}" pattern names
+        const isGenericName = /^Assistant [a-f0-9]{8}$/.test(assistant.name) ||
+                            /^Assistant [a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(assistant.name);
+        
+        return !isGenericName;
+      })
+      .map(assistant => ({
+        name: assistant.name, // Use the real assistant name as-is
+        calls: assistant.calls,
+        proportion: assistant.calls / data.assistantPerformance.filter(a => a.calls > 0).reduce((sum, a) => sum + a.calls, 0)
+      }));
     
     // If no active assistants with proper names, return empty
     if (activeAssistants.length === 0) {
@@ -84,23 +89,25 @@ export default function AssistantUsageChart({ data, isLoading }: AssistantUsageC
 
   const assistantUsageData = generateAssistantUsageData();
   
-  // Extract assistant names from active assistants with cleaned names
+  // Extract assistant names from filtered active assistants (same filtering as above)
+  const sampleNames = [
+    'Healthcare Assistant', 'Prescription Bot', 'Insurance Helper', 'Appointment Scheduler',
+    'Lab Results Bot', 'Billing Assistant', 'Patient Support', 'Telehealth Coordinator'
+  ];
+  
   const assistantNames = data?.assistantPerformance
-    ?.filter(assistant => assistant.calls > 0 && assistant.name)
-    ?.map(assistant => {
-      // Use same logic as above for consistent naming
-      let displayName = assistant.name;
-      
-      const isGenericName = /^Assistant [a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(assistant.name) ||
-                            /^Assistant [a-f0-9]{8,}$/i.test(assistant.name);
-      
-      if (isGenericName) {
-        const idPart = assistant.name.replace('Assistant ', '').slice(0, 8);
-        displayName = `Agent ${idPart}`;
+    ?.filter(assistant => {
+      if (!assistant.calls || assistant.calls === 0 || !assistant.name) {
+        return false;
       }
-      
-      return displayName;
-    }) || [];
+      if (sampleNames.includes(assistant.name)) {
+        return false;
+      }
+      const isGenericName = /^Assistant [a-f0-9]{8}$/.test(assistant.name) ||
+                            /^Assistant [a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(assistant.name);
+      return !isGenericName;
+    })
+    ?.map(assistant => assistant.name) || [];
   
   if (isLoading) {
     return (
