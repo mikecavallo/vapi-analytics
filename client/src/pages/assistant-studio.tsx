@@ -161,6 +161,47 @@ export default function AssistantStudio() {
   const [startSpeakingWait, setStartSpeakingWait] = useState(0.5);
   const [stopSpeakingWords, setStopSpeakingWords] = useState(2);
   
+  // Model provider and model states
+  const [modelProvider, setModelProvider] = useState('openai');
+  const [selectedModel, setSelectedModel] = useState('gpt-4');
+  
+  // Voice provider and voice states
+  const [voiceProvider, setVoiceProvider] = useState('11labs');
+  const [selectedVoice, setSelectedVoice] = useState('Rachel');
+  
+  // Provider data
+  const modelProviders = {
+    'openai': ['gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+    'anthropic': ['claude-3-5-sonnet-20241022', 'claude-3-haiku-20240307', 'claude-3-opus-20240229'],
+    'google': ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-pro'],
+    'meta': ['llama-3.1-8b-instruct', 'llama-3.1-70b-instruct', 'llama-3.1-405b-instruct'],
+    'mistral': ['mistral-large-latest', 'mistral-medium-latest', 'mistral-small-latest'],
+    'cohere': ['command-r-plus', 'command-r', 'command'],
+    'perplexity': ['llama-3.1-sonar-small-128k-online', 'llama-3.1-sonar-large-128k-online']
+  };
+  
+  const voiceProviders = {
+    '11labs': ['Rachel', 'Drew', 'Clyde', 'Paul', 'Domi', 'Dave', 'Fin', 'Sarah', 'Antoni', 'Thomas'],
+    'openai': ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'],
+    'playht': ['jennifer', 'melissa', 'will', 'chris', 'matt', 'jack', 'ruby', 'davis'],
+    'deepgram': ['aura-asteria-en', 'aura-luna-en', 'aura-stella-en', 'aura-athena-en', 'aura-hera-en', 'aura-orion-en'],
+    'azure': ['en-US-JennyNeural', 'en-US-GuyNeural', 'en-US-AriaNeural', 'en-US-DavisNeural', 'en-US-AmberNeural'],
+    'cartesia': ['british-lady', 'conversational', 'childlike', 'barbershop-man']
+  };
+  
+  // Handle provider changes
+  const handleModelProviderChange = (provider: string) => {
+    setModelProvider(provider);
+    const firstModel = modelProviders[provider as keyof typeof modelProviders]?.[0] || '';
+    setSelectedModel(firstModel);
+  };
+  
+  const handleVoiceProviderChange = (provider: string) => {
+    setVoiceProvider(provider);
+    const firstVoice = voiceProviders[provider as keyof typeof voiceProviders]?.[0] || '';
+    setSelectedVoice(firstVoice);
+  };
+  
   // Generated config state
   const [generatedConfig, setGeneratedConfig] = useState<AssistantConfig | null>(null);
   const [createdAssistant, setCreatedAssistant] = useState<any>(null);
