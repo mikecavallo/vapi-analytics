@@ -31,14 +31,24 @@ export default function AssistantUsageChart({ data, isLoading }: AssistantUsageC
       return [];
     }
     
-    // Filter to only show active assistants (those with calls > 0) and proper names
+    // Filter to only show active assistants (those with calls > 0)
     const activeAssistants = data.assistantPerformance
-      .filter(assistant => assistant.calls > 0 && assistant.name && !assistant.name.startsWith('Assistant '))
-      .map(assistant => ({
-        name: assistant.name,
-        calls: assistant.calls,
-        proportion: assistant.calls / data.assistantPerformance.filter(a => a.calls > 0).reduce((sum, a) => sum + a.calls, 0)
-      }));
+      .filter(assistant => assistant.calls > 0 && assistant.name)
+      .map(assistant => {
+        // Clean up the assistant name - if it's just "Assistant {ID}", use a shorter version
+        let displayName = assistant.name;
+        if (assistant.name.startsWith('Assistant ') && assistant.name.length > 20) {
+          // Extract the first 8 characters of the ID for a cleaner display
+          const idPart = assistant.name.replace('Assistant ', '').slice(0, 8);
+          displayName = `Assistant ${idPart}`;
+        }
+        
+        return {
+          name: displayName,
+          calls: assistant.calls,
+          proportion: assistant.calls / data.assistantPerformance.filter(a => a.calls > 0).reduce((sum, a) => sum + a.calls, 0)
+        };
+      });
     
     // If no active assistants with proper names, return empty
     if (activeAssistants.length === 0) {
@@ -68,10 +78,18 @@ export default function AssistantUsageChart({ data, isLoading }: AssistantUsageC
 
   const assistantUsageData = generateAssistantUsageData();
   
-  // Extract real assistant names from active assistants only
+  // Extract assistant names from active assistants with cleaned names
   const assistantNames = data?.assistantPerformance
-    ?.filter(assistant => assistant.calls > 0 && assistant.name && !assistant.name.startsWith('Assistant '))
-    ?.map(assistant => assistant.name) || [];
+    ?.filter(assistant => assistant.calls > 0 && assistant.name)
+    ?.map(assistant => {
+      // Clean up the assistant name for display
+      let displayName = assistant.name;
+      if (assistant.name.startsWith('Assistant ') && assistant.name.length > 20) {
+        const idPart = assistant.name.replace('Assistant ', '').slice(0, 8);
+        displayName = `Assistant ${idPart}`;
+      }
+      return displayName;
+    }) || [];
   
   if (isLoading) {
     return (
@@ -159,7 +177,15 @@ export default function AssistantUsageChart({ data, isLoading }: AssistantUsageC
           <div className="grid grid-cols-2 gap-4">
             {assistantNames.slice(0, 6).map((assistant, index) => {
               // Get real data from assistantPerformance for active assistants
-              const assistantData = data?.assistantPerformance?.find(a => a.name === assistant && a.calls > 0);
+              const assistantData = data?.assistantPerformance?.find(a => {
+                // Match by cleaned name
+                let cleanName = a.name;
+                if (a.name.startsWith('Assistant ') && a.name.length > 20) {
+                  const idPart = a.name.replace('Assistant ', '').slice(0, 8);
+                  cleanName = `Assistant ${idPart}`;
+                }
+                return cleanName === assistant && a.calls > 0;
+              });
               const totalCalls = assistantData?.calls || 0;
               const avgCalls = assistantUsageData.length > 0 ? Math.round(totalCalls / 30) : 0; // Approx daily average
               
