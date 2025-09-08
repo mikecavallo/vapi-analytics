@@ -31,12 +31,19 @@ export default function AssistantUsageChart({ data, isLoading }: AssistantUsageC
       return [];
     }
     
-    // Get real assistant names and their call proportions
-    const assistants = data.assistantPerformance.map(assistant => ({
-      name: assistant.name,
-      calls: assistant.calls,
-      proportion: assistant.calls / data.assistantPerformance.reduce((sum, a) => sum + a.calls, 0)
-    }));
+    // Filter to only show active assistants (those with calls > 0) and proper names
+    const activeAssistants = data.assistantPerformance
+      .filter(assistant => assistant.calls > 0 && assistant.name && !assistant.name.startsWith('Assistant '))
+      .map(assistant => ({
+        name: assistant.name,
+        calls: assistant.calls,
+        proportion: assistant.calls / data.assistantPerformance.filter(a => a.calls > 0).reduce((sum, a) => sum + a.calls, 0)
+      }));
+    
+    // If no active assistants with proper names, return empty
+    if (activeAssistants.length === 0) {
+      return [];
+    }
     
     // Generate time series data for each assistant based on call volume trends
     return data.callVolumeTrends.map((item, index) => {
@@ -45,10 +52,10 @@ export default function AssistantUsageChart({ data, isLoading }: AssistantUsageC
         fullDate: item.date
       };
       
-      // Distribute total calls among assistants based on their actual proportions
+      // Distribute total calls among active assistants based on their actual proportions
       // Add some realistic daily variance while maintaining overall proportions
       const totalCalls = item.calls;
-      assistants.forEach((assistant, i) => {
+      activeAssistants.forEach((assistant, i) => {
         // Base proportion with small daily variance (-20% to +20%)
         const variance = 0.8 + (Math.sin(index * 0.7 + i * 1.3) * 0.4); // 0.8 to 1.2 multiplier
         const assistantCalls = Math.round(totalCalls * assistant.proportion * variance);
@@ -61,8 +68,10 @@ export default function AssistantUsageChart({ data, isLoading }: AssistantUsageC
 
   const assistantUsageData = generateAssistantUsageData();
   
-  // Extract real assistant names from assistantPerformance data
-  const assistantNames = data?.assistantPerformance?.map(assistant => assistant.name) || [];
+  // Extract real assistant names from active assistants only
+  const assistantNames = data?.assistantPerformance
+    ?.filter(assistant => assistant.calls > 0 && assistant.name && !assistant.name.startsWith('Assistant '))
+    ?.map(assistant => assistant.name) || [];
   
   if (isLoading) {
     return (
@@ -148,9 +157,9 @@ export default function AssistantUsageChart({ data, isLoading }: AssistantUsageC
         {/* Assistant Summary Stats */}
         <div className="mt-4 pt-4 border-t border-border">
           <div className="grid grid-cols-2 gap-4">
-            {assistantNames.slice(0, 4).map((assistant, index) => {
-              // Get real data from assistantPerformance
-              const assistantData = data?.assistantPerformance?.find(a => a.name === assistant);
+            {assistantNames.slice(0, 6).map((assistant, index) => {
+              // Get real data from assistantPerformance for active assistants
+              const assistantData = data?.assistantPerformance?.find(a => a.name === assistant && a.calls > 0);
               const totalCalls = assistantData?.calls || 0;
               const avgCalls = assistantUsageData.length > 0 ? Math.round(totalCalls / 30) : 0; // Approx daily average
               
