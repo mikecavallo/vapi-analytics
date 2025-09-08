@@ -796,8 +796,7 @@ IMPORTANT: You must respond with ONLY a valid JSON object that follows this exac
   "name": "Assistant name from user input",
   "firstMessage": "Initial greeting message",
   "firstMessageMode": "assistant-speaks-first",
-  "firstMessageInterruptionsEnabled": false,
-  "systemMessage": "Detailed system prompt for the assistant behavior", 
+  "firstMessageInterruptionsEnabled": false, 
   "maxDurationSeconds": 600,
   "backgroundSound": "office",
   "modelOutputInMessagesEnabled": false,
@@ -843,17 +842,14 @@ IMPORTANT: You must respond with ONLY a valid JSON object that follows this exac
   },
   "stopSpeakingPlan": {
     "numWords": 2,
-    "voiceSeconds": 1.0,
+    "voiceSeconds": 0.4,
     "backoffSeconds": 0.5
   },
   "monitorPlan": {
     "listenEnabled": false,
     "controlEnabled": false
   },
-  "backgroundSpeechDenoisingPlan": {
-    "enabled": true,
-    "krispEnabled": false
-  },
+  "backgroundSpeechDenoisingPlan": {},
   "metadata": {},
   "expectedOutcomes": ["What this assistant should accomplish"],
   "complianceNotes": ["Any compliance or operational considerations"]

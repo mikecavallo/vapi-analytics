@@ -26,7 +26,12 @@ import {
   Copy,
   CheckCircle2,
   Mic,
-  Volume2
+  Volume2,
+  CheckCircle,
+  Calendar,
+  User,
+  Sun,
+  Moon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
@@ -266,7 +271,7 @@ export default function AssistantStudio() {
     },
   });
 
-  const handleGenerate = () => {
+  const handleCreateAssistant = () => {
     if (!assistantName.trim()) {
       toast({
         title: "Assistant Name Required",
@@ -300,60 +305,78 @@ export default function AssistantStudio() {
       }
     }
 
-    generateMutation.mutate({
-      // Basic info
+    // Build configuration directly without OpenAI generation
+    const assistantConfig = {
       name: assistantName.trim(),
-      description: description.trim(),
-      conversationFlow: conversationFlow.trim(),
-      voiceSettings: voiceSettings.trim(),
-      modelProvider,
-      selectedModel,
-      voiceProvider, 
-      selectedVoice,
-      
-      // Call behavior
-      firstMessageMode,
-      firstMessageInterruptionsEnabled: firstMessageInterruptions,
-      maxDurationSeconds: maxDuration,
-      backgroundSound,
-      modelOutputInMessagesEnabled: modelOutputInMessages,
-      
-      // Messages
-      voicemailMessage: voicemailMessage.trim() || undefined,
-      endCallMessage: endCallMessage.trim() || undefined,
-      endCallPhrases: endCallPhrases.trim() ? endCallPhrases.split(',').map(p => p.trim()) : undefined,
-      
-      // Advanced features
-      enableAnalysis,
-      enableMonitoring,
-      enableDenoising,
-      startSpeakingWait,
-      stopSpeakingWords,
-      metadata: parsedMetadata
-    });
+      firstMessage: `Hello! I'm ${assistantName.trim()}. ${description.trim()}`,
+      firstMessageMode: firstMessageMode || 'assistant-speaks-first',
+      firstMessageInterruptionsEnabled: firstMessageInterruptions || false,
+      maxDurationSeconds: maxDuration || 600,
+      backgroundSound: backgroundSound || 'office',
+      modelOutputInMessagesEnabled: modelOutputInMessages || false,
+      ...(voicemailMessage.trim() && { voicemailMessage: voicemailMessage.trim() }),
+      ...(endCallMessage.trim() && { endCallMessage: endCallMessage.trim() }),
+      ...(endCallPhrases.trim() && { endCallPhrases: endCallPhrases.split(',').map(p => p.trim()) }),
+      model: {
+        provider: modelProvider || 'openai',
+        model: selectedModel || 'gpt-4',
+        temperature: 0.7,
+        maxTokens: 150,
+        emotionRecognitionEnabled: true
+      },
+      voice: {
+        provider: voiceProvider || '11labs',
+        voiceId: selectedVoice || 'burt',
+        stability: 0.5,
+        similarityBoost: 0.8,
+        style: 0.0,
+        useSpeakerBoost: true
+      },
+      transcriber: {
+        provider: 'deepgram',
+        model: 'nova-2',
+        language: 'en-US',
+        smartFormat: true,
+        keywords: []
+      },
+      ...(enableAnalysis && {
+        analysisPlan: {
+          summaryPrompt: "Summarize this call focusing on key outcomes and insights",
+          structuredDataSchema: {
+            type: "object",
+            properties: {
+              callOutcome: { type: "string" },
+              satisfaction: { type: "number", minimum: 1, maximum: 5 },
+              followUpRequired: { type: "boolean" }
+            }
+          }
+        }
+      }),
+      startSpeakingPlan: {
+        waitSeconds: startSpeakingWait || 0.5,
+        smartEndpointingEnabled: true
+      },
+      stopSpeakingPlan: {
+        numWords: stopSpeakingWords || 2,
+        voiceSeconds: 0.4,
+        backoffSeconds: 0.5
+      },
+      ...(enableMonitoring && {
+        monitorPlan: {
+          listenEnabled: true,
+          controlEnabled: false
+        }
+      }),
+      ...(enableDenoising && {
+        backgroundSpeechDenoisingPlan: {}
+      }),
+      ...(parsedMetadata && { metadata: parsedMetadata })
+    };
+
+    // Directly create the assistant via API
+    createMutation.mutate(assistantConfig);
   };
 
-  const handleCreate = () => {
-    if (!generatedConfig) return;
-    createMutation.mutate(generatedConfig);
-  };
-
-  const exportConfig = () => {
-    if (!generatedConfig) return;
-    
-    const blob = new Blob([JSON.stringify(generatedConfig, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${generatedConfig.name.toLowerCase().replace(/\\s+/g, '-')}-config.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    
-    toast({
-      title: "Config Exported",
-      description: "Assistant configuration downloaded successfully",
-    });
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -759,53 +782,56 @@ export default function AssistantStudio() {
             <Button 
               className="px-8 py-3 text-lg" 
               size="lg"
-              onClick={handleGenerate}
-              disabled={!assistantName.trim() || !description.trim() || generateMutation.isPending}
+              onClick={handleCreateAssistant}
+              disabled={!assistantName.trim() || !description.trim() || createMutation.isPending}
               data-testid="button-generate-assistant"
             >
-              {generateMutation.isPending ? (
+              {createMutation.isPending ? (
                 <Loader2 className="mr-2 animate-spin" size={20} />
               ) : (
                 <Wand2 className="mr-2" size={20} />
               )}
-              {generateMutation.isPending ? 'Generating Assistant...' : 'Generate Assistant'}
+              {createMutation.isPending ? 'Creating Assistant...' : 'Create Assistant'}
             </Button>
           </div>
         </div>
 
-        {/* Generated Configuration Panel - Full Width at Bottom */}
-        {generatedConfig && (
+        {/* Created Assistant Panel - Full Width at Bottom */}
+        {createdAssistant && (
           <Card className="mt-8">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Settings size={20} />
-                <span>Generated Assistant Configuration</span>
+                <span>Created Assistant</span>
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                Review and deploy your customized voice assistant
+                Your voice assistant has been successfully created and deployed
               </p>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Summary Info */}
               <div className="bg-muted/50 p-4 rounded-lg">
-                <h3 className="text-lg font-semibold mb-2">{generatedConfig.name}</h3>
+                <h3 className="text-lg font-semibold mb-2">{createdAssistant.name}</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  "{generatedConfig.firstMessage}"
+                  ID: {createdAssistant.id}
+                </p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Created: {new Date(createdAssistant.createdAt).toLocaleString()}
                 </p>
                 
-                {/* Key Features Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {/* Assistant Info */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   <div className="flex items-center space-x-2 text-sm">
-                    <Mic className="text-blue-500" size={16} />
-                    <span>{generatedConfig.voice.provider} Voice</span>
+                    <CheckCircle className="text-green-500" size={16} />
+                    <span>Successfully Created</span>
                   </div>
                   <div className="flex items-center space-x-2 text-sm">
-                    <Brain className="text-purple-500" size={16} />
-                    <span>{generatedConfig.model.model}</span>
+                    <Calendar className="text-blue-500" size={16} />
+                    <span>{new Date(createdAssistant.createdAt).toLocaleDateString()}</span>
                   </div>
                   <div className="flex items-center space-x-2 text-sm">
-                    <Volume2 className="text-green-500" size={16} />
-                    <span>{generatedConfig.transcriber.provider}</span>
+                    <Settings className="text-purple-500" size={16} />
+                    <span>Assistant ID: {createdAssistant.id.slice(0, 8)}...</span>
                   </div>
                   <div className="flex items-center space-x-2 text-sm">
                     <Activity className="text-orange-500" size={16} />
