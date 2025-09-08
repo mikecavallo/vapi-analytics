@@ -45,6 +45,8 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
 import brainLogo from "@assets/brain_logo_1757370299022.png";
+import logoTransparent from "@assets/logo_transparent_1757370299023.png";
+import { useAuth } from "@/contexts/auth-context";
 
 interface FilterCriteria {
   id: string;
@@ -66,6 +68,7 @@ export default function BulkAnalysis() {
   const { toast } = useToast();
   const { theme, toggleTheme } = useTheme();
   const [location] = useLocation();
+  const { user } = useAuth();
   const [filters, setFilters] = useState<FilterCriteria[]>([]);
   const [analysisQuery, setAnalysisQuery] = useState('');
   const [conversationHistory, setConversationHistory] = useState<AnalysisMessage[]>([]);
@@ -255,36 +258,45 @@ export default function BulkAnalysis() {
       {/* Header */}
       <header className="bg-card border-b border-border sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <div className="flex-shrink-0">
-                <h1 className="text-2xl font-bold text-primary flex items-center">
-                  <img src={brainLogo} alt="Invoxa.ai" className="w-6 h-6 mr-2" />
-                  Invoxa.ai
-                </h1>
-              </div>
-              <nav className="hidden md:flex space-x-8">
-                <Link href="/dashboard" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
-                  Dashboard
-                </Link>
-                <Link href="/bulk-analysis" className="text-primary border-b-2 border-primary pb-4 px-1 text-sm font-medium flex items-center space-x-1">
-                  <Brain size={16} />
-                  <span>VoiceScope</span>
-                </Link>
-                <Link href="/performance-benchmarks" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
-                  <Activity size={16} />
-                  <span>Benchmarks</span>
-                </Link>
-                <Link href="/assistant-studio" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
-                  <Wand2 size={16} />
-                  <span>Studio</span>
-                </Link>
-                <Link href="/settings" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
-                  Settings
-                </Link>
-              </nav>
+          <div className="flex items-center h-16">
+            {/* Logo - Left Aligned */}
+            <div className="flex-shrink-0">
+              <h1 className="text-2xl text-primary flex items-center" style={{ fontFamily: 'Poppins', fontWeight: 700 }}>
+                <img src={logoTransparent} alt="Invoxa.ai" className="w-8 h-8 mr-3" />
+                Invoxa.ai
+              </h1>
             </div>
-            <div className="flex items-center space-x-4">
+            
+            {/* Navigation - Center */}
+            <nav className="hidden md:flex space-x-8 mx-auto">
+              <Link href="/dashboard" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
+                Dashboard
+              </Link>
+              <Link href="/bulk-analysis" className="text-primary border-b-2 border-primary pb-4 px-1 text-sm font-medium flex items-center space-x-1">
+                <Brain size={16} />
+                <span>VoiceScope</span>
+              </Link>
+              <Link href="/performance-benchmarks" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
+                <Activity size={16} />
+                <span>Benchmarks</span>
+              </Link>
+              <Link href="/assistant-studio" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
+                <Wand2 size={16} />
+                <span>Studio</span>
+              </Link>
+              {user?.role === 'super_admin' && (
+                <Link href="/agency" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
+                  <Users size={16} />
+                  <span>Agency</span>
+                </Link>
+              )}
+              <Link href="/settings" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
+                Settings
+              </Link>
+            </nav>
+            
+            {/* Right side controls */}
+            <div className="flex items-center space-x-4 ml-auto">
               <Button 
                 variant="outline" 
                 size="sm" 
