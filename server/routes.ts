@@ -1,9 +1,31 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { vapiAnalyticsQuerySchema, type VapiAnalyticsQuery, type DashboardData } from "@shared/schema";
+import { 
+  vapiAnalyticsQuerySchema, 
+  type VapiAnalyticsQuery, 
+  type DashboardData,
+  signupSchema,
+  loginSchema,
+  emailVerificationSchema,
+  type SignupRequest,
+  type LoginRequest,
+  type UserRole,
+} from "@shared/schema";
 import { z } from "zod";
 import { VapiClient } from "@vapi-ai/server-sdk";
+import {
+  hashPassword,
+  verifyPassword,
+  generateToken,
+  verifyToken,
+  generateEmailVerificationToken,
+  getEmailTokenExpiration,
+  validatePasswordStrength,
+  sanitizeUser,
+  extractTokenFromHeader,
+  createTokenPayload,
+} from "./auth-utils";
 
 // Function to fetch calls from Vapi API with proper query parameters
 async function fetchCallsWithFilters(queryParams: Record<string, string>): Promise<any[]> {
@@ -89,6 +111,208 @@ async function fetchCallsWithFilters(queryParams: Record<string, string>): Promi
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Authentication endpoints
+  
+  // User registration
+  app.post("/api/auth/signup", async (req, res) => {
+    try {
+      const validatedData = signupSchema.parse(req.body);
+      const { username, email, password } = validatedData;
+
+      // Check if email is whitelisted
+      const isWhitelisted = await storage.isEmailWhitelisted(email);
+      if (!isWhitelisted) {
+        return res.status(403).json({ 
+          error: "Email not whitelisted. Contact support for access." 
+        });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: "User already exists with this email" });
+      }
+
+      // Validate password strength
+      const passwordValidation = validatePasswordStrength(password);
+      if (!passwordValidation.valid) {
+        return res.status(400).json({ error: passwordValidation.message });
+      }
+
+      // Hash password
+      const hashedPassword = await hashPassword(password);
+
+      // Create user
+      const user = await storage.createUser({
+        username,
+        email,
+        password: hashedPassword,
+      });
+
+      // Generate email verification token
+      const token = generateEmailVerificationToken();
+      const expiresAt = getEmailTokenExpiration();
+      
+      await storage.createEmailVerificationToken(user.id, token, expiresAt);
+
+      // TODO: Send verification email (implement email service later)
+      console.log(`Verification token for ${email}: ${token}`);
+
+      res.status(201).json({ 
+        message: "User created successfully. Please verify your email to complete registration.",
+        user: sanitizeUser(user),
+        // For development, include the token (remove in production)
+        ...(process.env.NODE_ENV === "development" && { verificationToken: token })
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: "Invalid input", 
+          details: error.errors 
+        });
+      }
+      
+      console.error("Signup error:", error);
+      res.status(500).json({ error: "Registration failed" });
+    }
+  });
+
+  // User login
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const validatedData = loginSchema.parse(req.body);
+      const { email, password } = validatedData;
+
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      // Verify password
+      const isValidPassword = await verifyPassword(password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      // Check if email is verified
+      if (!user.emailVerified) {
+        return res.status(401).json({ 
+          error: "Please verify your email before logging in" 
+        });
+      }
+
+      // Get user's customer assignments (for multi-tenant access)
+      const assignments = await storage.getUserCustomerAssignments(user.id);
+      const primaryCustomerId = assignments.length > 0 ? assignments[0].customerId : undefined;
+
+      // Generate JWT token
+      const tokenPayload = createTokenPayload(user, primaryCustomerId);
+      const token = generateToken(tokenPayload);
+
+      // Return user data and token
+      res.json({
+        message: "Login successful",
+        user: sanitizeUser(user),
+        token,
+        customerId: primaryCustomerId,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: "Invalid input", 
+          details: error.errors 
+        });
+      }
+      
+      console.error("Login error:", error);
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  // Get current user info
+  app.get("/api/auth/me", async (req, res) => {
+    try {
+      const token = extractTokenFromHeader(req.headers.authorization);
+      if (!token) {
+        return res.status(401).json({ error: "No token provided" });
+      }
+
+      const payload = verifyToken(token);
+      if (!payload) {
+        return res.status(401).json({ error: "Invalid or expired token" });
+      }
+
+      // Get current user data
+      const user = await storage.getUser(payload.userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Get user's customer assignments
+      const assignments = await storage.getUserCustomerAssignments(user.id);
+      const primaryCustomerId = assignments.length > 0 ? assignments[0].customerId : undefined;
+
+      res.json({
+        user: sanitizeUser(user),
+        customerId: primaryCustomerId,
+        assignments: assignments.length,
+      });
+    } catch (error) {
+      console.error("Get user error:", error);
+      res.status(500).json({ error: "Failed to get user info" });
+    }
+  });
+
+  // Email verification
+  app.post("/api/auth/verify-email", async (req, res) => {
+    try {
+      const { token } = emailVerificationSchema.parse(req.body);
+
+      // Get verification token
+      const verificationToken = await storage.getEmailVerificationToken(token);
+      if (!verificationToken || verificationToken.used) {
+        return res.status(400).json({ error: "Invalid or expired verification token" });
+      }
+
+      // Check if token is expired
+      if (new Date() > verificationToken.expiresAt) {
+        return res.status(400).json({ error: "Verification token has expired" });
+      }
+
+      // Get user
+      const user = await storage.getUser(verificationToken.userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Update user email verification status
+      await storage.updateUser(user.id, { emailVerified: true });
+
+      // Mark token as used
+      await storage.deleteEmailVerificationToken(token);
+
+      res.json({ message: "Email verified successfully" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: "Invalid input", 
+          details: error.errors 
+        });
+      }
+      
+      console.error("Email verification error:", error);
+      res.status(500).json({ error: "Email verification failed" });
+    }
+  });
+
+  // User logout (client-side token invalidation)
+  app.post("/api/auth/logout", (req, res) => {
+    // Since we're using stateless JWT tokens, logout is handled client-side
+    // by removing the token from storage
+    res.json({ message: "Logged out successfully" });
+  });
   
   // Analytics endpoint - proxy to Vapi API and cache results
   app.post("/api/analytics", async (req, res) => {
