@@ -31,7 +31,8 @@ import {
   Calendar,
   User,
   Sun,
-  Moon
+  Moon,
+  HelpCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
@@ -41,6 +42,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface AssistantConfig {
   // Basic Information
@@ -136,6 +138,21 @@ interface AssistantConfig {
   expectedOutcomes?: string[];
   complianceNotes?: string[];
 }
+
+// Helper component for input labels with tooltips
+const LabelWithTooltip = ({ label, tooltip }: { label: string, tooltip: string }) => (
+  <div className="flex items-center space-x-1">
+    <Label className="text-sm font-medium">{label}</Label>
+    <Tooltip>
+      <TooltipTrigger>
+        <HelpCircle className="h-3 w-3 text-muted-foreground" />
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs">
+        <p>{tooltip}</p>
+      </TooltipContent>
+    </Tooltip>
+  </div>
+);
 
 export default function AssistantStudio() {
   const { theme, toggleTheme } = useTheme();
@@ -379,7 +396,8 @@ export default function AssistantStudio() {
 
 
   return (
-    <div className="min-h-screen bg-background">
+    <TooltipProvider>
+      <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card border-b border-border sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -443,9 +461,10 @@ export default function AssistantStudio() {
             <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
               {/* Assistant Name */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">
-                  Assistant Name *
-                </Label>
+                <LabelWithTooltip 
+                  label="Assistant Name *" 
+                  tooltip="A unique name for your voice assistant. This will be used to identify the assistant in your dashboard and API calls." 
+                />
                 <Input 
                   placeholder="Enter assistant name"
                   value={assistantName}
@@ -460,7 +479,10 @@ export default function AssistantStudio() {
 
               {/* Model Provider */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Model Provider</Label>
+                <LabelWithTooltip 
+                  label="Model Provider" 
+                  tooltip="The AI model provider to use for generating responses. Different providers offer different capabilities and pricing." 
+                />
                 <Select value={modelProvider} onValueChange={handleModelProviderChange}>
                   <SelectTrigger data-testid="select-model-provider">
                     <SelectValue />
@@ -479,7 +501,10 @@ export default function AssistantStudio() {
               
               {/* Model Selection */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Model</Label>
+                <LabelWithTooltip 
+                  label="Model" 
+                  tooltip="The specific AI model to use. More advanced models provide better responses but may cost more." 
+                />
                 <Select value={selectedModel} onValueChange={setSelectedModel}>
                   <SelectTrigger data-testid="select-model">
                     <SelectValue />
@@ -494,7 +519,10 @@ export default function AssistantStudio() {
               
               {/* Voice Provider */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Voice Provider</Label>
+                <LabelWithTooltip 
+                  label="Voice Provider" 
+                  tooltip="The voice synthesis provider to use. Each provider offers different voice styles and quality levels." 
+                />
                 <Select value={voiceProvider} onValueChange={handleVoiceProviderChange}>
                   <SelectTrigger data-testid="select-voice-provider">
                     <SelectValue />
@@ -512,7 +540,10 @@ export default function AssistantStudio() {
               
               {/* Voice Selection */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Voice</Label>
+                <LabelWithTooltip 
+                  label="Voice" 
+                  tooltip="The specific voice character to use. Each voice has unique tone, accent, and personality characteristics." 
+                />
                 <Select value={selectedVoice} onValueChange={setSelectedVoice}>
                   <SelectTrigger data-testid="select-voice">
                     <SelectValue />
@@ -527,7 +558,10 @@ export default function AssistantStudio() {
               
               {/* First Message Mode */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">First Message Mode</Label>
+                <LabelWithTooltip 
+                  label="First Message Mode" 
+                  tooltip="How the assistant should behave when the call starts. Choose whether the assistant speaks first, waits for the user, or generates a dynamic opening." 
+                />
                 <Select value={firstMessageMode} onValueChange={setFirstMessageMode}>
                   <SelectTrigger data-testid="select-first-message-mode">
                     <SelectValue />
@@ -542,9 +576,10 @@ export default function AssistantStudio() {
               
               {/* Main Description - Full Width */}
               <div className="col-span-full space-y-2">
-                <Label className="text-sm font-medium">
-                  Assistant Description *
-                </Label>
+                <LabelWithTooltip 
+                  label="Assistant Description *" 
+                  tooltip="Detailed description of what your assistant should do, its purpose, capabilities, and communication style. This forms the core personality of your assistant." 
+                />
                 <Textarea 
                   placeholder="Describe what your assistant should do, its purpose, capabilities, and tone"
                   className="min-h-20"
@@ -556,9 +591,10 @@ export default function AssistantStudio() {
 
               {/* Conversation Flow - Full Width */}
               <div className="col-span-full space-y-2">
-                <Label className="text-sm font-medium">
-                  Conversation Flow (Optional)
-                </Label>
+                <LabelWithTooltip 
+                  label="Conversation Flow (Optional)" 
+                  tooltip="Define the structure and flow of conversations. Specify how the assistant should guide users through interactions and handle different scenarios." 
+                />
                 <Textarea 
                   placeholder="Describe the conversation flow and structure"
                   className="min-h-16"
@@ -583,7 +619,10 @@ export default function AssistantStudio() {
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Max Call Duration (seconds)</Label>
+                <LabelWithTooltip 
+                  label="Max Call Duration (seconds)" 
+                  tooltip="Maximum length of time a call can last before being automatically ended. Set between 10 seconds and 12 hours." 
+                />
                 <Input 
                   type="number"
                   min="10"
@@ -596,7 +635,10 @@ export default function AssistantStudio() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Background Sound</Label>
+                <LabelWithTooltip 
+                  label="Background Sound" 
+                  tooltip="Background audio to play during calls. Can help mask ambient noise and provide a professional atmosphere." 
+                />
                 <Select value={backgroundSound} onValueChange={setBackgroundSound}>
                   <SelectTrigger data-testid="select-background-sound">
                     <SelectValue />
@@ -609,7 +651,10 @@ export default function AssistantStudio() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Start Speaking Delay (seconds)</Label>
+                <LabelWithTooltip 
+                  label="Start Speaking Delay (seconds)" 
+                  tooltip="How long the assistant waits before speaking after user stops talking. Prevents interrupting users who pause mid-sentence." 
+                />
                 <Input 
                   type="number"
                   step="0.1"
@@ -622,7 +667,10 @@ export default function AssistantStudio() {
               </div>
               
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Stop on Interruption (words)</Label>
+                <LabelWithTooltip 
+                  label="Stop on Interruption (words)" 
+                  tooltip="Number of words the user needs to speak to interrupt the assistant. Lower values make the assistant more responsive to interruptions." 
+                />
                 <Input 
                   type="number"
                   min="1"
@@ -635,7 +683,10 @@ export default function AssistantStudio() {
 
               <div className="flex items-center justify-between col-span-full">
                 <div className="space-y-0.5">
-                  <Label className="text-sm font-medium">Allow First Message Interruptions</Label>
+                  <LabelWithTooltip 
+                    label="Allow First Message Interruptions" 
+                    tooltip="Whether users can interrupt the assistant's opening message. Useful for users who want to skip introductions." 
+                  />
                   <div className="text-xs text-muted-foreground">Users can interrupt opening message</div>
                 </div>
                 <Switch 
@@ -647,7 +698,10 @@ export default function AssistantStudio() {
 
               <div className="flex items-center justify-between col-span-full">
                 <div className="space-y-0.5">
-                  <Label className="text-sm font-medium">Use Model Output in Messages</Label>
+                  <LabelWithTooltip 
+                    label="Use Model Output in Messages" 
+                    tooltip="Use the AI model's exact output instead of the speech transcription in message logs. Provides cleaner text for analysis." 
+                  />
                   <div className="text-xs text-muted-foreground">Use AI model output instead of speech transcription</div>
                 </div>
                 <Switch 
@@ -673,7 +727,10 @@ export default function AssistantStudio() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Voicemail Message (Optional)</Label>
+                  <LabelWithTooltip 
+                    label="Voicemail Message (Optional)" 
+                    tooltip="Message to play when the call goes to voicemail. Leave empty to simply hang up without leaving a message." 
+                  />
                   <Textarea 
                     placeholder="Message for voicemail (leave empty to hang up)"
                     value={voicemailMessage}
@@ -685,7 +742,10 @@ export default function AssistantStudio() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">End Call Message (Optional)</Label>
+                  <LabelWithTooltip 
+                    label="End Call Message (Optional)" 
+                    tooltip="Message to play before ending the call. Leave empty to hang up silently without a goodbye message." 
+                  />
                   <Textarea 
                     placeholder="Message when ending the call (leave empty to hang up silently)"
                     value={endCallMessage}
@@ -698,7 +758,10 @@ export default function AssistantStudio() {
               </div>
               
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Auto-Hangup Phrases (Optional)</Label>
+                <LabelWithTooltip 
+                  label="Auto-Hangup Phrases (Optional)" 
+                  tooltip="Phrases that automatically end the call when spoken by the user or assistant. Separate multiple phrases with commas." 
+                />
                 <Input 
                   placeholder="Enter phrases separated by commas (e.g., goodbye, thank you, have a great day)"
                   value={endCallPhrases}
@@ -725,7 +788,10 @@ export default function AssistantStudio() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex items-center justify-between py-2">
                   <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">Enable Call Analysis</Label>
+                    <LabelWithTooltip 
+                      label="Enable Call Analysis" 
+                      tooltip="Generate detailed insights, summaries, and performance metrics from call data for optimization and reporting." 
+                    />
                     <div className="text-xs text-muted-foreground">Generate insights and summaries</div>
                   </div>
                   <Switch 
@@ -737,7 +803,10 @@ export default function AssistantStudio() {
                 
                 <div className="flex items-center justify-between py-2">
                   <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">Enable Background Noise Reduction</Label>
+                    <LabelWithTooltip 
+                      label="Enable Background Noise Reduction" 
+                      tooltip="Automatically filter out background noise from calls to improve speech recognition and call quality." 
+                    />
                     <div className="text-xs text-muted-foreground">Filter out background noise</div>
                   </div>
                   <Switch 
@@ -749,7 +818,10 @@ export default function AssistantStudio() {
                 
                 <div className="flex items-center justify-between py-2">
                   <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">Enable Call Monitoring</Label>
+                    <LabelWithTooltip 
+                      label="Enable Call Monitoring" 
+                      tooltip="Allow real-time listening and control capabilities for live call supervision and quality assurance." 
+                    />
                     <div className="text-xs text-muted-foreground">Allow real-time listening and control</div>
                   </div>
                   <Switch 
@@ -761,7 +833,10 @@ export default function AssistantStudio() {
               </div>
               
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Custom Metadata (JSON)</Label>
+                <LabelWithTooltip 
+                  label="Custom Metadata (JSON)" 
+                  tooltip="Additional data to store with the assistant in JSON format. Useful for custom tags, department info, or integration data." 
+                />
                 <Textarea 
                   placeholder='{"department": "support", "priority": "high"}'
                   value={customMetadata}
@@ -879,6 +954,7 @@ export default function AssistantStudio() {
           </Card>
         )}
       </main>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
