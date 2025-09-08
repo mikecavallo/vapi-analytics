@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { DashboardData } from "@shared/schema";
 import KpiCards from "@/components/analytics/kpi-cards";
 import ChartsSection from "@/components/analytics/charts-section";
+import CallVolumeTrends from "@/components/analytics/call-volume-trends";
+import CallOutcomes from "@/components/analytics/call-outcomes";
 import RecentCallsTable from "@/components/analytics/recent-calls-table";
 import TimeRangeSelector from "@/components/analytics/time-range-selector";
 import ConversationFlowAnalysis from "@/components/analytics/conversation-flow-analysis";
@@ -122,11 +124,17 @@ export default function Dashboard() {
           <KpiCards data={data} isLoading={isLoading} />
         </section>
 
-        {/* Top Agent Panel */}
+        {/* System Alerts & Warnings */}
         <section className="mb-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <WarningsPanel data={data} isLoading={isLoading} />
+          <WarningsPanel data={data} isLoading={isLoading} />
+        </section>
+
+        {/* Analytics Row: Most Successful Agent, Call Volume, Call Outcomes */}
+        <section className="mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <MostSuccessfulAgent data={data} isLoading={isLoading} />
+            <CallVolumeTrends data={data} isLoading={isLoading} />
+            <CallOutcomes data={data} isLoading={isLoading} />
           </div>
         </section>
 
