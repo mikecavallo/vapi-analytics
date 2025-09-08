@@ -447,7 +447,7 @@ export default function Reports() {
                   <Checkbox 
                     id="include-transcripts" 
                     checked={includeTranscripts}
-                    onCheckedChange={setIncludeTranscripts}
+                    onCheckedChange={(checked) => setIncludeTranscripts(checked === true)}
                   />
                   <Label htmlFor="include-transcripts" className="text-sm">
                     Include Transcripts (Sample)
@@ -457,7 +457,7 @@ export default function Reports() {
                   <Checkbox 
                     id="include-benchmarks" 
                     checked={includeBenchmarks}
-                    onCheckedChange={setIncludeBenchmarks}
+                    onCheckedChange={(checked) => setIncludeBenchmarks(checked === true)}
                   />
                   <Label htmlFor="include-benchmarks" className="text-sm">
                     Include Benchmark Data
