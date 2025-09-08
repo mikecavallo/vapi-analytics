@@ -1,6 +1,6 @@
 # Overview
 
-This is a Vapi Analytics Dashboard - a full-stack web application built to visualize and analyze voice AI call data from the Vapi API. The application provides real-time analytics, KPI tracking, and detailed call management capabilities through an intuitive dashboard interface.
+This is Invoxa.ai - a full-stack multi-tenant SaaS platform built to visualize and analyze voice AI call data from the Vapi API. The application provides real-time analytics, KPI tracking, and detailed call management capabilities through an intuitive dashboard interface.
 
 The project follows a modern monorepo structure with a React frontend, Express backend, and PostgreSQL database integration, all designed to handle voice AI analytics at scale.
 

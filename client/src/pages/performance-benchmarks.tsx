@@ -47,6 +47,7 @@ import {
 } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
+import brainLogo from "@assets/brain_logo_1757370299022.png";
 
 interface PerformanceBenchmarks {
   callTimingDistribution: {
@@ -198,8 +199,8 @@ export default function PerformanceBenchmarks() {
             <div className="flex items-center space-x-4">
               <div className="flex-shrink-0">
                 <h1 className="text-2xl font-bold text-primary flex items-center">
-                  <ChartLine className="mr-2" size={24} />
-                  Vapi Analytics
+                  <img src={brainLogo} alt="Invoxa.ai" className="w-6 h-6 mr-2" />
+                  Invoxa.ai
                 </h1>
               </div>
               <nav className="hidden md:flex space-x-8">
