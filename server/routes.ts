@@ -2033,7 +2033,7 @@ Generate professional insights in JSON format:
     };
   }
 
-  app.post("/api/bulk-analysis/analyze", async (req, res) => {
+  app.post("/api/bulk-analysis/analyze", authenticateUser, requireCustomerAccess, validateCustomerAccess, async (req, res) => {
     try {
       const { query, filters, callIds } = req.body;
       const openaiApiKey = process.env.OPENAI_API_KEY;
@@ -2042,7 +2042,20 @@ Generate professional insights in JSON format:
         return res.status(500).json({ error: "OpenAI API key not configured" });
       }
 
-      const vapiApiKey = process.env.VAPI_API_KEY || "";
+      // Get customer data to retrieve their specific Vapi API key
+      const customerId = req.customerId;
+      if (!customerId) {
+        return res.status(400).json({ error: "Customer ID required" });
+      }
+
+      const customer = await storage.getCustomer(customerId);
+      if (!customer || !customer.vapiApiKey) {
+        return res.status(500).json({ 
+          error: "Customer Vapi API key not configured. Contact support." 
+        });
+      }
+
+      const vapiApiKey = customer.vapiApiKey;
       
       // Fetch detailed transcripts for the specified calls
       const transcriptPromises = callIds.slice(0, 20).map(async (callId: string) => {
