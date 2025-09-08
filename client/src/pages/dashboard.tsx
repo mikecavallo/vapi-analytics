@@ -15,11 +15,64 @@ import MostSuccessfulAgent from "@/components/analytics/most-successful-agent";
 import DailyMetricsCharts from "@/components/analytics/daily-metrics-charts";
 import AIChatbot from "@/components/ai-chatbot";
 import { Button } from "@/components/ui/button";
-import { Download, ChartLine, User, Sun, Moon, Brain, Activity, Wand2, FileText } from "lucide-react";
+import { Download, ChartLine, User, Sun, Moon, Brain, Activity, Wand2, FileText, Settings, RefreshCw } from "lucide-react";
 import brainLogo from "@assets/brain_logo_1757370299022.png";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
+
+// Helper functions to check if data is meaningful
+const hasKpiData = (data?: DashboardData) => {
+  return data?.kpis && (
+    data.kpis.totalCalls > 0 || 
+    data.kpis.avgDuration > 0 || 
+    data.kpis.successRate > 0 ||
+    data.kpis.totalCost > 0
+  );
+};
+
+const hasCallVolumeData = (data?: DashboardData) => {
+  return data?.callVolumeTrends && data.callVolumeTrends.length > 0;
+};
+
+const hasCallOutcomesData = (data?: DashboardData) => {
+  return data?.callOutcomes && data.callOutcomes.length > 0;
+};
+
+const hasMostSuccessfulAgentData = (data?: DashboardData) => {
+  return data?.mostSuccessfulAgent && data.mostSuccessfulAgent.name;
+};
+
+const hasDailyMetricsData = (data?: DashboardData) => {
+  return data?.dailyMetrics && data.dailyMetrics.length > 0;
+};
+
+const hasRecentCallsData = (data?: DashboardData) => {
+  return data?.recentCalls && data.recentCalls.length > 0;
+};
+
+const hasConversationFlowData = (data?: DashboardData) => {
+  return data?.conversationFlow && (
+    data.conversationFlow.stages.length > 0 ||
+    data.conversationFlow.successPaths.length > 0 ||
+    data.conversationFlow.dropOffPoints.length > 0
+  );
+};
+
+const hasDurationDistributionData = (data?: DashboardData) => {
+  return data?.durationHistogram && data.durationHistogram.histogram.length > 0;
+};
+
+const hasPeakUsageData = (data?: DashboardData) => {
+  return data?.peakUsageHeatmap && data.peakUsageHeatmap.heatmapData.length > 0;
+};
+
+const hasConversationOutcomesData = (data?: DashboardData) => {
+  return data?.conversationOutcomes && (
+    data.conversationOutcomes.summary.totalConversations > 0 ||
+    data.conversationOutcomes.outcomes.length > 0
+  );
+};
 
 export default function Dashboard() {
   const [timeRange, setTimeRange] = useState("all-time");
@@ -107,73 +160,125 @@ export default function Dashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Show message when no data is available */}
+        {!isLoading && !hasKpiData(data) && !hasCallVolumeData(data) && !hasCallOutcomesData(data) && !hasMostSuccessfulAgentData(data) && !hasDailyMetricsData(data) && !hasRecentCallsData(data) && (
+          <div className="text-center py-12 bg-card rounded-lg border border-border">
+            <div className="max-w-md mx-auto">
+              <div className="text-muted-foreground mb-4">
+                <img src={brainLogo} alt="Invoxa.ai" className="w-16 h-16 mx-auto mb-4 opacity-50" />
+              </div>
+              <h3 className="text-xl font-semibold text-foreground mb-2">No Analytics Data Available</h3>
+              <p className="text-muted-foreground mb-6">
+                Your dashboard will populate with analytics once you have call data. Make sure your Vapi API key is configured in settings and you have some voice calls to analyze.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link href="/settings">
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Settings className="w-4 h-4" />
+                    Configure API Key
+                  </Button>
+                </Link>
+                <Button onClick={() => refetch()} variant="default" className="flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4" />
+                  Refresh Data
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Key Performance Indicators - Main dashboard metrics with time range selector */}
         {/* Key Metrics */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-3xl font-bold text-foreground">Key Metrics</h2>
-            <TimeRangeSelector 
-              value={timeRange} 
-              onChange={setTimeRange}
-              data-testid="select-time-range"
-            />
-          </div>
-          <KpiCards data={data} isLoading={isLoading} />
-        </section>
+        {(isLoading || hasKpiData(data)) && (
+          <section className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl font-bold text-foreground">Key Metrics</h2>
+              <TimeRangeSelector 
+                value={timeRange} 
+                onChange={setTimeRange}
+                data-testid="select-time-range"
+              />
+            </div>
+            <KpiCards data={data} isLoading={isLoading} />
+          </section>
+        )}
 
         {/* System Status - Warnings and alerts displayed in full-width section */}
         {/* System Alerts & Warnings */}
-        <section className="mb-8">
-          <WarningsPanel data={data} isLoading={isLoading} />
-        </section>
+        {(isLoading || hasKpiData(data)) && (
+          <section className="mb-8">
+            <WarningsPanel data={data} isLoading={isLoading} />
+          </section>
+        )}
 
         {/* Core Analytics Overview - 3-column layout showing key performance data */}
         {/* Analytics Row: Most Successful Agent, Call Volume, Call Outcomes */}
-        <section className="mb-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <MostSuccessfulAgent data={data} isLoading={isLoading} />
-            <CallVolumeTrends data={data} isLoading={isLoading} />
-            <CallOutcomes data={data} isLoading={isLoading} />
-          </div>
-        </section>
+        {(isLoading || hasMostSuccessfulAgentData(data) || hasCallVolumeData(data) || hasCallOutcomesData(data)) && (
+          <section className="mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {(isLoading || hasMostSuccessfulAgentData(data)) && (
+                <MostSuccessfulAgent data={data} isLoading={isLoading} />
+              )}
+              {(isLoading || hasCallVolumeData(data)) && (
+                <CallVolumeTrends data={data} isLoading={isLoading} />
+              )}
+              {(isLoading || hasCallOutcomesData(data)) && (
+                <CallOutcomes data={data} isLoading={isLoading} />
+              )}
+            </div>
+          </section>
+        )}
 
 
         {/* Daily Metrics Charts */}
-        <section className="mb-8">
-          <DailyMetricsCharts data={{ dailyMetrics: data?.dailyMetrics || [] }} isLoading={isLoading} />
-        </section>
+        {(isLoading || hasDailyMetricsData(data)) && (
+          <section className="mb-8">
+            <DailyMetricsCharts data={{ dailyMetrics: data?.dailyMetrics || [] }} isLoading={isLoading} />
+          </section>
+        )}
 
         {/* Recent Calls Table */}
-        <section className="mb-8">
-          <RecentCallsTable data={data?.recentCalls || []} isLoading={isLoading} />
-        </section>
+        {(isLoading || hasRecentCallsData(data)) && (
+          <section className="mb-8">
+            <RecentCallsTable data={data?.recentCalls || []} isLoading={isLoading} />
+          </section>
+        )}
 
         {/* Advanced Analytics Grid */}
-        <section className="mb-8 grid grid-cols-1 gap-8">
-          {/* Conversation Flow Analysis */}
-          <ConversationFlowAnalysis 
-            data={data?.conversationFlow || { stages: [], successPaths: [], dropOffPoints: [] }} 
-            isLoading={isLoading} 
-          />
-          
-          {/* Duration Distribution */}
-          <DurationDistribution 
-            data={data?.durationHistogram || { histogram: [], stats: { average: "0:00", median: "0:00", mostCommon: "0:00", longest: "0:00" } }} 
-            isLoading={isLoading} 
-          />
-          
-          {/* Peak Usage Heatmap */}
-          <PeakUsageHeatmap 
-            data={data?.peakUsageHeatmap || { heatmapData: [], insights: { peakHours: "", busiestDay: "", quietHours: "" } }} 
-            isLoading={isLoading} 
-          />
-          
-          {/* Conversation Outcomes */}
-          <ConversationOutcomes 
-            data={data?.conversationOutcomes || { summary: { totalConversations: 0, successRate: 0, avgDuration: "0:00", avgSatisfaction: 0 }, outcomes: [] }} 
-            isLoading={isLoading} 
-          />
-        </section>
+        {(isLoading || hasConversationFlowData(data) || hasDurationDistributionData(data) || hasPeakUsageData(data) || hasConversationOutcomesData(data)) && (
+          <section className="mb-8 grid grid-cols-1 gap-8">
+            {/* Conversation Flow Analysis */}
+            {(isLoading || hasConversationFlowData(data)) && (
+              <ConversationFlowAnalysis 
+                data={data?.conversationFlow || { stages: [], successPaths: [], dropOffPoints: [] }} 
+                isLoading={isLoading} 
+              />
+            )}
+            
+            {/* Duration Distribution */}
+            {(isLoading || hasDurationDistributionData(data)) && (
+              <DurationDistribution 
+                data={data?.durationHistogram || { histogram: [], stats: { average: "0:00", median: "0:00", mostCommon: "0:00", longest: "0:00" } }} 
+                isLoading={isLoading} 
+              />
+            )}
+            
+            {/* Peak Usage Heatmap */}
+            {(isLoading || hasPeakUsageData(data)) && (
+              <PeakUsageHeatmap 
+                data={data?.peakUsageHeatmap || { heatmapData: [], insights: { peakHours: "", busiestDay: "", quietHours: "" } }} 
+                isLoading={isLoading} 
+              />
+            )}
+            
+            {/* Conversation Outcomes */}
+            {(isLoading || hasConversationOutcomesData(data)) && (
+              <ConversationOutcomes 
+                data={data?.conversationOutcomes || { summary: { totalConversations: 0, successRate: 0, avgDuration: "0:00", avgSatisfaction: 0 }, outcomes: [] }} 
+                isLoading={isLoading} 
+              />
+            )}
+          </section>
+        )}
       </main>
 
       {/* AI Chatbot */}
