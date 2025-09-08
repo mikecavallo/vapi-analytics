@@ -31,32 +31,11 @@ export default function AssistantUsageChart({ data, isLoading }: AssistantUsageC
       return [];
     }
     
-    // Filter to only show real assistants with meaningful names (exclude sample/fallback names)
-    const sampleNames = [
-      'Healthcare Assistant', 'Prescription Bot', 'Insurance Helper', 'Appointment Scheduler',
-      'Lab Results Bot', 'Billing Assistant', 'Patient Support', 'Telehealth Coordinator'
-    ];
-    
+    // Show all active assistants (those with calls > 0)
     const activeAssistants = data.assistantPerformance
-      .filter(assistant => {
-        // Only show assistants that have calls and meaningful names
-        if (!assistant.calls || assistant.calls === 0 || !assistant.name) {
-          return false;
-        }
-        
-        // Filter out sample/fallback names
-        if (sampleNames.includes(assistant.name)) {
-          return false;
-        }
-        
-        // Filter out generic "Assistant {UUID}" pattern names
-        const isGenericName = /^Assistant [a-f0-9]{8}$/.test(assistant.name) ||
-                            /^Assistant [a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(assistant.name);
-        
-        return !isGenericName;
-      })
+      .filter(assistant => assistant.calls > 0 && assistant.name)
       .map(assistant => ({
-        name: assistant.name, // Use the real assistant name as-is
+        name: assistant.name, // Use the assistant name as returned from the API
         calls: assistant.calls,
         proportion: assistant.calls / data.assistantPerformance.filter(a => a.calls > 0).reduce((sum, a) => sum + a.calls, 0)
       }));
@@ -89,24 +68,9 @@ export default function AssistantUsageChart({ data, isLoading }: AssistantUsageC
 
   const assistantUsageData = generateAssistantUsageData();
   
-  // Extract assistant names from filtered active assistants (same filtering as above)
-  const sampleNames = [
-    'Healthcare Assistant', 'Prescription Bot', 'Insurance Helper', 'Appointment Scheduler',
-    'Lab Results Bot', 'Billing Assistant', 'Patient Support', 'Telehealth Coordinator'
-  ];
-  
+  // Extract assistant names from active assistants
   const assistantNames = data?.assistantPerformance
-    ?.filter(assistant => {
-      if (!assistant.calls || assistant.calls === 0 || !assistant.name) {
-        return false;
-      }
-      if (sampleNames.includes(assistant.name)) {
-        return false;
-      }
-      const isGenericName = /^Assistant [a-f0-9]{8}$/.test(assistant.name) ||
-                            /^Assistant [a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(assistant.name);
-      return !isGenericName;
-    })
+    ?.filter(assistant => assistant.calls > 0 && assistant.name)
     ?.map(assistant => assistant.name) || [];
   
   if (isLoading) {
