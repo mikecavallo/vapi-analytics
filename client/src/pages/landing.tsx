@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BarChart3, Users, Zap, Shield, ArrowRight, CheckCircle, Star, Globe, Headphones } from 'lucide-react';
-import logoTransparent from "@assets/logo_transparent_1757370299023.png";
-import brainLogo from "@assets/brain_logo_1757370299022.png";
+import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 
 export default function LandingPage() {
   return (
@@ -14,8 +13,7 @@ export default function LandingPage() {
       <nav className="container mx-auto px-4 py-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <img src={brainLogo} alt="Invoxa.ai" className="w-8 h-8" />
-            <span className="text-2xl font-bold text-gray-900 dark:text-white">Invoxa.ai</span>
+            <img src={logoTransparent} alt="Invoxa.ai" className="h-8" style={{ width: 'auto' }} />
           </div>
           <div className="flex items-center space-x-4">
             <Link href="/login">
@@ -237,8 +235,7 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center space-x-2 mb-4">
-                <img src={brainLogo} alt="Invoxa.ai" className="w-8 h-8" />
-                <span className="text-xl font-bold">Invoxa.ai</span>
+                <img src={logoTransparent} alt="Invoxa.ai" className="h-8" style={{ width: 'auto' }} />
               </div>
               <p className="text-gray-400">
                 Advanced voice AI analytics platform for modern businesses.
