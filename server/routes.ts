@@ -770,7 +770,7 @@ Key Requirements:
 5. Include appropriate interruption handling
 6. Design for appointment booking, prescription inquiries, and general healthcare support
 
-Return a JSON configuration that follows this structure:
+IMPORTANT: You must respond with ONLY a valid JSON object that follows this exact structure (no additional text before or after the JSON):
 {
   "name": "Assistant name",
   "firstMessage": "Initial greeting message",
@@ -841,11 +841,26 @@ Make sure the assistant is:
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        response_format: { type: "json_object" },
         temperature: 0.3,
       });
 
-      const assistantConfig = JSON.parse(response.choices[0].message.content || '{}');
+      const responseContent = response.choices[0].message.content || '';
+      
+      let assistantConfig;
+      try {
+        // Try to find JSON in the response if it's wrapped in other text
+        const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
+        const jsonString = jsonMatch ? jsonMatch[0] : responseContent;
+        assistantConfig = JSON.parse(jsonString);
+      } catch (parseError) {
+        console.error("JSON parsing error:", parseError);
+        console.error("Response content:", responseContent);
+        return res.status(500).json({ error: "Failed to parse assistant configuration from AI response" });
+      }
+
+      if (!assistantConfig.name || !assistantConfig.firstMessage || !assistantConfig.systemMessage) {
+        return res.status(500).json({ error: "Invalid assistant configuration generated" });
+      }
       
       console.log(`[${new Date().toLocaleTimeString()}] Generated assistant configuration: ${assistantConfig.name}`);
       res.json({
