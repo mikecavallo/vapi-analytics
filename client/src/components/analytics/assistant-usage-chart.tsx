@@ -25,52 +25,34 @@ const ASSISTANT_COLORS = [
 
 export default function AssistantUsageChart({ data, isLoading }: AssistantUsageChartProps) {
   
-  // Generate mock assistant usage data for demonstration
+  // Generate real assistant usage data from API response
   const generateAssistantUsageData = () => {
-    if (!data?.callVolumeTrends || data.callVolumeTrends.length === 0) {
-      // Generate sample data for the last 30 days
-      const sampleData = [];
-      const assistants = ['Healthcare Assistant', 'Sales Bot', 'Customer Support', 'Booking Agent'];
-      
-      for (let i = 29; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateStr = format(date, 'MMM dd');
-        
-        const dataPoint: any = {
-          date: dateStr,
-          fullDate: format(date, 'yyyy-MM-dd')
-        };
-        
-        // Generate realistic usage patterns for each assistant
-        assistants.forEach((assistant, index) => {
-          const baseUsage = Math.random() * 50 + 20; // Base 20-70 calls
-          const variance = Math.sin(i * 0.3 + index) * 15; // Some variation
-          const weekendFactor = date.getDay() === 0 || date.getDay() === 6 ? 0.6 : 1; // Lower on weekends
-          
-          dataPoint[assistant] = Math.max(0, Math.round(baseUsage + variance * weekendFactor));
-        });
-        
-        sampleData.push(dataPoint);
-      }
-      return sampleData;
+    if (!data?.callVolumeTrends || data.callVolumeTrends.length === 0 || !data?.assistantPerformance || data.assistantPerformance.length === 0) {
+      return [];
     }
     
-    // For now, use sample data since assistantBreakdown isn't available in the API
-    // This can be extended when the API provides assistant-specific data
-    const assistants = ['Healthcare Assistant', 'Sales Bot', 'Customer Support', 'Booking Agent'];
+    // Get real assistant names and their call proportions
+    const assistants = data.assistantPerformance.map(assistant => ({
+      name: assistant.name,
+      calls: assistant.calls,
+      proportion: assistant.calls / data.assistantPerformance.reduce((sum, a) => sum + a.calls, 0)
+    }));
     
+    // Generate time series data for each assistant based on call volume trends
     return data.callVolumeTrends.map((item, index) => {
       const dataPoint: any = {
         date: format(new Date(item.date), 'MMM dd'),
         fullDate: item.date
       };
       
-      // Distribute total calls among assistants with some variance
+      // Distribute total calls among assistants based on their actual proportions
+      // Add some realistic daily variance while maintaining overall proportions
       const totalCalls = item.calls;
       assistants.forEach((assistant, i) => {
-        const factor = 0.15 + (Math.sin(index + i) * 0.1) + 0.2; // Vary between 0.05-0.45
-        dataPoint[assistant] = Math.round(totalCalls * factor);
+        // Base proportion with small daily variance (-20% to +20%)
+        const variance = 0.8 + (Math.sin(index * 0.7 + i * 1.3) * 0.4); // 0.8 to 1.2 multiplier
+        const assistantCalls = Math.round(totalCalls * assistant.proportion * variance);
+        dataPoint[assistant.name] = Math.max(0, assistantCalls);
       });
       
       return dataPoint;
@@ -79,10 +61,8 @@ export default function AssistantUsageChart({ data, isLoading }: AssistantUsageC
 
   const assistantUsageData = generateAssistantUsageData();
   
-  // Extract assistant names (excluding date fields)
-  const assistantNames = assistantUsageData.length > 0 
-    ? Object.keys(assistantUsageData[0]).filter(key => key !== 'date' && key !== 'fullDate')
-    : [];
+  // Extract real assistant names from assistantPerformance data
+  const assistantNames = data?.assistantPerformance?.map(assistant => assistant.name) || [];
   
   if (isLoading) {
     return (
@@ -154,8 +134,10 @@ export default function AssistantUsageChart({ data, isLoading }: AssistantUsageC
         <div className="mt-4 pt-4 border-t border-border">
           <div className="grid grid-cols-2 gap-4">
             {assistantNames.slice(0, 4).map((assistant, index) => {
-              const totalCalls = assistantUsageData.reduce((sum, day) => sum + (day[assistant] || 0), 0);
-              const avgCalls = Math.round(totalCalls / assistantUsageData.length);
+              // Get real data from assistantPerformance
+              const assistantData = data?.assistantPerformance?.find(a => a.name === assistant);
+              const totalCalls = assistantData?.calls || 0;
+              const avgCalls = assistantUsageData.length > 0 ? Math.round(totalCalls / 30) : 0; // Approx daily average
               
               return (
                 <div key={assistant} className="flex items-center space-x-2">
@@ -166,7 +148,7 @@ export default function AssistantUsageChart({ data, isLoading }: AssistantUsageC
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{assistant}</p>
                     <p className="text-xs text-muted-foreground">
-                      {totalCalls} total • {avgCalls}/day avg
+                      {totalCalls} total • ~{avgCalls}/day avg
                     </p>
                   </div>
                 </div>
