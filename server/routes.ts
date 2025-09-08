@@ -26,11 +26,16 @@ import {
   extractTokenFromHeader,
   createTokenPayload,
 } from "./auth-utils";
+import {
+  authenticateUser,
+  requireSuperAdmin,
+  requireCustomerAccess,
+  validateCustomerAccess,
+  authRateLimit,
+} from "./auth-middleware";
 
-// Function to fetch calls from Vapi API with proper query parameters
-async function fetchCallsWithFilters(queryParams: Record<string, string>): Promise<any[]> {
-  const vapiApiKey = process.env.VAPI_API_KEY || process.env.VAPI_TOKEN || "";
-  
+// Function to fetch calls from Vapi API with proper query parameters using customer-specific API key
+async function fetchCallsWithFilters(queryParams: Record<string, string>, vapiApiKey: string): Promise<any[]> {
   if (!vapiApiKey) {
     throw new Error("Vapi API key not configured");
   }
@@ -115,7 +120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication endpoints
   
   // User registration
-  app.post("/api/auth/signup", async (req, res) => {
+  app.post("/api/auth/signup", authRateLimit, async (req, res) => {
     try {
       const validatedData = signupSchema.parse(req.body);
       const { username, email, password } = validatedData;
@@ -179,7 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User login
-  app.post("/api/auth/login", async (req, res) => {
+  app.post("/api/auth/login", authRateLimit, async (req, res) => {
     try {
       const validatedData = loginSchema.parse(req.body);
       const { email, password } = validatedData;
@@ -232,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get current user info
-  app.get("/api/auth/me", async (req, res) => {
+  app.get("/api/auth/me", authenticateUser, async (req, res) => {
     try {
       const token = extractTokenFromHeader(req.headers.authorization);
       if (!token) {
@@ -266,7 +271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Email verification
-  app.post("/api/auth/verify-email", async (req, res) => {
+  app.post("/api/auth/verify-email", authRateLimit, async (req, res) => {
     try {
       const { token } = emailVerificationSchema.parse(req.body);
 
@@ -315,10 +320,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Analytics endpoint - proxy to Vapi API and cache results
-  app.post("/api/analytics", async (req, res) => {
+  app.post("/api/analytics", authenticateUser, requireCustomerAccess, validateCustomerAccess, async (req, res) => {
     try {
       const { timeRange, queries } = req.body;
-      const cacheKey = `analytics_${JSON.stringify({ timeRange, queries })}`;
+      const customerId = req.customerId;
+      
+      if (!customerId) {
+        return res.status(400).json({ error: "Customer ID required" });
+      }
+      
+      // Get customer-specific cache key
+      const cacheKey = `analytics_${customerId}_${JSON.stringify({ timeRange, queries })}`;
       
       // Check cache first
       const cached = await storage.getCachedAnalytics(cacheKey);
@@ -326,21 +338,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(cached);
       }
 
-      const vapiApiKey = process.env.VAPI_API_KEY || process.env.VAPI_TOKEN || "";
-      if (!vapiApiKey) {
+      // Get customer data to retrieve their specific Vapi API key
+      const customer = await storage.getCustomer(customerId);
+      if (!customer || !customer.vapiApiKey) {
         return res.status(500).json({ 
-          error: "Vapi API key not configured. Please set VAPI_API_KEY environment variable." 
+          error: "Customer Vapi API key not configured. Contact support." 
         });
       }
 
       // Build analytics queries for Vapi API
       const analyticsQueries = await buildAnalyticsQueries(timeRange);
       
-      // Make request to Vapi Analytics API
+      // Make request to Vapi Analytics API with customer-specific key
       const vapiResponse = await fetch("https://api.vapi.ai/analytics", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${vapiApiKey}`,
+          "Authorization": `Bearer ${customer.vapiApiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ queries: analyticsQueries }),
@@ -371,19 +384,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get dashboard summary
-  app.get("/api/analytics/summary", async (req, res) => {
+  app.get("/api/analytics/summary", authenticateUser, requireCustomerAccess, validateCustomerAccess, async (req, res) => {
     try {
       const timeRange = req.query.timeRange as string || "last-7-days";
-      const cacheKey = `summary_${timeRange}`;
+      const customerId = req.customerId;
+      
+      if (!customerId) {
+        return res.status(400).json({ error: "Customer ID required" });
+      }
+      
+      // Get customer-specific cache key
+      const cacheKey = `summary_${customerId}_${timeRange}`;
       
       const cached = await storage.getCachedAnalytics(cacheKey);
       if (cached) {
         return res.json(cached);
       }
 
-      // If no cache, try to fetch from Vapi API
-      const vapiApiKey = process.env.VAPI_API_KEY || process.env.VAPI_TOKEN || "";
-      if (!vapiApiKey) {
+      // Get customer data to retrieve their specific Vapi API key
+      const customer = await storage.getCustomer(customerId);
+      if (!customer || !customer.vapiApiKey) {
         const emptyData: DashboardData = {
           kpis: {
             totalCalls: 0,
@@ -444,11 +464,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Build analytics queries for Vapi API
         const analyticsQueries = await buildAnalyticsQueries(timeRange);
         
-        // Make request to Vapi Analytics API
+        // Make request to Vapi Analytics API with customer-specific key
         const vapiResponse = await fetch("https://api.vapi.ai/analytics", {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${vapiApiKey}`,
+            "Authorization": `Bearer ${customer.vapiApiKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ queries: analyticsQueries }),
@@ -536,19 +556,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get recent calls
-  app.get("/api/calls/recent", async (req, res) => {
+  app.get("/api/calls/recent", authenticateUser, requireCustomerAccess, validateCustomerAccess, async (req, res) => {
     try {
-      const vapiApiKey = process.env.VAPI_API_KEY || process.env.VAPI_TOKEN || "";
-      if (!vapiApiKey) {
+      const customerId = req.customerId;
+      if (!customerId) {
+        return res.status(400).json({ error: "Customer ID required" });
+      }
+
+      // Get customer data to retrieve their specific Vapi API key
+      const customer = await storage.getCustomer(customerId);
+      if (!customer || !customer.vapiApiKey) {
         return res.status(500).json({ 
-          error: "Vapi API key not configured." 
+          error: "Customer Vapi API key not configured. Contact support." 
         });
       }
 
       const response = await fetch("https://api.vapi.ai/call?limit=20", {
         method: "GET",
         headers: {
-          "Authorization": `Bearer ${vapiApiKey}`,
+          "Authorization": `Bearer ${customer.vapiApiKey}`,
           "Content-Type": "application/json",
         },
       });
@@ -571,19 +597,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get individual call details
-  app.get("/api/calls/:id", async (req, res) => {
+  app.get("/api/calls/:id", authenticateUser, requireCustomerAccess, validateCustomerAccess, async (req, res) => {
     try {
       const { id } = req.params;
-      const vapiApiKey = process.env.VAPI_API_KEY || process.env.VAPI_TOKEN || "";
+      const customerId = req.customerId;
       
-      if (!vapiApiKey) {
+      if (!customerId) {
+        return res.status(400).json({ error: "Customer ID required" });
+      }
+
+      // Get customer data to retrieve their specific Vapi API key
+      const customer = await storage.getCustomer(customerId);
+      if (!customer || !customer.vapiApiKey) {
         return res.status(500).json({ 
-          error: "Vapi API key not configured." 
+          error: "Customer Vapi API key not configured. Contact support." 
         });
       }
 
       // Use Vapi SDK to get call details including recording URL
-      const client = new VapiClient({ token: vapiApiKey });
+      const client = new VapiClient({ token: customer.vapiApiKey });
       const callData = await client.calls.get(id);
       
       // Calculate duration if timestamps are available, otherwise convert from minutes to seconds
@@ -607,8 +639,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bulk analysis endpoint - fetch calls with query parameter filters
-  app.get("/api/bulk-analysis/calls", async (req, res) => {
+  app.get("/api/bulk-analysis/calls", authenticateUser, requireCustomerAccess, validateCustomerAccess, async (req, res) => {
     try {
+      const customerId = req.customerId;
+      if (!customerId) {
+        return res.status(400).json({ error: "Customer ID required" });
+      }
+
+      // Get customer data to retrieve their specific Vapi API key
+      const customer = await storage.getCustomer(customerId);
+      if (!customer || !customer.vapiApiKey) {
+        return res.status(500).json({ 
+          error: "Customer Vapi API key not configured. Contact support." 
+        });
+      }
+
       // Extract query parameters - only use supported Vapi API parameters
       const allowedParams = ['id', 'assistantId', 'phoneNumberId', 'limit', 'createdAtGt', 'createdAtLt', 'createdAtGe', 'createdAtLe', 'updatedAtGt', 'updatedAtLt', 'updatedAtGe', 'updatedAtLe'];
       const queryParams: Record<string, string> = {};
@@ -633,7 +678,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const calls = await fetchCallsWithFilters(queryParams);
+      const calls = await fetchCallsWithFilters(queryParams, customer.vapiApiKey);
       
       console.log(`[${new Date().toLocaleTimeString()}] Serving ${calls.length} calls with filters:`, queryParams);
       res.json(calls);
