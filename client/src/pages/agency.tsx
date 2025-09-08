@@ -10,7 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { Users, Building, Mail, Key, Plus, Trash2, Settings } from 'lucide-react';
+import { Users, Building, Mail, Key, Plus, Trash2, Settings, ChartLine, Brain, Activity, Wand2 } from 'lucide-react';
+import { Link } from 'wouter';
+import { useTheme } from '@/contexts/theme-context';
+import { Sun, Moon } from 'lucide-react';
 import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -41,6 +44,7 @@ interface EmailWhitelist {
 export default function AgencyPage() {
   const { isSuperAdmin } = useAuth();
   const { toast } = useToast();
+  const { theme, toggleTheme } = useTheme();
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerDescription, setNewCustomerDescription] = useState('');
   const [newCustomerApiKey, setNewCustomerApiKey] = useState('');
@@ -115,16 +119,64 @@ export default function AgencyPage() {
   });
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <img src={logoTransparent} alt="Invoxa.ai" className="h-8" style={{ width: 'auto' }} />
-          Agency Management
-        </h1>
-        <p className="text-gray-600 mt-2">
-          Manage customers, users, and system settings for the Invoxa.ai platform
-        </p>
-      </div>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="bg-card border-b border-border sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                <img src={logoTransparent} alt="Invoxa.ai" className="h-8" style={{ width: 'auto' }} />
+              </div>
+              <nav className="hidden md:flex space-x-8">
+                <Link href="/dashboard" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
+                  Dashboard
+                </Link>
+                <Link href="/bulk-analysis" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
+                  <Brain size={16} />
+                  <span>VoiceScope</span>
+                </Link>
+                <Link href="/performance-benchmarks" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
+                  <Activity size={16} />
+                  <span>Benchmarks</span>
+                </Link>
+                <Link href="/assistant-studio" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
+                  <Wand2 size={16} />
+                  <span>Studio</span>
+                </Link>
+                <Link href="/agency" className="text-primary border-b-2 border-primary pb-4 px-1 text-sm font-medium flex items-center space-x-1">
+                  <Building size={16} />
+                  <span>Agency</span>
+                </Link>
+                <Link href="/settings" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
+                  Settings
+                </Link>
+              </nav>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleTheme}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-foreground">
+            Agency Management
+          </h2>
+          <p className="text-muted-foreground mt-1">
+            Manage customers, users, and system settings for the Invoxa.ai platform
+          </p>
+        </div>
 
       <Tabs defaultValue="customers" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
@@ -395,6 +447,7 @@ export default function AgencyPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      </main>
     </div>
   );
 }
