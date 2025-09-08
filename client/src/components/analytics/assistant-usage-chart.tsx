@@ -121,9 +121,24 @@ export default function AssistantUsageChart({ data, isLoading }: AssistantUsageC
                   dataKey={assistant}
                   stroke={ASSISTANT_COLORS[index % ASSISTANT_COLORS.length]}
                   strokeWidth={2}
+                  strokeOpacity={0.8}
                   dot={{ fill: ASSISTANT_COLORS[index % ASSISTANT_COLORS.length], strokeWidth: 2, r: 4 }}
-                  activeDot={{ r: 6, stroke: ASSISTANT_COLORS[index % ASSISTANT_COLORS.length] }}
+                  activeDot={{ r: 6, stroke: ASSISTANT_COLORS[index % ASSISTANT_COLORS.length], strokeWidth: 3 }}
                   connectNulls={false}
+                  style={{
+                    filter: 'drop-shadow(0px 0px 0px transparent)',
+                    transition: 'all 0.2s ease-in-out'
+                  }}
+                  onMouseEnter={(e: any) => {
+                    e.target.style.strokeOpacity = '1';
+                    e.target.style.strokeWidth = '3';
+                    e.target.style.filter = `drop-shadow(0px 0px 8px ${ASSISTANT_COLORS[index % ASSISTANT_COLORS.length]}40)`;
+                  }}
+                  onMouseLeave={(e: any) => {
+                    e.target.style.strokeOpacity = '0.8';
+                    e.target.style.strokeWidth = '2';
+                    e.target.style.filter = 'drop-shadow(0px 0px 0px transparent)';
+                  }}
                 />
               ))}
             </LineChart>
