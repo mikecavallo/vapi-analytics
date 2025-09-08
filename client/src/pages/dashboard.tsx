@@ -12,6 +12,7 @@ import ConversationOutcomes from "@/components/analytics/conversation-outcomes";
 import WarningsPanel from "@/components/analytics/warnings-panel";
 import MostSuccessfulAgent from "@/components/analytics/most-successful-agent";
 import DailyMetricsCharts from "@/components/analytics/daily-metrics-charts";
+import AssistantUsageChart from "@/components/analytics/assistant-usage-chart";
 import AIChatbot from "@/components/ai-chatbot";
 import { Button } from "@/components/ui/button";
 import { Download, ChartLine, User, Sun, Moon, Brain, Activity, Wand2, FileText } from "lucide-react";
@@ -157,11 +158,14 @@ export default function Dashboard() {
           <KpiCards data={data} isLoading={isLoading} />
         </section>
 
-        {/* Warnings and Top Agent Panel */}
+        {/* Assistant Usage Chart and Top Agent Panel */}
         <section className="mb-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <WarningsPanel data={data} isLoading={isLoading} />
-            <MostSuccessfulAgent data={data} isLoading={isLoading} />
+            <AssistantUsageChart data={data} isLoading={isLoading} />
+            <div className="space-y-6">
+              <WarningsPanel data={data} isLoading={isLoading} />
+              <MostSuccessfulAgent data={data} isLoading={isLoading} />
+            </div>
           </div>
         </section>
 
