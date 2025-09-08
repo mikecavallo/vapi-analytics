@@ -16,7 +16,7 @@ import DailyMetricsCharts from "@/components/analytics/daily-metrics-charts";
 import AIChatbot from "@/components/ai-chatbot";
 import { Button } from "@/components/ui/button";
 import { Download, ChartLine, User, Sun, Moon, Brain, Activity, Wand2, FileText, Settings, RefreshCw, Users } from "lucide-react";
-import logoTransparent from "@assets/logo_transparent_1757373439311.png";
+import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";

@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Users, Building, Mail, Key, Plus, Trash2, Settings } from 'lucide-react';
-import logoTransparent from "@assets/logo_transparent_1757373439311.png";
+import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 

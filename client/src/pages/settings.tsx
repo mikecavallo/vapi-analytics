@@ -13,7 +13,7 @@ import { useWarningSettings } from "@/contexts/warning-settings-context";
 import { useAuth } from "@/contexts/auth-context";
 import { defaultWarningSettings, warningDescriptions, WarningSettings } from "@shared/warning-settings";
 import { Settings, AlertTriangle, RotateCcw, Save, User, Sun, Moon, ChartLine, Brain, Activity, Wand2, FileText, Key, Building } from "lucide-react";
-import logoTransparent from "@assets/logo_transparent_1757373439311.png";
+import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/contexts/theme-context";
 import { useMutation, useQuery } from "@tanstack/react-query";

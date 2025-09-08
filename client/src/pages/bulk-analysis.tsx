@@ -44,7 +44,7 @@ import {
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
-import logoTransparent from "@assets/logo_transparent_1757373439311.png";
+import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 import { useAuth } from "@/contexts/auth-context";
 
 interface FilterCriteria {
