@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Wand2,
@@ -39,9 +40,26 @@ import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
 
 interface AssistantConfig {
+  // Basic Information
   name: string;
   firstMessage: string;
   systemMessage: string;
+  
+  // First Message Configuration
+  firstMessageMode?: 'assistant-speaks-first' | 'assistant-waits-for-user' | 'assistant-speaks-first-with-model-generated-message';
+  firstMessageInterruptionsEnabled?: boolean;
+  
+  // Call Behavior
+  maxDurationSeconds?: number;
+  backgroundSound?: string;
+  modelOutputInMessagesEnabled?: boolean;
+  
+  // End Call Configuration
+  voicemailMessage?: string;
+  endCallMessage?: string;
+  endCallPhrases?: string[];
+  
+  // Model Configuration
   model: {
     provider: string;
     model: string;
@@ -49,6 +67,8 @@ interface AssistantConfig {
     maxTokens: number;
     emotionRecognitionEnabled: boolean;
   };
+  
+  // Voice Configuration
   voice: {
     provider: string;
     voiceId: string;
@@ -57,6 +77,8 @@ interface AssistantConfig {
     style: number;
     useSpeakerBoost: boolean;
   };
+  
+  // Transcriber Configuration
   transcriber: {
     provider: string;
     model: string;
@@ -64,18 +86,52 @@ interface AssistantConfig {
     smartFormat: boolean;
     keywords: string[];
   };
-  conversationConfig: {
+  
+  // Message Types
+  clientMessages?: string[];
+  serverMessages?: string[];
+  
+  // Analysis Configuration
+  analysisPlan?: {
+    summaryPrompt?: string;
+    structuredDataSchema?: any;
+  };
+  
+  // Advanced Plans
+  startSpeakingPlan?: {
+    waitSeconds?: number;
+    smartEndpointingEnabled?: boolean;
+  };
+  stopSpeakingPlan?: {
+    numWords?: number;
+    voiceSeconds?: number;
+    backoffSeconds?: number;
+  };
+  monitorPlan?: {
+    listenEnabled?: boolean;
+    controlEnabled?: boolean;
+  };
+  backgroundSpeechDenoisingPlan?: {
+    enabled?: boolean;
+    krispEnabled?: boolean;
+  };
+  
+  // Metadata
+  metadata?: any;
+  
+  // Legacy fields for backward compatibility
+  conversationConfig?: {
     maxDurationSeconds: number;
     backgroundSound: string;
     backgroundDenoising: boolean;
     modelOutputInMessagesEnabled: boolean;
   };
-  analysisSettings: {
+  analysisSettings?: {
     summaryPrompt: string;
     structuredDataSchema: any;
   };
-  expectedOutcomes: string[];
-  complianceNotes: string[];
+  expectedOutcomes?: string[];
+  complianceNotes?: string[];
 }
 
 export default function AssistantStudio() {
@@ -83,10 +139,29 @@ export default function AssistantStudio() {
   const [location] = useLocation();
   const { toast } = useToast();
 
-  // Form states
+  // Basic form states
+  const [assistantName, setAssistantName] = useState('');
   const [description, setDescription] = useState('');
   const [conversationFlow, setConversationFlow] = useState('');
   const [voiceSettings, setVoiceSettings] = useState('');
+  
+  // Advanced configuration states
+  const [firstMessageMode, setFirstMessageMode] = useState<'assistant-speaks-first' | 'assistant-waits-for-user' | 'assistant-speaks-first-with-model-generated-message'>('assistant-speaks-first');
+  const [firstMessageInterruptions, setFirstMessageInterruptions] = useState(false);
+  const [maxDuration, setMaxDuration] = useState(600);
+  const [backgroundSound, setBackgroundSound] = useState('office');
+  const [modelOutputInMessages, setModelOutputInMessages] = useState(false);
+  const [voicemailMessage, setVoicemailMessage] = useState('');
+  const [endCallMessage, setEndCallMessage] = useState('');
+  const [endCallPhrases, setEndCallPhrases] = useState('');
+  const [customMetadata, setCustomMetadata] = useState('');
+  
+  // Advanced plans
+  const [enableAnalysis, setEnableAnalysis] = useState(true);
+  const [enableMonitoring, setEnableMonitoring] = useState(false);
+  const [enableDenoising, setEnableDenoising] = useState(true);
+  const [startSpeakingWait, setStartSpeakingWait] = useState(0.5);
+  const [stopSpeakingWords, setStopSpeakingWords] = useState(2);
   
   // Generated config state
   const [generatedConfig, setGeneratedConfig] = useState<AssistantConfig | null>(null);
@@ -95,15 +170,11 @@ export default function AssistantStudio() {
 
   // Mutations
   const generateMutation = useMutation({
-    mutationFn: async ({ description, conversationFlow, voiceSettings }: {
-      description: string;
-      conversationFlow: string;
-      voiceSettings: string;
-    }) => {
+    mutationFn: async (formData: any) => {
       const response = await fetch('/api/assistant-studio/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description, conversationFlow, voiceSettings }),
+        body: JSON.stringify(formData),
       });
       
       if (!response.ok) {
@@ -161,6 +232,15 @@ export default function AssistantStudio() {
   });
 
   const handleGenerate = () => {
+    if (!assistantName.trim()) {
+      toast({
+        title: "Assistant Name Required",
+        description: "Please provide a name for your assistant",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!description.trim()) {
       toast({
         title: "Description Required",
@@ -170,10 +250,47 @@ export default function AssistantStudio() {
       return;
     }
 
+    // Parse metadata if provided
+    let parsedMetadata = null;
+    if (customMetadata.trim()) {
+      try {
+        parsedMetadata = JSON.parse(customMetadata);
+      } catch (e) {
+        toast({
+          title: "Invalid Metadata",
+          description: "Custom metadata must be valid JSON format",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     generateMutation.mutate({
+      // Basic info
+      name: assistantName.trim(),
       description: description.trim(),
       conversationFlow: conversationFlow.trim(),
-      voiceSettings: voiceSettings.trim()
+      voiceSettings: voiceSettings.trim(),
+      
+      // Call behavior
+      firstMessageMode,
+      firstMessageInterruptionsEnabled: firstMessageInterruptions,
+      maxDurationSeconds: maxDuration,
+      backgroundSound,
+      modelOutputInMessagesEnabled: modelOutputInMessages,
+      
+      // Messages
+      voicemailMessage: voicemailMessage.trim() || undefined,
+      endCallMessage: endCallMessage.trim() || undefined,
+      endCallPhrases: endCallPhrases.trim() ? endCallPhrases.split(',').map(p => p.trim()) : undefined,
+      
+      // Advanced features
+      enableAnalysis,
+      enableMonitoring,
+      enableDenoising,
+      startSpeakingWait,
+      stopSpeakingWords,
+      metadata: parsedMetadata
     });
   };
 
@@ -287,6 +404,23 @@ export default function AssistantStudio() {
               </p>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Assistant Name */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Assistant Name *
+                </Label>
+                <Input 
+                  placeholder="Enter a name for your assistant (e.g., Healthcare Assistant, Customer Service Bot)"
+                  value={assistantName}
+                  onChange={(e) => setAssistantName(e.target.value.slice(0, 40))}
+                  data-testid="input-assistant-name"
+                  maxLength={40}
+                />
+                <div className="text-xs text-muted-foreground">
+                  {assistantName.length}/40 characters • Required for assistant transfers
+                </div>
+              </div>
+
               {/* Main Description */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
@@ -337,6 +471,210 @@ export default function AssistantStudio() {
                 </Select>
               </div>
 
+              {/* Call Behavior Settings */}
+              <Separator />
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-foreground">Call Behavior Settings</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">First Message Mode</Label>
+                    <Select value={firstMessageMode} onValueChange={setFirstMessageMode}>
+                      <SelectTrigger data-testid="select-first-message-mode">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="assistant-speaks-first">Assistant Speaks First</SelectItem>
+                        <SelectItem value="assistant-waits-for-user">Wait for User</SelectItem>
+                        <SelectItem value="assistant-speaks-first-with-model-generated-message">AI Generated Opening</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Max Call Duration (seconds)</Label>
+                    <Input 
+                      type="number"
+                      min="10"
+                      max="43200"
+                      value={maxDuration}
+                      onChange={(e) => setMaxDuration(Number(e.target.value))}
+                      data-testid="input-max-duration"
+                    />
+                    <div className="text-xs text-muted-foreground">10 seconds to 12 hours</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Background Sound</Label>
+                    <Select value={backgroundSound} onValueChange={setBackgroundSound}>
+                      <SelectTrigger data-testid="select-background-sound">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="off">Off</SelectItem>
+                        <SelectItem value="office">Office</SelectItem>
+                        <SelectItem value="cafe">Cafe</SelectItem>
+                        <SelectItem value="nature">Nature</SelectItem>
+                        <SelectItem value="music">Light Music</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex items-center justify-between py-3">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm font-medium">Allow First Message Interruptions</Label>
+                      <div className="text-xs text-muted-foreground">Users can interrupt opening message</div>
+                    </div>
+                    <Switch 
+                      checked={firstMessageInterruptions}
+                      onCheckedChange={setFirstMessageInterruptions}
+                      data-testid="switch-first-message-interruptions"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Message Configuration */}
+              <Separator />
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-foreground">Message Configuration</h3>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Voicemail Message (Optional)</Label>
+                    <Textarea 
+                      placeholder="Message to play if call goes to voicemail. Leave empty to hang up."
+                      value={voicemailMessage}
+                      onChange={(e) => setVoicemailMessage(e.target.value.slice(0, 1000))}
+                      data-testid="textarea-voicemail-message"
+                      maxLength={1000}
+                    />
+                    <div className="text-xs text-muted-foreground">{voicemailMessage.length}/1000 characters</div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">End Call Message (Optional)</Label>
+                    <Textarea 
+                      placeholder="Message to play when ending the call. Leave empty to hang up silently."
+                      value={endCallMessage}
+                      onChange={(e) => setEndCallMessage(e.target.value.slice(0, 1000))}
+                      data-testid="textarea-end-call-message"
+                      maxLength={1000}
+                    />
+                    <div className="text-xs text-muted-foreground">{endCallMessage.length}/1000 characters</div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Auto-Hangup Phrases (Optional)</Label>
+                    <Input 
+                      placeholder="Enter phrases separated by commas (e.g., goodbye, talk to you later, have a great day)"
+                      value={endCallPhrases}
+                      onChange={(e) => setEndCallPhrases(e.target.value)}
+                      data-testid="input-end-call-phrases"
+                    />
+                    <div className="text-xs text-muted-foreground">Phrases that will automatically end the call when spoken by the assistant</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Advanced Features */}
+              <Separator />
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-foreground">Advanced Features</h3>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between py-2">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm font-medium">Use Model Output in Messages</Label>
+                      <div className="text-xs text-muted-foreground">Use AI model output instead of speech transcription in conversation history</div>
+                    </div>
+                    <Switch 
+                      checked={modelOutputInMessages}
+                      onCheckedChange={setModelOutputInMessages}
+                      data-testid="switch-model-output-messages"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between py-2">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm font-medium">Enable Call Analysis</Label>
+                      <div className="text-xs text-muted-foreground">Analyze calls for insights and generate summaries</div>
+                    </div>
+                    <Switch 
+                      checked={enableAnalysis}
+                      onCheckedChange={setEnableAnalysis}
+                      data-testid="switch-enable-analysis"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between py-2">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm font-medium">Enable Background Noise Reduction</Label>
+                      <div className="text-xs text-muted-foreground">Filter out background noise and speech while user is talking</div>
+                    </div>
+                    <Switch 
+                      checked={enableDenoising}
+                      onCheckedChange={setEnableDenoising}
+                      data-testid="switch-enable-denoising"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between py-2">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm font-medium">Enable Call Monitoring</Label>
+                      <div className="text-xs text-muted-foreground">Allow real-time listening and control of calls</div>
+                    </div>
+                    <Switch 
+                      checked={enableMonitoring}
+                      onCheckedChange={setEnableMonitoring}
+                      data-testid="switch-enable-monitoring"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Start Speaking Delay (seconds)</Label>
+                    <Input 
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="5"
+                      value={startSpeakingWait}
+                      onChange={(e) => setStartSpeakingWait(Number(e.target.value))}
+                      data-testid="input-start-speaking-wait"
+                    />
+                    <div className="text-xs text-muted-foreground">How long to wait before starting to speak</div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Stop on Interruption (words)</Label>
+                    <Input 
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={stopSpeakingWords}
+                      onChange={(e) => setStopSpeakingWords(Number(e.target.value))}
+                      data-testid="input-stop-speaking-words"
+                    />
+                    <div className="text-xs text-muted-foreground">How many words user needs to speak to interrupt</div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Custom Metadata (JSON)</Label>
+                  <Textarea 
+                    placeholder='{"department": "healthcare", "priority": "high", "tags": ["appointment", "scheduling"]}'
+                    value={customMetadata}
+                    onChange={(e) => setCustomMetadata(e.target.value)}
+                    data-testid="textarea-custom-metadata"
+                  />
+                  <div className="text-xs text-muted-foreground">Custom data to store with the assistant (JSON format)</div>
+                </div>
+              </div>
+
 
 
               {/* Generate Button */}
@@ -344,7 +682,7 @@ export default function AssistantStudio() {
                 className="w-full" 
                 size="lg"
                 onClick={handleGenerate}
-                disabled={!description.trim() || generateMutation.isPending}
+                disabled={!assistantName.trim() || !description.trim() || generateMutation.isPending}
                 data-testid="button-generate-assistant"
               >
                 {generateMutation.isPending ? (
