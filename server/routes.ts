@@ -747,34 +747,63 @@ Please provide optimization suggestions in JSON format:
   // Assistant Studio endpoints
   app.post("/api/assistant-studio/generate", async (req, res) => {
     try {
-      const { description, conversationFlow, voiceSettings } = req.body;
+      const { 
+        name,
+        description, 
+        conversationFlow, 
+        voiceSettings,
+        // Call behavior
+        firstMessageMode,
+        firstMessageInterruptionsEnabled,
+        maxDurationSeconds,
+        backgroundSound,
+        modelOutputInMessagesEnabled,
+        // Messages
+        voicemailMessage,
+        endCallMessage,
+        endCallPhrases,
+        // Advanced features
+        enableAnalysis,
+        enableMonitoring,
+        enableDenoising,
+        startSpeakingWait,
+        stopSpeakingWords,
+        metadata
+      } = req.body;
       const openaiApiKey = process.env.OPENAI_API_KEY;
       
       if (!openaiApiKey) {
         return res.status(500).json({ error: "OpenAI API key not configured" });
       }
 
-      if (!description) {
-        return res.status(400).json({ error: "Assistant description is required" });
+      if (!name || !description) {
+        return res.status(400).json({ error: "Assistant name and description are required" });
       }
 
       const openai = new (await import('openai')).default({ apiKey: openaiApiKey });
       
-      const systemPrompt = `You are an expert AI assistant configuration specialist for healthcare voice AI systems. Your job is to create comprehensive assistant configurations for the Vapi platform based on user descriptions.
+      const systemPrompt = `You are an expert AI assistant configuration specialist for voice AI systems using the Vapi platform. Your job is to create comprehensive assistant configurations based on user descriptions and preferences.
 
 Key Requirements:
-1. Generate healthcare-compliant conversation scripts
-2. Include proper HIPAA-compliant language
-3. Create natural conversation flows with error handling
-4. Optimize for voice interaction (clear, concise responses)
-5. Include appropriate interruption handling
-6. Design for appointment booking, prescription inquiries, and general healthcare support
+1. Generate professional and context-appropriate conversation scripts
+2. Create natural conversation flows with proper error handling  
+3. Optimize for voice interaction (clear, concise responses)
+4. Apply user-specified call behavior and advanced features
+5. Configure technical settings appropriately for the use case
 
 IMPORTANT: You must respond with ONLY a valid JSON object that follows this exact structure (no additional text before or after the JSON):
 {
-  "name": "Assistant name",
+  "name": "Assistant name from user input",
   "firstMessage": "Initial greeting message",
-  "systemMessage": "Detailed system prompt for the assistant behavior",
+  "firstMessageMode": "assistant-speaks-first",
+  "firstMessageInterruptionsEnabled": false,
+  "systemMessage": "Detailed system prompt for the assistant behavior", 
+  "maxDurationSeconds": 600,
+  "backgroundSound": "office",
+  "modelOutputInMessagesEnabled": false,
+  "voicemailMessage": "Optional voicemail message",
+  "endCallMessage": "Optional end call message", 
+  "endCallPhrases": ["goodbye", "thank you", "have a great day"],
   "model": {
     "provider": "openai",
     "model": "gpt-4",
@@ -783,8 +812,8 @@ IMPORTANT: You must respond with ONLY a valid JSON object that follows this exac
     "emotionRecognitionEnabled": true
   },
   "voice": {
-    "provider": "11labs",
-    "voiceId": "recommended voice ID based on target audience",
+    "provider": "11labs", 
+    "voiceId": "recommended voice ID based on use case",
     "stability": 0.5,
     "similarityBoost": 0.8,
     "style": 0.0,
@@ -792,48 +821,75 @@ IMPORTANT: You must respond with ONLY a valid JSON object that follows this exac
   },
   "transcriber": {
     "provider": "deepgram",
-    "model": "nova-2",
+    "model": "nova-2", 
     "language": "en-US",
     "smartFormat": true,
-    "keywords": ["appointment", "prescription", "doctor", "symptoms"]
+    "keywords": ["relevant", "keywords", "for", "use case"]
   },
-  "conversationConfig": {
-    "maxDurationSeconds": 300,
-    "backgroundSound": "office",
-    "backgroundDenoising": true,
-    "modelOutputInMessagesEnabled": false
-  },
-  "analysisSettings": {
-    "summaryPrompt": "Summarize this healthcare call focusing on patient needs, outcomes, and follow-up requirements",
+  "analysisPlan": {
+    "summaryPrompt": "Summarize this call focusing on key outcomes and insights",
     "structuredDataSchema": {
-      "type": "object",
+      "type": "object", 
       "properties": {
-        "callType": {"type": "string", "enum": ["appointment", "prescription", "inquiry", "emergency"]},
-        "patientSatisfaction": {"type": "number", "minimum": 1, "maximum": 5},
-        "followUpRequired": {"type": "boolean"},
-        "urgencyLevel": {"type": "string", "enum": ["low", "medium", "high", "emergency"]}
+        "callOutcome": {"type": "string"},
+        "satisfaction": {"type": "number", "minimum": 1, "maximum": 5},
+        "followUpRequired": {"type": "boolean"}
       }
     }
   },
+  "startSpeakingPlan": {
+    "waitSeconds": 0.5,
+    "smartEndpointingEnabled": true  
+  },
+  "stopSpeakingPlan": {
+    "numWords": 2,
+    "voiceSeconds": 1.0,
+    "backoffSeconds": 0.5
+  },
+  "monitorPlan": {
+    "listenEnabled": false,
+    "controlEnabled": false
+  },
+  "backgroundSpeechDenoisingPlan": {
+    "enabled": true,
+    "krispEnabled": false
+  },
+  "metadata": {},
   "expectedOutcomes": ["What this assistant should accomplish"],
-  "complianceNotes": ["HIPAA and healthcare compliance considerations"]
+  "complianceNotes": ["Any compliance or operational considerations"]
 }`;
 
-      const userPrompt = `Create a healthcare voice assistant configuration with the following requirements:
+      const userPrompt = `Create a voice assistant configuration with the following requirements:
 
-Description: ${description}
+REQUIRED FIELDS:
+- Assistant Name: ${name}
+- Description: ${description}
 
-Conversation Flow: ${conversationFlow || 'Standard healthcare support flow'}
+ADDITIONAL CONTEXT:
+${conversationFlow ? `Conversation Flow: ${conversationFlow}` : ''}
+${voiceSettings ? `Voice Settings: ${voiceSettings}` : ''}
 
-Voice Settings: ${voiceSettings || 'Professional and caring tone'}
+CALL BEHAVIOR SETTINGS:
+- First Message Mode: ${firstMessageMode || 'assistant-speaks-first'}
+- Allow First Message Interruptions: ${firstMessageInterruptionsEnabled || false}
+- Max Call Duration: ${maxDurationSeconds || 600} seconds
+- Background Sound: ${backgroundSound || 'office'}
+- Use Model Output in Messages: ${modelOutputInMessagesEnabled || false}
 
-Make sure the assistant is:
-- HIPAA compliant and privacy-focused
-- Capable of handling appointment scheduling
-- Professional yet empathetic in tone
-- Efficient in call duration while being thorough
-- Able to escalate to human agents when needed
-- Designed for clear voice interaction`;
+MESSAGE CONFIGURATION:
+${voicemailMessage ? `- Voicemail Message: ${voicemailMessage}` : ''}
+${endCallMessage ? `- End Call Message: ${endCallMessage}` : ''}
+${endCallPhrases?.length ? `- Auto-Hangup Phrases: ${endCallPhrases.join(', ')}` : ''}
+
+ADVANCED FEATURES:
+- Enable Call Analysis: ${enableAnalysis || false}
+- Enable Call Monitoring: ${enableMonitoring || false}  
+- Enable Background Noise Reduction: ${enableDenoising || true}
+- Start Speaking Delay: ${startSpeakingWait || 0.5} seconds
+- Stop on Interruption: ${stopSpeakingWords || 2} words
+${metadata ? `- Custom Metadata: ${JSON.stringify(metadata)}` : ''}
+
+Apply these specific settings and create a comprehensive assistant configuration that matches the user's requirements. Use the exact name provided and configure all the advanced features as specified.`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
@@ -886,11 +942,19 @@ Make sure the assistant is:
         return res.status(400).json({ error: "Assistant configuration is required" });
       }
 
-      // Create assistant through Vapi API
+      // Create assistant through Vapi API with comprehensive configuration
       const vapiPayload = {
         name: config.name,
         firstMessage: config.firstMessage,
+        firstMessageMode: config.firstMessageMode || 'assistant-speaks-first',
+        firstMessageInterruptionsEnabled: config.firstMessageInterruptionsEnabled || false,
         systemMessage: config.systemMessage,
+        maxDurationSeconds: config.maxDurationSeconds || config.conversationConfig?.maxDurationSeconds || 600,
+        backgroundSound: config.backgroundSound || config.conversationConfig?.backgroundSound || 'office',
+        modelOutputInMessagesEnabled: config.modelOutputInMessagesEnabled || config.conversationConfig?.modelOutputInMessagesEnabled || false,
+        ...(config.voicemailMessage && { voicemailMessage: config.voicemailMessage }),
+        ...(config.endCallMessage && { endCallMessage: config.endCallMessage }),
+        ...(config.endCallPhrases && config.endCallPhrases.length > 0 && { endCallPhrases: config.endCallPhrases }),
         model: {
           provider: config.model.provider,
           model: config.model.model,
@@ -913,14 +977,44 @@ Make sure the assistant is:
           smartFormat: config.transcriber.smartFormat,
           keywords: config.transcriber.keywords
         },
-        analysisSettings: {
-          summaryPrompt: config.analysisSettings.summaryPrompt,
-          structuredDataSchema: config.analysisSettings.structuredDataSchema
-        },
-        maxDurationSeconds: config.conversationConfig.maxDurationSeconds,
-        backgroundSound: config.conversationConfig.backgroundSound,
-        backgroundDenoising: config.conversationConfig.backgroundDenoising,
-        modelOutputInMessagesEnabled: config.conversationConfig.modelOutputInMessagesEnabled
+        ...(config.analysisPlan && {
+          analysisPlan: {
+            summaryPrompt: config.analysisPlan.summaryPrompt,
+            structuredDataSchema: config.analysisPlan.structuredDataSchema
+          }
+        }),
+        ...(config.analysisSettings && {
+          analysisPlan: {
+            summaryPrompt: config.analysisSettings.summaryPrompt,
+            structuredDataSchema: config.analysisSettings.structuredDataSchema
+          }
+        }),
+        ...(config.startSpeakingPlan && {
+          startSpeakingPlan: {
+            waitSeconds: config.startSpeakingPlan.waitSeconds,
+            smartEndpointingEnabled: config.startSpeakingPlan.smartEndpointingEnabled
+          }
+        }),
+        ...(config.stopSpeakingPlan && {
+          stopSpeakingPlan: {
+            numWords: config.stopSpeakingPlan.numWords,
+            voiceSeconds: config.stopSpeakingPlan.voiceSeconds,
+            backoffSeconds: config.stopSpeakingPlan.backoffSeconds
+          }
+        }),
+        ...(config.monitorPlan && {
+          monitorPlan: {
+            listenEnabled: config.monitorPlan.listenEnabled,
+            controlEnabled: config.monitorPlan.controlEnabled
+          }
+        }),
+        ...(config.backgroundSpeechDenoisingPlan && {
+          backgroundSpeechDenoisingPlan: {
+            enabled: config.backgroundSpeechDenoisingPlan.enabled,
+            krispEnabled: config.backgroundSpeechDenoisingPlan.krispEnabled
+          }
+        }),
+        ...(config.metadata && { metadata: config.metadata })
       };
 
       const response = await fetch("https://api.vapi.ai/assistant", {
