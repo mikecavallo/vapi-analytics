@@ -22,14 +22,15 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // Check localStorage first, then default to light
+  const [theme, setTheme] = useState<Theme>("light");
+
+  useEffect(() => {
+    // On initial load, check if user had a theme preference
     const stored = localStorage.getItem("theme") as Theme;
     if (stored && (stored === "light" || stored === "dark")) {
-      return stored;
+      setTheme(stored);
     }
-    return "light";
-  });
+  }, []);
 
   useEffect(() => {
     // Apply theme class to document
