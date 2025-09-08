@@ -31,37 +31,6 @@ export default function Dashboard() {
     enabled: true,
   });
 
-  const handleExport = async () => {
-    try {
-      const response = await fetch(`/api/analytics?timeRange=${timeRange}&format=csv`, {
-        method: "GET",
-        credentials: "include",
-      });
-      
-      if (!response.ok) {
-        throw new Error("Export failed");
-      }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `vapi-analytics-${timeRange}-${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-      
-      toast({
-        title: "Export Successful",
-        description: "Your analytics report has been downloaded.",
-      });
-    } catch (error) {
-      toast({
-        title: "Export Failed", 
-        description: "There was an error exporting your data. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
   if (error) {
     return (
@@ -121,10 +90,6 @@ export default function Dashboard() {
               </nav>
             </div>
             <div className="flex items-center space-x-4">
-              <Button onClick={handleExport} data-testid="button-export" className="bg-primary hover:bg-primary/90">
-                <Download className="mr-2" size={16} />
-                Export
-              </Button>
               <Button 
                 variant="outline" 
                 size="sm" 
