@@ -747,7 +747,7 @@ Please provide optimization suggestions in JSON format:
   // Assistant Studio endpoints
   app.post("/api/assistant-studio/generate", async (req, res) => {
     try {
-      const { description, conversationFlow, voiceSettings, targetAudience } = req.body;
+      const { description, conversationFlow, voiceSettings } = req.body;
       const openaiApiKey = process.env.OPENAI_API_KEY;
       
       if (!openaiApiKey) {
@@ -826,8 +826,6 @@ Description: ${description}
 Conversation Flow: ${conversationFlow || 'Standard healthcare support flow'}
 
 Voice Settings: ${voiceSettings || 'Professional and caring tone'}
-
-Target Audience: ${targetAudience || 'Healthcare patients and general public'}
 
 Make sure the assistant is:
 - HIPAA compliant and privacy-focused

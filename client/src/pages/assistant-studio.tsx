@@ -87,7 +87,6 @@ export default function AssistantStudio() {
   const [description, setDescription] = useState('');
   const [conversationFlow, setConversationFlow] = useState('');
   const [voiceSettings, setVoiceSettings] = useState('');
-  const [targetAudience, setTargetAudience] = useState('');
   
   // Generated config state
   const [generatedConfig, setGeneratedConfig] = useState<AssistantConfig | null>(null);
@@ -96,16 +95,15 @@ export default function AssistantStudio() {
 
   // Mutations
   const generateMutation = useMutation({
-    mutationFn: async ({ description, conversationFlow, voiceSettings, targetAudience }: {
+    mutationFn: async ({ description, conversationFlow, voiceSettings }: {
       description: string;
       conversationFlow: string;
       voiceSettings: string;
-      targetAudience: string;
     }) => {
       const response = await fetch('/api/assistant-studio/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description, conversationFlow, voiceSettings, targetAudience }),
+        body: JSON.stringify({ description, conversationFlow, voiceSettings }),
       });
       
       if (!response.ok) {
@@ -175,8 +173,7 @@ export default function AssistantStudio() {
     generateMutation.mutate({
       description: description.trim(),
       conversationFlow: conversationFlow.trim(),
-      voiceSettings: voiceSettings.trim(),
-      targetAudience: targetAudience.trim()
+      voiceSettings: voiceSettings.trim()
     });
   };
 
@@ -340,25 +337,6 @@ export default function AssistantStudio() {
                 </Select>
               </div>
 
-              {/* Target Audience */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">
-                  Target Audience (Optional)
-                </Label>
-                <Select value={targetAudience} onValueChange={setTargetAudience}>
-                  <SelectTrigger data-testid="select-target-audience">
-                    <SelectValue placeholder="Who will be calling?" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="patients-general">Healthcare Patients (General)</SelectItem>
-                    <SelectItem value="patients-elderly">Elderly Patients</SelectItem>
-                    <SelectItem value="patients-pediatric">Pediatric Patients/Parents</SelectItem>
-                    <SelectItem value="healthcare-professionals">Healthcare Professionals</SelectItem>
-                    <SelectItem value="business-customers">Business Customers</SelectItem>
-                    <SelectItem value="general-public">General Public</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
 
 
               {/* Generate Button */}
