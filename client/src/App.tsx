@@ -10,7 +10,6 @@ import { ProtectedRoute } from "@/components/auth/protected-route";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import BulkAnalysis from "@/pages/bulk-analysis";
-import PerformanceBenchmarks from "@/pages/performance-benchmarks";
 import AssistantStudio from "@/pages/assistant-studio";
 import SettingsPage from "@/pages/settings";
 import LoginPage from "@/pages/login";
@@ -52,11 +51,6 @@ function AppRouter() {
       <Route path="/bulk-analysis">
         <ProtectedRoute>
           <BulkAnalysis />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/performance-benchmarks">
-        <ProtectedRoute>
-          <PerformanceBenchmarks />
         </ProtectedRoute>
       </Route>
       <Route path="/assistant-studio">

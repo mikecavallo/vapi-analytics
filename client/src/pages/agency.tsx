@@ -123,22 +123,20 @@ export default function AgencyPage() {
       {/* Header */}
       <header className="bg-card border-b border-border sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <div className="flex-shrink-0">
-                <img src={logoTransparent} alt="Invoxa.ai" className="h-8" style={{ width: 'auto' }} />
-              </div>
-              <nav className="hidden md:flex space-x-8">
+          <div className="flex items-center h-16">
+            {/* Logo - Left Aligned */}
+            <div className="flex-shrink-0">
+              <img src={logoTransparent} alt="Invoxa.ai" className="h-8" style={{ width: 'auto' }} />
+            </div>
+            
+            {/* Navigation - Center */}
+            <nav className="hidden md:flex space-x-8 mx-auto">
                 <Link href="/dashboard" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
                   Dashboard
                 </Link>
                 <Link href="/bulk-analysis" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
                   <Brain size={16} />
                   <span>VoiceScope</span>
-                </Link>
-                <Link href="/performance-benchmarks" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
-                  <Activity size={16} />
-                  <span>Benchmarks</span>
                 </Link>
                 <Link href="/assistant-studio" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
                   <Wand2 size={16} />
@@ -151,9 +149,10 @@ export default function AgencyPage() {
                 <Link href="/settings" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
                   Settings
                 </Link>
-              </nav>
-            </div>
-            <div className="flex items-center space-x-4">
+            </nav>
+            
+            {/* Right side controls */}
+            <div className="flex items-center space-x-4 ml-auto">
               <Button
                 variant="ghost"
                 size="icon"

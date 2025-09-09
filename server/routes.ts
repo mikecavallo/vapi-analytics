@@ -928,7 +928,7 @@ Please provide optimization suggestions in JSON format:
   });
 
   // Performance Benchmarks endpoint
-  app.get("/api/voicescope/performance-benchmarks", async (req, res) => {
+  // Removed performance-benchmarks endpoint
     try {
       const vapiApiKey = process.env.VAPI_API_KEY || "";
       

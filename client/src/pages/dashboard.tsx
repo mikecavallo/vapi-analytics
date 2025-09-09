@@ -127,10 +127,6 @@ export default function Dashboard() {
                 <Brain size={16} />
                 <span>VoiceScope</span>
               </Link>
-              <Link href="/performance-benchmarks" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
-                <Activity size={16} />
-                <span>Benchmarks</span>
-              </Link>
               <Link href="/assistant-studio" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
                 <Wand2 size={16} />
                 <span>Studio</span>
