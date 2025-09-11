@@ -322,141 +322,81 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
-              Complete Voice AI Solutions
+              AI Solutions That Grow With Your Business
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              From missed calls to captured leads. From overwhelming volume to seamless automation. Transform every customer interaction.
+              We don't sell tools. We deliver outcomes. Whether you need an agent that books appointments, a chatbot that never sleeps, or a CRM that nurtures every lead—we design the solution and make it work.
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Lead Capture */}
-            <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
-              <CardHeader className="pb-4">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                    <PhoneCall className="w-6 h-6 text-white" />
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* AI Voice Agents */}
+            <Link href="/solutions/voice-agents">
+              <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer group">
+                <CardContent className="p-6 text-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                    <PhoneCall className="w-8 h-8 text-white" />
                   </div>
-                  <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
-                    24/7 Lead Capture
-                  </CardTitle>
-                </div>
-                <CardDescription className="text-gray-600 dark:text-gray-300 text-base">
-                  Never miss another potential customer, even when you're unavailable.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0">
-                {/* Lead Capture Mockup */}
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4 border border-blue-200/50 dark:border-blue-700/50">
-                  <div className="space-y-3">
-                    <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">Incoming Call Handler</div>
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-3">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <PhoneCall className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Caller Information</span>
-                      </div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-                        <div>Name: John Smith</div>
-                        <div>Interest: Solar Installation</div>
-                        <div>Budget: $15-20k</div>
-                        <div>Timeline: Next 30 days</div>
-                      </div>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-green-600">✓ Lead Captured</span>
-                      <span className="text-blue-600">📧 Auto-forwarded</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                    AI Voice Agents
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Answer calls, qualify leads, and schedule—without human overhead.
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
 
-            {/* Customer Support */}
-            <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
-              <CardHeader className="pb-4">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                    <Headphones className="w-6 h-6 text-white" />
+            {/* Chatbots & Digital Agents */}
+            <Link href="/solutions/chatbots">
+              <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer group">
+                <CardContent className="p-6 text-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                    <MessageCircle className="w-8 h-8 text-white" />
                   </div>
-                  <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
-                    Smart Customer Support
-                  </CardTitle>
-                </div>
-                <CardDescription className="text-gray-600 dark:text-gray-300 text-base">
-                  Handle common inquiries and route complex issues to the right team.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0">
-                {/* Support Mockup */}
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4 border border-purple-200/50 dark:border-purple-700/50">
-                  <div className="space-y-3">
-                    <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">Support Ticket</div>
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-3">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Headphones className="w-4 h-4 text-purple-600" />
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Issue Resolution</span>
-                      </div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-                        <div>Issue: Password Reset</div>
-                        <div>Status: Resolved</div>
-                        <div>Resolution Time: 1m 23s</div>
-                        <div>Satisfaction: ⭐⭐⭐⭐⭐</div>
-                      </div>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-green-600">✓ Auto-resolved</span>
-                      <span className="text-purple-600">📊 Tracked</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                    Chatbots & Digital Agents
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    24/7 chat that understands your customers.
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
 
-            {/* Dashboard */}
-            <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
-              <CardHeader className="pb-4">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                    <BarChart3 className="w-6 h-6 text-white" />
+            {/* AI Business Automations */}
+            <Link href="/solutions/automations">
+              <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer group">
+                <CardContent className="p-6 text-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                    <Zap className="w-8 h-8 text-white" />
                   </div>
-                  <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
-                    Dashboard
-                  </CardTitle>
-                </div>
-                <CardDescription className="text-gray-600 dark:text-gray-300 text-base">
-                  One place to manage every agent, conversation, and workflow.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0">
-                {/* Dashboard Mockup */}
-                <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl p-4 border border-green-200/50 dark:border-green-700/50">
-                  <div className="space-y-3">
-                    <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">Control Center</div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-2">
-                        <div className="text-sm font-bold text-green-600">12</div>
-                        <div className="text-xs text-gray-500">Active Agents</div>
-                      </div>
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-2">
-                        <div className="text-sm font-bold text-blue-600">247</div>
-                        <div className="text-xs text-gray-500">Live Calls</div>
-                      </div>
-                    </div>
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Recent Activity</span>
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="text-xs text-gray-600 dark:text-gray-400">• Agent deployed successfully</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">• 5 new conversations started</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">• Performance report ready</div>
-                      </div>
-                    </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                    AI Business Automations
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Cut manual work, scale faster.
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            {/* AI Consulting & CRM */}
+            <Link href="/solutions/consulting">
+              <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer group">
+                <CardContent className="p-6 text-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                    <Users className="w-8 h-8 text-white" />
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                    AI Consulting & CRM
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Custom strategy + our branded CRM built for lead nurturing.
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         </div>
       </section>
