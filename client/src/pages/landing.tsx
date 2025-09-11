@@ -5,10 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { BarChart3, Users, Zap, Shield, ArrowRight, CheckCircle, Star, Globe, Headphones, Mic, Settings, PieChart, TrendingUp, Brain, Sparkles, Phone, PhoneCall, Activity, MessageCircle, Cog, Database, Hand, Quote } from 'lucide-react';
 import { motion } from 'framer-motion';
-import logoTransparent from "@assets/logo_transparent_1757373755849.png";
+import logoTransparent from "@assets/logo_transparent_1757609077252.png";
 import { PlasmaBackground } from '@/components/PlasmaBackground';
 import { SplitText } from '@/components/SplitText';
 import { ShinyText } from '@/components/ShinyText';
+import { GooeyNav } from '@/components/GooeyNav';
 
 interface Beam {
   x: number;
@@ -136,23 +137,20 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
-              <img src={logoTransparent} alt="Invoxa.ai" className="w-8 h-8" />
-              <span className="text-xl font-bold text-gray-900 dark:text-white">Invoxa.ai</span>
+              <img src={logoTransparent} alt="Invoxa.ai" className="h-8" />
             </div>
             
-            <div className="hidden md:flex items-center space-x-8">
-              <Link href="/solutions" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
-                Solutions
-              </Link>
-              <Link href="/platform" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
-                Platform
-              </Link>
-              <Link href="/why-invoxa" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
-                Why Invoxa
-              </Link>
-              <Link href="/resources" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
-                Resources
-              </Link>
+            <div className="hidden md:flex items-center">
+              <GooeyNav
+                items={[
+                  { href: "/solutions", label: "Solutions" },
+                  { href: "/platform", label: "Platform" },
+                  { href: "/why-invoxa", label: "Why Invoxa" },
+                  { href: "/resources", label: "Resources" }
+                ]}
+                activeColor="rgba(59, 130, 246, 0.8)"
+                inactiveColor="rgba(75, 85, 99, 0.1)"
+              />
             </div>
             
             <div className="flex items-center space-x-3">
