@@ -28,8 +28,8 @@ function createBeam(width: number, height: number): Beam {
     width: 30 + Math.random() * 60,
     length: height * 2.5,
     angle: angle,
-    speed: 0.6 + Math.random() * 1.2,
-    opacity: 0.08 + Math.random() * 0.12, // Reduced for subtlety
+    speed: 1.0 + Math.random() * 1.5,
+    opacity: 0.15 + Math.random() * 0.20, // Increased visibility
     hue: 220 + Math.random() * 40, // Blue-purple range for your theme
     pulse: Math.random() * Math.PI * 2,
     pulseSpeed: 0.02 + Math.random() * 0.03,
@@ -72,9 +72,9 @@ export default function LandingPage() {
       beam.y = canvas.height + 100;
       beam.x = Math.random() * canvas.width;
       beam.width = 40 + Math.random() * 80;
-      beam.speed = 0.3 + Math.random() * 0.4;
+      beam.speed = 0.8 + Math.random() * 0.6;
       beam.hue = 220 + Math.random() * 40; // Blue-purple theme
-      beam.opacity = 0.08 + Math.random() * 0.12;
+      beam.opacity = 0.15 + Math.random() * 0.20;
       return beam;
     }
 
