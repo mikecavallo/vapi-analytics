@@ -868,6 +868,62 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Final CTA Section */}
+      <section className="bg-gradient-to-br from-violet-600 via-purple-700 to-blue-900 py-24">
+        <div className="container mx-auto px-4 text-center">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-8 leading-tight">
+              Ready to Launch Smarter Conversations?
+            </h2>
+            <p className="text-xl md:text-2xl text-violet-100 mb-12 max-w-2xl mx-auto">
+              Join the businesses already scaling with AI agents that work like people, without the payroll.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+              {/* Primary CTA - Book a Demo */}
+              <Link href="/book-demo">
+                <Button 
+                  size="lg" 
+                  className="bg-white text-violet-700 hover:bg-gray-100 hover:text-violet-800 text-xl px-12 py-6 rounded-xl font-bold shadow-2xl hover:shadow-white/20 transition-all duration-300 transform hover:scale-105 border-0 glow-button"
+                  data-testid="button-book-demo-final"
+                >
+                  Book a Demo
+                  <ArrowRight className="ml-3 w-6 h-6" />
+                </Button>
+              </Link>
+              
+              {/* Secondary CTA - Talk to Expert */}
+              <Link href="/book-demo">
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="border-2 border-white text-white hover:bg-white hover:text-violet-700 text-xl px-12 py-6 rounded-xl font-bold bg-transparent transition-all duration-300 transform hover:scale-105"
+                  data-testid="button-talk-expert"
+                >
+                  Talk to an Expert
+                  <MessageCircle className="ml-3 w-6 h-6" />
+                </Button>
+              </Link>
+            </div>
+            
+            <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-8 text-violet-200">
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+                <span>No long-term contracts</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+                <span>Setup in hours, not weeks</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+                <span>White-glove support included</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section className="container mx-auto px-4 py-16">
         <div className="text-center mb-12">
