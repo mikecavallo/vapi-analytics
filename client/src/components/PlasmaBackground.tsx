@@ -6,6 +6,7 @@ interface PlasmaBackgroundProps {
 
 export function PlasmaBackground({ className = '' }: PlasmaBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationFrameRef = useRef<number>();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -105,13 +106,16 @@ export function PlasmaBackground({ className = '' }: PlasmaBackgroundProps) {
       ctx.fillRect(0, 0, width, height);
 
       time += 0.02;
-      requestAnimationFrame(animate);
+      animationFrameRef.current = requestAnimationFrame(animate);
     };
 
     animate();
 
     return () => {
       window.removeEventListener('resize', updateCanvasSize);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
     };
   }, []);
 

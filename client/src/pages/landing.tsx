@@ -47,7 +47,8 @@ function createBeam(canvas: HTMLCanvasElement): Beam {
 
 export default function LandingPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [beams, setBeams] = useState<Beam[]>([]);
+  const beamsRef = useRef<Beam[]>([]);
+  const animationFrameRef = useRef<number>();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -66,8 +67,7 @@ export default function LandingPage() {
     window.addEventListener('resize', updateCanvasSize);
 
     // Initialize beams
-    const initialBeams = Array.from({ length: 12 }, () => createBeam(canvas));
-    setBeams(initialBeams);
+    beamsRef.current = Array.from({ length: 12 }, () => createBeam(canvas));
 
     const resetBeam = (beam: Beam): Beam => {
       beam.y = canvas.height + 100;
@@ -100,33 +100,34 @@ export default function LandingPage() {
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      setBeams(currentBeams => {
-        return currentBeams.map(beam => {
-          // Update beam position
-          const radians = (beam.angle * Math.PI) / 180;
-          beam.x += Math.cos(radians + Math.PI / 2) * beam.speed;
-          beam.y += Math.sin(radians + Math.PI / 2) * beam.speed;
-          
-          // Update pulse
-          beam.pulse += beam.pulseSpeed;
-          
-          // Reset beam if it goes off screen
-          if (beam.y < -beam.length || beam.x < -beam.width || beam.x > canvas.width + beam.width) {
-            return resetBeam(beam);
-          }
-          
-          drawBeam(ctx, beam);
-          return beam;
-        });
+      beamsRef.current = beamsRef.current.map(beam => {
+        // Update beam position
+        const radians = (beam.angle * Math.PI) / 180;
+        beam.x += Math.cos(radians + Math.PI / 2) * beam.speed;
+        beam.y += Math.sin(radians + Math.PI / 2) * beam.speed;
+        
+        // Update pulse
+        beam.pulse += beam.pulseSpeed;
+        
+        // Reset beam if it goes off screen
+        if (beam.y < -beam.length || beam.x < -beam.width || beam.x > canvas.width + beam.width) {
+          return resetBeam(beam);
+        }
+        
+        drawBeam(ctx, beam);
+        return beam;
       });
       
-      requestAnimationFrame(animate);
+      animationFrameRef.current = requestAnimationFrame(animate);
     };
 
     animate();
 
     return () => {
       window.removeEventListener('resize', updateCanvasSize);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
     };
   }, []);
 

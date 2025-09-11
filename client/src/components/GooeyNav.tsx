@@ -24,32 +24,35 @@ export function GooeyNav({
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [indicatorStyle, setIndicatorStyle] = useState({});
   const navRef = useRef<HTMLDivElement>(null);
-  const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
 
   useEffect(() => {
     updateIndicator(hoveredIndex !== null ? hoveredIndex : activeIndex);
   }, [activeIndex, hoveredIndex]);
 
   const updateIndicator = (index: number) => {
-    const activeItem = itemRefs.current[index];
-    if (activeItem && navRef.current) {
-      const navRect = navRef.current.getBoundingClientRect();
-      const itemRect = activeItem.getBoundingClientRect();
+    if (navRef.current) {
+      const links = navRef.current.querySelectorAll('a');
+      const activeItem = links[index];
       
-      setIndicatorStyle({
-        width: itemRect.width + 16,
-        height: itemRect.height + 8,
-        transform: `translateX(${itemRect.left - navRect.left - 8}px)`,
-        opacity: hoveredIndex !== null ? 0.6 : 0.8,
-      });
+      if (activeItem) {
+        const navRect = navRef.current.getBoundingClientRect();
+        const itemRect = activeItem.getBoundingClientRect();
+        
+        setIndicatorStyle({
+          width: itemRect.width + 16,
+          height: itemRect.height + 8,
+          transform: `translateX(${itemRect.left - navRect.left - 8}px)`,
+          opacity: hoveredIndex !== null ? 0.6 : 0.8,
+        });
+      }
     }
   };
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative gooey-nav ${className}`} style={{ filter: 'url(#goo)' }}>
       <div 
         ref={navRef}
-        className="flex items-center space-x-1 bg-white/10 dark:bg-gray-800/30 backdrop-blur-md rounded-full px-2 py-2 border border-white/20 dark:border-gray-700/30"
+        className="relative flex items-center space-x-1 bg-white/10 dark:bg-gray-800/30 backdrop-blur-md rounded-full px-2 py-2 border border-white/20 dark:border-gray-700/30"
       >
         {/* Gooey Background Indicator */}
         <div
@@ -66,7 +69,6 @@ export function GooeyNav({
           <Link
             key={item.href}
             href={item.href}
-            ref={(el) => { itemRefs.current[index] = el; }}
             className={`
               relative z-10 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
               ${activeIndex === index 
@@ -74,9 +76,18 @@ export function GooeyNav({
                 : 'text-gray-300 hover:text-white'
               }
             `}
-            onMouseEnter={() => setHoveredIndex(index)}
-            onMouseLeave={() => setHoveredIndex(null)}
-            onClick={() => setActiveIndex(index)}
+            onMouseEnter={() => {
+              setHoveredIndex(index);
+              updateIndicator(index);
+            }}
+            onMouseLeave={() => {
+              setHoveredIndex(null);
+              updateIndicator(activeIndex);
+            }}
+            onClick={() => {
+              setActiveIndex(index);
+              updateIndicator(index);
+            }}
           >
             <div className="flex items-center space-x-2">
               {item.icon && <span className="text-lg">{item.icon}</span>}
