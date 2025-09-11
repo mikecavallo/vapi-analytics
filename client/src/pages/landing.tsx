@@ -149,19 +149,19 @@ export default function LandingPage() {
                   { href: "/why-invoxa", label: "Why Invoxa" },
                   { href: "/resources", label: "Resources" }
                 ]}
-                activeColor="rgba(59, 130, 246, 0.8)"
-                inactiveColor="rgba(75, 85, 99, 0.1)"
+                activeColor="rgba(147, 51, 234, 0.8)"
+                inactiveColor="rgba(139, 69, 19, 0.1)"
               />
             </div>
             
             <div className="flex items-center space-x-3">
               <Link href="/login">
-                <Button variant="ghost" className="text-gray-600 dark:text-gray-300">
+                <Button variant="ghost" className="text-purple-600 dark:text-purple-300 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/20">
                   Sign In
                 </Button>
               </Link>
               <Link href="/book-demo">
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white px-6">
+                <Button className="bg-purple-600 hover:bg-purple-700 text-white px-6 shadow-lg shadow-purple-500/25">
                   Book Demo
                 </Button>
               </Link>
