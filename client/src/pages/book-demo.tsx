@@ -1,0 +1,254 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Link } from "wouter";
+import { Home, Calendar, CheckCircle } from "lucide-react";
+import { useState } from "react";
+
+export default function BookDemoPage() {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    company: "",
+    role: "",
+    phone: "",
+    company_size: "",
+    use_case: "",
+    message: ""
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Form submission logic will be added here
+    console.log("Demo request:", formData);
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      {/* Navigation */}
+      <nav className="border-b bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-4">
+              <Link href="/">
+                <div className="flex items-center space-x-2 cursor-pointer">
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">I</span>
+                  </div>
+                  <span className="text-xl font-bold text-gray-900 dark:text-white">Invoxa.ai</span>
+                </div>
+              </Link>
+            </div>
+            
+            <div className="hidden md:flex items-center space-x-8">
+              <Link href="/">
+                <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer flex items-center gap-1">
+                  <Home className="w-4 h-4" />
+                  Home
+                </span>
+              </Link>
+              <Link href="/solutions">
+                <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Solutions</span>
+              </Link>
+              <Link href="/platform">
+                <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Platform</span>
+              </Link>
+              <Link href="/why-invoxa">
+                <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Why Invoxa</span>
+              </Link>
+              <Link href="/resources">
+                <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Resources</span>
+              </Link>
+              <span className="text-blue-600 dark:text-blue-400 font-medium">Book a Demo</span>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="py-20">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
+              Book Your Demo
+            </h1>
+            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
+              See Invoxa.ai in action. Get a personalized demo tailored to your voice AI needs and discover how we can transform your business.
+            </p>
+          </div>
+
+          {/* Demo Request Form */}
+          <Card className="border-0 shadow-xl">
+            <CardHeader className="text-center">
+              <CardTitle className="flex items-center justify-center gap-3">
+                <Calendar className="w-6 h-6 text-blue-600" />
+                Schedule Your Personalized Demo
+              </CardTitle>
+              <CardDescription>
+                Fill out the form below and we'll get back to you within 24 hours to schedule your demo
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => handleInputChange("name", e.target.value)}
+                      placeholder="Your full name"
+                      required
+                      data-testid="input-name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange("email", e.target.value)}
+                      placeholder="your.email@company.com"
+                      required
+                      data-testid="input-email"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="company">Company *</Label>
+                    <Input
+                      id="company"
+                      value={formData.company}
+                      onChange={(e) => handleInputChange("company", e.target.value)}
+                      placeholder="Your company name"
+                      required
+                      data-testid="input-company"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Your Role *</Label>
+                    <Input
+                      id="role"
+                      value={formData.role}
+                      onChange={(e) => handleInputChange("role", e.target.value)}
+                      placeholder="e.g. VP of Customer Success"
+                      required
+                      data-testid="input-role"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange("phone", e.target.value)}
+                      placeholder="+1 (555) 123-4567"
+                      data-testid="input-phone"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="company_size">Company Size *</Label>
+                    <Select value={formData.company_size} onValueChange={(value) => handleInputChange("company_size", value)}>
+                      <SelectTrigger data-testid="select-company-size">
+                        <SelectValue placeholder="Select company size" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1-10">1-10 employees</SelectItem>
+                        <SelectItem value="11-50">11-50 employees</SelectItem>
+                        <SelectItem value="51-200">51-200 employees</SelectItem>
+                        <SelectItem value="201-500">201-500 employees</SelectItem>
+                        <SelectItem value="501-1000">501-1000 employees</SelectItem>
+                        <SelectItem value="1000+">1000+ employees</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="use_case">Primary Use Case *</Label>
+                  <Select value={formData.use_case} onValueChange={(value) => handleInputChange("use_case", value)}>
+                    <SelectTrigger data-testid="select-use-case">
+                      <SelectValue placeholder="What's your primary use case?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="customer-service">Customer Service</SelectItem>
+                      <SelectItem value="sales">Sales & Lead Qualification</SelectItem>
+                      <SelectItem value="healthcare">Healthcare</SelectItem>
+                      <SelectItem value="education">Education</SelectItem>
+                      <SelectItem value="finance">Finance & Banking</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="message">Tell us about your voice AI goals</Label>
+                  <Textarea
+                    id="message"
+                    value={formData.message}
+                    onChange={(e) => handleInputChange("message", e.target.value)}
+                    placeholder="What are you hoping to achieve with voice AI? What challenges are you facing?"
+                    rows={4}
+                    data-testid="textarea-message"
+                  />
+                </div>
+
+                <Button 
+                  type="submit" 
+                  size="lg" 
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                  data-testid="button-submit-demo"
+                >
+                  <CheckCircle className="mr-2" size={20} />
+                  Request Demo
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* What to Expect Section */}
+          <div className="mt-12 text-center">
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">What to Expect</h3>
+            <div className="grid md:grid-cols-3 gap-8">
+              <div>
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <span className="text-blue-600 font-bold text-lg">1</span>
+                </div>
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Quick Response</h4>
+                <p className="text-gray-600 dark:text-gray-300">We'll contact you within 24 hours to schedule your demo</p>
+              </div>
+              <div>
+                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <span className="text-purple-600 font-bold text-lg">2</span>
+                </div>
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Personalized Demo</h4>
+                <p className="text-gray-600 dark:text-gray-300">30-minute demo tailored to your specific use case</p>
+              </div>
+              <div>
+                <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <span className="text-green-600 font-bold text-lg">3</span>
+                </div>
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Next Steps</h4>
+                <p className="text-gray-600 dark:text-gray-300">Clear roadmap for implementing Invoxa.ai</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
