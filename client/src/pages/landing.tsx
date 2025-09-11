@@ -3,52 +3,194 @@ import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BarChart3, Users, Zap, Shield, ArrowRight, CheckCircle, Star, Globe, Headphones, Mic, Settings, PieChart, TrendingUp, Brain, Sparkles } from 'lucide-react';
+import { BarChart3, Users, Zap, Shield, ArrowRight, CheckCircle, Star, Globe, Headphones, Mic, Settings, PieChart, TrendingUp, Brain, Sparkles, Phone, PhoneCall, Activity } from 'lucide-react';
 import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen">
       {/* Navigation */}
-      <nav className="container mx-auto px-4 py-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <img src={logoTransparent} alt="Invoxa.ai" className="h-8" style={{ width: 'auto' }} />
-          </div>
-          <div className="flex items-center space-x-4">
-            <Link href="/login">
-              <Button variant="ghost" data-testid="link-login">Sign In</Button>
-            </Link>
-            <Link href="/signup">
-              <Button data-testid="link-signup">Get Started</Button>
-            </Link>
+      <nav className="relative z-10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <img src={logoTransparent} alt="Invoxa.ai" className="h-8" style={{ width: 'auto' }} />
+            </div>
+            <div className="hidden md:flex items-center space-x-8">
+              <Link href="/solutions">
+                <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Solutions</span>
+              </Link>
+              <Link href="/platform">
+                <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Platform</span>
+              </Link>
+              <Link href="/why-invoxa">
+                <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Why Invoxa</span>
+              </Link>
+              <Link href="/resources">
+                <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Resources</span>
+              </Link>
+              <Link href="/book-demo">
+                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                  Book a Demo
+                </Button>
+              </Link>
+            </div>
+            <div className="md:hidden flex items-center space-x-4">
+              <Link href="/login">
+                <Button variant="ghost" size="sm" data-testid="link-login">Sign In</Button>
+              </Link>
+              <Link href="/book-demo">
+                <Button size="sm" data-testid="link-signup">Book Demo</Button>
+              </Link>
+            </div>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-16 text-center">
-        <Badge variant="secondary" className="mb-4">
-          🚀 Advanced Voice AI Analytics Platform
-        </Badge>
-        <h1 className="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
-          Unlock the Power of
-          <span className="text-blue-600 block">Voice AI Analytics</span>
-        </h1>
-        <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-          Transform your voice AI data into actionable insights. Monitor performance, optimize conversations, 
-          and drive better outcomes with our comprehensive analytics dashboard.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link href="/signup">
-            <Button size="lg" className="text-lg px-8 py-3" data-testid="button-get-started">
-              Get Started Free
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
-          </Link>
-          <Button variant="outline" size="lg" className="text-lg px-8 py-3">
-            Watch Demo
-          </Button>
+      <section className="relative min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 overflow-hidden">
+        {/* Neon accent effects */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-violet-500/10 rounded-full blur-3xl animate-pulse delay-500"></div>
+        </div>
+
+        <div className="relative z-10 container mx-auto px-4 py-20 min-h-screen flex items-center">
+          <div className="grid lg:grid-cols-2 gap-16 items-center w-full">
+            {/* Left Side - Content */}
+            <div className="text-white space-y-8">
+              <div className="space-y-6">
+                <h1 className="text-4xl md:text-6xl font-bold leading-tight">
+                  <span className="text-transparent bg-gradient-to-r from-blue-300 to-purple-300 bg-clip-text">
+                    AI Agents That Work Like People,
+                  </span>
+                  <br />
+                  <span className="text-white">Without the Payroll</span>
+                </h1>
+                <p className="text-xl text-gray-300 leading-relaxed max-w-lg">
+                  We build, deploy, and manage AI voice agents, chatbots, and automations tailored to your business. Simple to use. Backed by our own platform.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link href="/book-demo">
+                  <Button size="lg" className="text-lg px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0 shadow-lg hover:shadow-xl transition-all" data-testid="button-book-demo">
+                    Book a Demo
+                    <ArrowRight className="ml-2 w-5 h-5" />
+                  </Button>
+                </Link>
+                <Link href="/solutions">
+                  <Button variant="outline" size="lg" className="text-lg px-8 py-4 border-gray-400 text-white hover:bg-white/10 hover:border-white transition-all" data-testid="button-explore-solutions">
+                    Explore Solutions
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            {/* Right Side - Split Visual */}
+            <div className="relative h-[600px]">
+              {/* Phone Call Interface - Left */}
+              <div className="absolute left-0 top-0 w-[48%] h-full">
+                <div className="bg-gray-900/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 shadow-2xl h-full">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-green-400 font-medium">Active Call</span>
+                    </div>
+                    <PhoneCall className="w-6 h-6 text-gray-400" />
+                  </div>
+                  
+                  <div className="space-y-4 mb-8">
+                    <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-lg p-4">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                          <span className="text-xs font-bold text-white">IA</span>
+                        </div>
+                        <span className="text-blue-300 font-medium">Invoxa Agent</span>
+                      </div>
+                      <p className="text-gray-300 text-sm">"Hi! I'm calling about your recent inquiry. How can I help you today?"</p>
+                    </div>
+                    
+                    <div className="bg-gray-800/50 border border-gray-600/30 rounded-lg p-4">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <Phone className="w-5 h-5 text-gray-400" />
+                        <span className="text-gray-400">Customer</span>
+                      </div>
+                      <p className="text-gray-300 text-sm">"Yes, I'd like to know more about your pricing options..."</p>
+                    </div>
+                  </div>
+                  
+                  <div className="absolute bottom-6 left-6 right-6">
+                    <div className="bg-green-500/20 border border-green-400/30 rounded-lg p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-green-400 text-sm font-medium">Call Duration</span>
+                        <span className="text-green-300 font-mono">02:34</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dashboard UI - Right */}
+              <div className="absolute right-0 top-0 w-[48%] h-full">
+                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 shadow-2xl h-full">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-white font-semibold flex items-center">
+                      <Activity className="w-5 h-5 mr-2 text-purple-400" />
+                      VoiceScope Analytics
+                    </h3>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                      <span className="text-green-400 text-xs">Live</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4 mb-6">
+                    <div className="bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-400/30 rounded-lg p-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-blue-200 text-sm">Active Calls</span>
+                        <span className="text-blue-300 font-bold text-2xl">247</span>
+                      </div>
+                      <div className="w-full bg-blue-900/30 rounded-full h-2 mt-2">
+                        <div className="bg-gradient-to-r from-blue-400 to-cyan-400 h-2 rounded-full" style={{width: '73%'}}></div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-gradient-to-r from-purple-500/20 to-violet-500/20 border border-purple-400/30 rounded-lg p-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-purple-200 text-sm">Success Rate</span>
+                        <span className="text-purple-300 font-bold text-2xl">94.2%</span>
+                      </div>
+                      <div className="text-green-400 text-xs mt-1">↑ 12.3% from last week</div>
+                    </div>
+                    
+                    <div className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 border border-emerald-400/30 rounded-lg p-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-emerald-200 text-sm">Avg Duration</span>
+                        <span className="text-emerald-300 font-bold text-2xl">2m 34s</span>
+                      </div>
+                      <div className="text-green-400 text-xs mt-1">Optimal range</div>
+                    </div>
+                  </div>
+                  
+                  <div className="absolute bottom-6 left-6 right-6">
+                    <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-400/30 rounded-lg p-3">
+                      <div className="flex items-center space-x-2">
+                        <Sparkles className="w-4 h-4 text-yellow-400" />
+                        <span className="text-yellow-200 text-xs font-medium">AI Insight:</span>
+                      </div>
+                      <p className="text-yellow-100 text-xs mt-1">25% increase in positive sentiment detected</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Connection line between the two panels */}
+              <div className="absolute top-1/2 left-[48%] w-[4%] h-px bg-gradient-to-r from-blue-400 to-purple-400 transform -translate-y-1/2">
+                <div className="absolute left-1/2 top-1/2 w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full transform -translate-x-1/2 -translate-y-1/2 animate-pulse"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
