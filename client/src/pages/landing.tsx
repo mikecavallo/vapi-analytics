@@ -3,7 +3,7 @@ import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BarChart3, Users, Zap, Shield, ArrowRight, CheckCircle, Star, Globe, Headphones, Mic, Settings, PieChart, TrendingUp, Brain, Sparkles, Phone, PhoneCall, Activity, MessageCircle, Cog, Database, Hand } from 'lucide-react';
+import { BarChart3, Users, Zap, Shield, ArrowRight, CheckCircle, Star, Globe, Headphones, Mic, Settings, PieChart, TrendingUp, Brain, Sparkles, Phone, PhoneCall, Activity, MessageCircle, Cog, Database, Hand, Quote } from 'lucide-react';
 import { motion } from 'framer-motion';
 import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 
@@ -749,6 +749,119 @@ export default function LandingPage() {
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Proof & Trust Section */}
+      <section className="bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20 py-20">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
+              Trusted by Teams Ready to Scale
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+              From startups to established businesses, we deliver results that matter: more leads answered, more customers converted, less time wasted.
+            </p>
+          </div>
+
+          {/* Testimonials */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+            {/* Testimonial Card 1 */}
+            <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-start space-x-1 mb-4">
+                  <Quote className="w-6 h-6 text-blue-500 flex-shrink-0" />
+                  <div className="flex text-yellow-400">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-current" />
+                    ))}
+                  </div>
+                </div>
+                <blockquote className="text-gray-700 dark:text-gray-300 mb-4 italic">
+                  "Our call response rate increased by 40% in the first month. The white-glove setup meant we were live in hours, not weeks."
+                </blockquote>
+                <div className="border-t pt-4">
+                  <div className="font-semibold text-gray-900 dark:text-white">Sarah Chen</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">VP of Operations, TechStart Inc.</div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Testimonial Card 2 */}
+            <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-start space-x-1 mb-4">
+                  <Quote className="w-6 h-6 text-purple-500 flex-shrink-0" />
+                  <div className="flex text-yellow-400">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-current" />
+                    ))}
+                  </div>
+                </div>
+                <blockquote className="text-gray-700 dark:text-gray-300 mb-4 italic">
+                  "Finally, AI that works like we promised our customers. The support team feels like an extension of our company."
+                </blockquote>
+                <div className="border-t pt-4">
+                  <div className="font-semibold text-gray-900 dark:text-white">Marcus Rodriguez</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">CEO, GrowthCorp</div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Testimonial Card 3 */}
+            <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 md:col-span-2 lg:col-span-1">
+              <CardContent className="p-6">
+                <div className="flex items-start space-x-1 mb-4">
+                  <Quote className="w-6 h-6 text-green-500 flex-shrink-0" />
+                  <div className="flex text-yellow-400">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-current" />
+                    ))}
+                  </div>
+                </div>
+                <blockquote className="text-gray-700 dark:text-gray-300 mb-4 italic">
+                  "We went from missing 60% of leads to capturing 95%. The ROI was immediate and measurable."
+                </blockquote>
+                <div className="border-t pt-4">
+                  <div className="font-semibold text-gray-900 dark:text-white">Jennifer Kim</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Director of Sales, ScaleUp Solutions</div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Logo Bar Placeholder */}
+          <div className="text-center">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 uppercase tracking-wider font-medium">
+              Trusted by Leading Companies
+            </p>
+            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12 opacity-60">
+              {/* Logo Placeholder 1 */}
+              <div className="bg-gray-200 dark:bg-gray-700 rounded-lg w-32 h-12 flex items-center justify-center">
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Client Logo</span>
+              </div>
+              
+              {/* Logo Placeholder 2 */}
+              <div className="bg-gray-200 dark:bg-gray-700 rounded-lg w-32 h-12 flex items-center justify-center">
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Client Logo</span>
+              </div>
+              
+              {/* Logo Placeholder 3 */}
+              <div className="bg-gray-200 dark:bg-gray-700 rounded-lg w-32 h-12 flex items-center justify-center">
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Client Logo</span>
+              </div>
+              
+              {/* Logo Placeholder 4 */}
+              <div className="bg-gray-200 dark:bg-gray-700 rounded-lg w-32 h-12 flex items-center justify-center">
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Client Logo</span>
+              </div>
+              
+              {/* Logo Placeholder 5 */}
+              <div className="bg-gray-200 dark:bg-gray-700 rounded-lg w-32 h-12 flex items-center justify-center">
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Client Logo</span>
               </div>
             </div>
           </div>
