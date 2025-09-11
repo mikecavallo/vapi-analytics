@@ -21,13 +21,12 @@ export function GooeyNav({
   inactiveColor = 'rgba(75, 85, 99, 0.1)'
 }: GooeyNavProps) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [indicatorStyle, setIndicatorStyle] = useState({});
   const navRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    updateIndicator(hoveredIndex !== null ? hoveredIndex : activeIndex);
-  }, [activeIndex, hoveredIndex]);
+    updateIndicator(activeIndex);
+  }, [activeIndex]);
 
   const updateIndicator = (index: number) => {
     if (navRef.current) {
@@ -42,7 +41,7 @@ export function GooeyNav({
           width: itemRect.width + 16,
           height: itemRect.height + 8,
           transform: `translateX(${itemRect.left - navRect.left - 8}px)`,
-          opacity: hoveredIndex !== null ? 0.6 : 0.8,
+          opacity: 1,
         });
       }
     }
@@ -72,18 +71,10 @@ export function GooeyNav({
             className={`
               relative z-10 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
               ${activeIndex === index 
-                ? 'text-white' 
-                : 'text-gray-300 hover:text-white'
+                ? 'text-white font-semibold' 
+                : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
               }
             `}
-            onMouseEnter={() => {
-              setHoveredIndex(index);
-              updateIndicator(index);
-            }}
-            onMouseLeave={() => {
-              setHoveredIndex(null);
-              updateIndicator(activeIndex);
-            }}
             onClick={() => {
               setActiveIndex(index);
               updateIndicator(index);
