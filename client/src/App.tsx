@@ -17,19 +17,29 @@ import SignupPage from "@/pages/signup";
 import VerifyEmailPage from "@/pages/verify-email";
 import AgencyPage from "@/pages/agency";
 import LandingPage from "@/pages/landing";
+import SolutionsPage from "@/pages/solutions";
+import PlatformPage from "@/pages/platform";
+import WhyInvoxaPage from "@/pages/why-invoxa";
+import ResourcesPage from "@/pages/resources";
+import BookDemoPage from "@/pages/book-demo";
 import { useEffect } from "react";
 
 function AppRouter() {
   const { isAuthenticated, isLoading } = useAuth();
   const [location, setLocation] = useLocation();
 
-  // Redirect unauthenticated users to login, but allow public routes
+  // Redirect unauthenticated users to landing page, but allow public routes
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && 
-        !location.startsWith('/login') && 
-        !location.startsWith('/signup') && 
-        !location.startsWith('/verify-email') &&
-        location !== '/') {
+    const publicRoutes = [
+      '/', '/login', '/signup', '/verify-email',
+      '/solutions', '/platform', '/why-invoxa', '/resources', '/book-demo'
+    ];
+    
+    const isPublicRoute = publicRoutes.some(route => 
+      location === route || location.startsWith(route + '/')
+    );
+    
+    if (!isLoading && !isAuthenticated && !isPublicRoute) {
       setLocation('/');
     }
   }, [isAuthenticated, isLoading, location, setLocation]);
@@ -38,6 +48,11 @@ function AppRouter() {
     <Switch>
       {/* Public routes */}
       <Route path="/" component={LandingPage} />
+      <Route path="/solutions" component={SolutionsPage} />
+      <Route path="/platform" component={PlatformPage} />
+      <Route path="/why-invoxa" component={WhyInvoxaPage} />
+      <Route path="/resources" component={ResourcesPage} />
+      <Route path="/book-demo" component={BookDemoPage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/signup" component={SignupPage} />
       <Route path="/verify-email" component={VerifyEmailPage} />
