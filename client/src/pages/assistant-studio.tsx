@@ -35,6 +35,7 @@ import {
   HelpCircle,
   Users
 } from "lucide-react";
+import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
 import { useAuth } from "@/contexts/auth-context";
