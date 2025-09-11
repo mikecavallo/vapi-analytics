@@ -9,7 +9,6 @@ import logoTransparent from "@assets/logo_transparent_1757609077252.png";
 import { PlasmaBackground } from '@/components/PlasmaBackground';
 import { SplitText } from '@/components/SplitText';
 import { ShinyText } from '@/components/ShinyText';
-import { GooeyNav } from '@/components/GooeyNav';
 
 interface Beam {
   x: number;
@@ -141,17 +140,19 @@ export default function LandingPage() {
               <img src={logoTransparent} alt="Invoxa.ai" className="h-8" />
             </div>
             
-            <div className="hidden md:flex items-center">
-              <GooeyNav
-                items={[
-                  { href: "/solutions", label: "Solutions" },
-                  { href: "/platform", label: "Platform" },
-                  { href: "/why-invoxa", label: "Why Invoxa" },
-                  { href: "/resources", label: "Resources" }
-                ]}
-                activeColor="rgba(8, 145, 178, 0.8)"
-                inactiveColor="rgba(30, 58, 138, 0.1)"
-              />
+            <div className="hidden md:flex items-center space-x-8">
+              <Link href="/solutions">
+                <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Solutions</span>
+              </Link>
+              <Link href="/platform">
+                <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Platform</span>
+              </Link>
+              <Link href="/why-invoxa">
+                <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Why Invoxa</span>
+              </Link>
+              <Link href="/resources">
+                <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Resources</span>
+              </Link>
             </div>
             
             <div className="flex items-center space-x-3">
@@ -171,7 +172,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-900 via-blue-800 to-violet-900 text-white min-h-[90vh] flex items-center">
+      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-cyan-900 text-white min-h-[90vh] flex items-center">
         {/* Plasma Background */}
         <PlasmaBackground className="opacity-40" />
         {/* Animated Background Beams */}
@@ -190,9 +191,9 @@ export default function LandingPage() {
             className="space-y-8"
           >
             <div className="space-y-6">
-              <div className="inline-flex items-center space-x-2 bg-blue-500/20 rounded-full px-4 py-2 border border-blue-300/30">
-                <Sparkles className="w-4 h-4 text-blue-300" />
-                <span className="text-sm text-blue-100">Transform Your Customer Experience</span>
+              <div className="inline-flex items-center space-x-2 bg-cyan-500/20 rounded-full px-4 py-2 border border-cyan-300/30">
+                <Sparkles className="w-4 h-4 text-cyan-300" />
+                <span className="text-sm text-cyan-100">Transform Your Customer Experience</span>
               </div>
               
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
@@ -205,14 +206,14 @@ export default function LandingPage() {
                 />
                 <SplitText 
                   text="Without the Payroll"
-                  className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-violet-300 inline"
+                  className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-300 inline"
                   animationType="fadeInUp"
                   delay={1.2}
                   stagger={0.08}
                 />
               </h1>
               
-              <p className="text-xl md:text-2xl text-blue-100 max-w-2xl">
+              <p className="text-xl md:text-2xl text-cyan-100 max-w-2xl">
                 <ShinyText 
                   text="Deploy intelligent voice assistants that handle your calls, capture every lead, and scale your business—all while you sleep."
                   shimmerDuration={3}
@@ -224,13 +225,13 @@ export default function LandingPage() {
             
             <div className="flex flex-col sm:flex-row gap-4">
               <Link href="/book-demo">
-                <Button size="lg" className="bg-white text-blue-900 hover:bg-gray-100 text-lg px-8 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300">
+                <Button size="lg" className="bg-white text-slate-900 hover:bg-gray-100 text-lg px-8 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300">
                   Book Your Demo
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </Link>
               <Link href="/solutions">
-                <Button variant="outline" size="lg" className="border-2 border-white text-white hover:bg-white hover:text-blue-900 text-lg px-8 py-4 rounded-xl font-semibold bg-transparent transition-all duration-300">
+                <Button variant="outline" size="lg" className="border-2 border-white text-white hover:bg-white hover:text-slate-900 text-lg px-8 py-4 rounded-xl font-semibold bg-transparent transition-all duration-300">
                   Explore Solutions
                   <Globe className="ml-2 w-5 h-5" />
                 </Button>
