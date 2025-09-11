@@ -3,7 +3,7 @@ import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BarChart3, Users, Zap, Shield, ArrowRight, CheckCircle, Star, Globe, Headphones, Mic, Settings, PieChart, TrendingUp, Brain, Sparkles, Phone, PhoneCall, Activity, MessageCircle, Cog, Database } from 'lucide-react';
+import { BarChart3, Users, Zap, Shield, ArrowRight, CheckCircle, Star, Globe, Headphones, Mic, Settings, PieChart, TrendingUp, Brain, Sparkles, Phone, PhoneCall, Activity, MessageCircle, Cog, Database, Hand } from 'lucide-react';
 import { motion } from 'framer-motion';
 import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 
@@ -603,6 +603,154 @@ export default function LandingPage() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Why Invoxa Section */}
+      <section className="bg-white dark:bg-gray-900 py-20">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-8">
+              The White-Glove AI Partner
+            </h2>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            {/* Left Side - Comparison Visual */}
+            <div className="relative">
+              {/* Generic SaaS Interface (Grayed Out) */}
+              <div className="relative mb-8 lg:mb-0">
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-6 border-2 border-gray-300 dark:border-gray-600 opacity-60">
+                  <div className="bg-gray-200 dark:bg-gray-700 rounded-lg p-4 mb-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-20 h-4 bg-gray-300 dark:bg-gray-600 rounded"></div>
+                      <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="w-full h-3 bg-gray-300 dark:bg-gray-600 rounded"></div>
+                      <div className="w-3/4 h-3 bg-gray-300 dark:bg-gray-600 rounded"></div>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="bg-gray-200 dark:bg-gray-700 rounded p-3">
+                      <div className="w-24 h-3 bg-gray-300 dark:bg-gray-600 rounded mb-2"></div>
+                      <div className="w-16 h-6 bg-gray-300 dark:bg-gray-600 rounded"></div>
+                    </div>
+                    <div className="bg-gray-200 dark:bg-gray-700 rounded p-3">
+                      <div className="w-20 h-3 bg-gray-300 dark:bg-gray-600 rounded mb-2"></div>
+                      <div className="w-12 h-6 bg-gray-300 dark:bg-gray-600 rounded"></div>
+                    </div>
+                  </div>
+                  <div className="text-center mt-4">
+                    <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">Generic SaaS Tool</div>
+                    <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">"Figure it out yourself"</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* VS Divider with White Glove Icon */}
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
+                <div className="bg-white dark:bg-gray-900 rounded-full p-4 shadow-xl border-4 border-blue-500">
+                  <Hand className="w-8 h-8 text-blue-600" />
+                </div>
+              </div>
+
+              {/* Invoxa Dashboard (Polished) */}
+              <div className="absolute top-0 right-0 lg:relative lg:top-auto lg:right-auto">
+                <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl p-6 border-2 border-blue-300 dark:border-blue-600 shadow-xl">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4 border border-blue-200 dark:border-blue-700">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded"></div>
+                        <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">Invoxa Dashboard</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-xs text-green-600">Live</span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-blue-50 dark:bg-blue-900/30 rounded p-2">
+                        <div className="text-lg font-bold text-blue-600">94.2%</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400">Success Rate</div>
+                      </div>
+                      <div className="bg-green-50 dark:bg-green-900/30 rounded p-2">
+                        <div className="text-lg font-bold text-green-600">247</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400">Active Calls</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg p-3">
+                    <div className="flex items-center space-x-2">
+                      <Sparkles className="w-4 h-4 text-blue-600" />
+                      <span className="text-xs font-medium text-blue-800 dark:text-blue-300">White-Glove Support Active</span>
+                    </div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      "Your dedicated team is monitoring performance"
+                    </div>
+                  </div>
+                  <div className="text-center mt-4">
+                    <div className="text-sm text-blue-600 dark:text-blue-400 font-medium">Invoxa Platform</div>
+                    <div className="text-xs text-blue-500 dark:text-blue-300 mt-1">"We handle everything"</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Side - Benefits */}
+            <div className="space-y-8">
+              <div className="flex items-start space-x-4">
+                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Zap className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                    Agents live in hours, not weeks.
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    While others give you tools to build with, we deliver working AI agents ready to serve your customers immediately.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-4">
+                <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Shield className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                    We handle deployment, training, and monitoring.
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    No more wrestling with configurations or wondering if your AI is performing well. Our team manages everything behind the scenes.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-4">
+                <div className="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Hand className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                    Hands-on support and strategy, not "DIY docs."
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Get real human experts who understand your business goals and optimize your AI agents for maximum impact.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-6">
+                <Link href="/book-demo">
+                  <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg px-8 py-4">
+                    Experience White-Glove Service
+                    <ArrowRight className="ml-2 w-5 h-5" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
