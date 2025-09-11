@@ -1,12 +1,133 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BarChart3, Users, Zap, Shield, ArrowRight, CheckCircle, Star, Globe, Headphones, Mic, Settings, PieChart, TrendingUp, Brain, Sparkles, Phone, PhoneCall, Activity, MessageCircle, Cog, Database } from 'lucide-react';
+import { motion } from 'framer-motion';
 import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 
+interface Beam {
+  x: number;
+  y: number;
+  width: number;
+  length: number;
+  angle: number;
+  speed: number;
+  opacity: number;
+  hue: number;
+  pulse: number;
+  pulseSpeed: number;
+}
+
+function createBeam(width: number, height: number): Beam {
+  const angle = -35 + Math.random() * 10;
+  return {
+    x: Math.random() * width * 1.5 - width * 0.25,
+    y: Math.random() * height * 1.5 - height * 0.25,
+    width: 30 + Math.random() * 60,
+    length: height * 2.5,
+    angle: angle,
+    speed: 0.6 + Math.random() * 1.2,
+    opacity: 0.08 + Math.random() * 0.12, // Reduced for subtlety
+    hue: 220 + Math.random() * 40, // Blue-purple range for your theme
+    pulse: Math.random() * Math.PI * 2,
+    pulseSpeed: 0.02 + Math.random() * 0.03,
+  };
+}
+
 export default function LandingPage() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const beamsRef = useRef<Beam[]>([]);
+  const animationFrameRef = useRef<number>(0);
+  const MINIMUM_BEAMS = 15; // Reduced for better performance
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const updateCanvasSize = () => {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      canvas.style.width = `${window.innerWidth}px`;
+      canvas.style.height = `${window.innerHeight}px`;
+      ctx.scale(dpr, dpr);
+
+      const totalBeams = MINIMUM_BEAMS;
+      beamsRef.current = Array.from({ length: totalBeams }, () => 
+        createBeam(canvas.width, canvas.height)
+      );
+    };
+
+    updateCanvasSize();
+    window.addEventListener("resize", updateCanvasSize);
+
+    function resetBeam(beam: Beam, index: number, totalBeams: number) {
+      if (!canvas) return beam;
+
+      beam.y = canvas.height + 100;
+      beam.x = Math.random() * canvas.width;
+      beam.width = 40 + Math.random() * 80;
+      beam.speed = 0.3 + Math.random() * 0.4;
+      beam.hue = 220 + Math.random() * 40; // Blue-purple theme
+      beam.opacity = 0.08 + Math.random() * 0.12;
+      return beam;
+    }
+
+    function drawBeam(ctx: CanvasRenderingContext2D, beam: Beam) {
+      ctx.save();
+      ctx.translate(beam.x, beam.y);
+      ctx.rotate((beam.angle * Math.PI) / 180);
+
+      const pulsingOpacity = beam.opacity * (0.8 + Math.sin(beam.pulse) * 0.2);
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, beam.length);
+      gradient.addColorStop(0, `hsla(${beam.hue}, 70%, 60%, 0)`);
+      gradient.addColorStop(0.1, `hsla(${beam.hue}, 70%, 60%, ${pulsingOpacity * 0.3})`);
+      gradient.addColorStop(0.4, `hsla(${beam.hue}, 70%, 60%, ${pulsingOpacity})`);
+      gradient.addColorStop(0.6, `hsla(${beam.hue}, 70%, 60%, ${pulsingOpacity})`);
+      gradient.addColorStop(0.9, `hsla(${beam.hue}, 70%, 60%, ${pulsingOpacity * 0.3})`);
+      gradient.addColorStop(1, `hsla(${beam.hue}, 70%, 60%, 0)`);
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(-beam.width / 2, 0, beam.width, beam.length);
+      ctx.restore();
+    }
+
+    function animate() {
+      if (!canvas || !ctx) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.filter = "blur(20px)";
+
+      const totalBeams = beamsRef.current.length;
+      beamsRef.current.forEach((beam, index) => {
+        beam.y -= beam.speed;
+        beam.pulse += beam.pulseSpeed;
+
+        if (beam.y + beam.length < -100) {
+          resetBeam(beam, index, totalBeams);
+        }
+
+        drawBeam(ctx, beam);
+      });
+
+      animationFrameRef.current = requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    return () => {
+      window.removeEventListener("resize", updateCanvasSize);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
   return (
     <div className="min-h-screen">
       {/* Navigation */}
@@ -49,12 +170,35 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 overflow-hidden">
+        {/* Animated Beams Background */}
+        <canvas 
+          ref={canvasRef} 
+          className="absolute inset-0 pointer-events-none" 
+          style={{ filter: "blur(15px)" }}
+        />
+        
         {/* Neon accent effects */}
         <div className="absolute inset-0">
           <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-violet-500/10 rounded-full blur-3xl animate-pulse delay-500"></div>
         </div>
+
+        {/* Additional subtle overlay for depth */}
+        <motion.div
+          className="absolute inset-0 bg-slate-900/10"
+          animate={{
+            opacity: [0.05, 0.15, 0.05],
+          }}
+          transition={{
+            duration: 8,
+            ease: "easeInOut",
+            repeat: Infinity,
+          }}
+          style={{
+            backdropFilter: "blur(30px)",
+          }}
+        />
 
         <div className="relative z-10 container mx-auto px-4 py-20 min-h-screen flex items-center">
           <div className="grid lg:grid-cols-2 gap-16 items-center w-full">
