@@ -59,7 +59,7 @@ export function GooeyNav({
           style={{
             ...indicatorStyle,
             filter: 'blur(1px)',
-            background: `linear-gradient(45deg, ${activeColor}, rgba(147, 51, 234, 0.6))`,
+            background: `linear-gradient(45deg, ${activeColor}, rgba(8, 145, 178, 0.6))`,
           }}
         />
         
