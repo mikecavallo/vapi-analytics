@@ -6,6 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { BarChart3, Users, Zap, Shield, ArrowRight, CheckCircle, Star, Globe, Headphones, Mic, Settings, PieChart, TrendingUp, Brain, Sparkles, Phone, PhoneCall, Activity, MessageCircle, Cog, Database, Hand, Quote } from 'lucide-react';
 import { motion } from 'framer-motion';
 import logoTransparent from "@assets/logo_transparent_1757373755849.png";
+import { PlasmaBackground } from '@/components/PlasmaBackground';
+import { SplitText } from '@/components/SplitText';
+import { ShinyText } from '@/components/ShinyText';
 
 interface Beam {
   x: number;
@@ -170,10 +173,12 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-blue-900 via-blue-800 to-violet-900 text-white min-h-[90vh] flex items-center">
+        {/* Plasma Background */}
+        <PlasmaBackground className="opacity-40" />
         {/* Animated Background Beams */}
         <canvas
           ref={canvasRef}
-          className="absolute inset-0 w-full h-full opacity-30"
+          className="absolute inset-0 w-full h-full opacity-20"
           style={{ mixBlendMode: 'lighten' }}
         />
         
@@ -192,14 +197,29 @@ export default function LandingPage() {
               </div>
               
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
-                AI Agents That Work Like People,{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-violet-300">
-                  Without the Payroll
-                </span>
+                <SplitText 
+                  text="AI Agents That Work Like People, " 
+                  className="inline"
+                  animationType="fadeInUp"
+                  delay={0.5}
+                  stagger={0.05}
+                />
+                <SplitText 
+                  text="Without the Payroll"
+                  className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-violet-300 inline"
+                  animationType="fadeInUp"
+                  delay={1.2}
+                  stagger={0.08}
+                />
               </h1>
               
               <p className="text-xl md:text-2xl text-blue-100 max-w-2xl">
-                Deploy intelligent voice assistants that handle your calls, capture every lead, and scale your business—all while you sleep.
+                <ShinyText 
+                  text="Deploy intelligent voice assistants that handle your calls, capture every lead, and scale your business—all while you sleep."
+                  shimmerDuration={3}
+                  shimmerDelay={2}
+                  shimmerColor="rgba(191, 219, 254, 0.8)"
+                />
               </p>
             </div>
             
