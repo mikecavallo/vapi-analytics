@@ -928,7 +928,7 @@ Please provide optimization suggestions in JSON format:
   });
 
   // Performance Benchmarks endpoint
-  // Removed performance-benchmarks endpoint
+  app.get("/api/performance-benchmarks", async (req: Request, res: Response) => {
     try {
       const vapiApiKey = process.env.VAPI_API_KEY || "";
       
