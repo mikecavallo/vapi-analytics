@@ -198,12 +198,21 @@ export default function LandingPage() {
               
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
                 <SplitText 
-                  text="AI Agents That Work Like People, " 
+                  text="AI Agents That " 
                   className="inline"
                   animationType="fadeInUp"
                   delay={0.5}
                   stagger={0.05}
                 />
+                <br className="block sm:hidden" />
+                <SplitText 
+                  text="Work Like People, " 
+                  className="inline"
+                  animationType="fadeInUp"
+                  delay={0.8}
+                  stagger={0.05}
+                />
+                <br />
                 <SplitText 
                   text="Without the Payroll"
                   className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-300 inline"
