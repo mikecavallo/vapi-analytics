@@ -196,31 +196,35 @@ export default function LandingPage() {
                 <span className="text-sm text-cyan-100">Transform Your Customer Experience</span>
               </div>
               
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
-                <SplitText 
-                  text="AI Agents That Work " 
-                  className="inline"
-                  animationType="fadeInUp"
-                  delay={0.5}
-                  stagger={0.05}
-                />
-                <br />
-                <SplitText 
-                  text="Like People " 
-                  className="inline"
-                  animationType="fadeInUp"
-                  delay={0.8}
-                  stagger={0.05}
-                />
-                <br />
-                <SplitText 
-                  text="Without the Payroll"
-                  className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-300 inline"
-                  animationType="fadeInUp"
-                  delay={1.2}
-                  stagger={0.08}
-                />
-              </h1>
+              <div className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
+                <div className="block">
+                  <SplitText 
+                    text="AI Agents That" 
+                    className="inline"
+                    animationType="fadeInUp"
+                    delay={0.5}
+                    stagger={0.05}
+                  />
+                </div>
+                <div className="block">
+                  <SplitText 
+                    text="Work Like People" 
+                    className="inline"
+                    animationType="fadeInUp"
+                    delay={0.8}
+                    stagger={0.05}
+                  />
+                </div>
+                <div className="block">
+                  <SplitText 
+                    text="Without the Payroll"
+                    className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-300 inline"
+                    animationType="fadeInUp"
+                    delay={1.2}
+                    stagger={0.08}
+                  />
+                </div>
+              </div>
               
               <p className="text-xl md:text-2xl text-cyan-100 max-w-2xl">
                 <ShinyText 
