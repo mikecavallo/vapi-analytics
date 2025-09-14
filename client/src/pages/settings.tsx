@@ -8,11 +8,17 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useWarningSettings } from "@/contexts/warning-settings-context";
 import { useAuth } from "@/contexts/auth-context";
 import { defaultWarningSettings, warningDescriptions, WarningSettings } from "@shared/warning-settings";
-import { Settings, AlertTriangle, RotateCcw, Save, User, Sun, Moon, ChartLine, Brain, Activity, Wand2, FileText, Key, Building } from "lucide-react";
+import { Settings, AlertTriangle, RotateCcw, Save, User, Sun, Moon, ChartLine, Brain, Activity, Wand2, FileText, Key, Building, LogOut } from "lucide-react";
 import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/contexts/theme-context";
@@ -29,7 +35,7 @@ export default function SettingsPage() {
   const [hasChanges, setHasChanges] = useState(false);
   const { toast } = useToast();
   const { theme, toggleTheme } = useTheme();
-  const { user, customerId, isSuperAdmin } = useAuth();
+  const { user, customerId, isSuperAdmin, logout } = useAuth();
   const [location] = useLocation();
   const [vapiApiKey, setVapiApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
@@ -165,11 +171,19 @@ export default function SettingsPage() {
               >
                 {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
               </Button>
-              <div className="relative">
-                <Button variant="secondary" size="sm" className="w-8 h-8 rounded-full p-0" data-testid="button-user">
-                  <User size={16} />
-                </Button>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary" size="sm" className="w-8 h-8 rounded-full p-0" data-testid="button-user">
+                    <User size={16} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={logout} className="cursor-pointer" data-testid="menu-logout">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>

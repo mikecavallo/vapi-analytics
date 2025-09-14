@@ -14,6 +14,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { 
   Brain, 
   Filter, 
@@ -39,7 +45,8 @@ import {
   Copy,
   Activity,
   Wand2,
-  FileText
+  FileText,
+  LogOut
 } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -67,7 +74,7 @@ export default function BulkAnalysis() {
   const { toast } = useToast();
   const { theme, toggleTheme } = useTheme();
   const [location] = useLocation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [filters, setFilters] = useState<FilterCriteria[]>([]);
   const [analysisQuery, setAnalysisQuery] = useState('');
   const [conversationHistory, setConversationHistory] = useState<AnalysisMessage[]>([]);
@@ -298,11 +305,19 @@ export default function BulkAnalysis() {
               >
                 {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
               </Button>
-              <div className="relative">
-                <Button variant="secondary" size="sm" className="w-8 h-8 rounded-full p-0" data-testid="button-user">
-                  <User size={16} />
-                </Button>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary" size="sm" className="w-8 h-8 rounded-full p-0" data-testid="button-user">
+                    <User size={16} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={logout} className="cursor-pointer" data-testid="menu-logout">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
