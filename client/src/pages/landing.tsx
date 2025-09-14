@@ -218,7 +218,7 @@ export default function LandingPage() {
                 <div className="block whitespace-nowrap">
                   <SplitText 
                     text="Without the Payroll"
-                    className="inline bg-gradient-to-r from-cyan-300 to-blue-300 bg-clip-text text-transparent"
+                    className="inline text-cyan-300 font-bold"
                     animationType="fadeInUp"
                     delay={1.2}
                     stagger={0.08}
