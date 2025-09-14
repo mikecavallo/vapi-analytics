@@ -190,7 +190,7 @@ export default function LandingPage() {
             transition={{ duration: 0.8 }}
             className="space-y-8"
           >
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="inline-flex items-center space-x-2 bg-cyan-500/20 rounded-full px-4 py-2 border border-cyan-300/30">
                 <Sparkles className="w-4 h-4 text-cyan-300" />
                 <span className="text-sm text-cyan-100">Transform Your Customer Experience</span>
@@ -198,15 +198,15 @@ export default function LandingPage() {
               
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
                 <SplitText 
-                  text="AI Agents That " 
+                  text="AI Agents That Work " 
                   className="inline"
                   animationType="fadeInUp"
                   delay={0.5}
                   stagger={0.05}
                 />
-                <br className="block sm:hidden" />
+                <br />
                 <SplitText 
-                  text="Work Like People, " 
+                  text="Like People " 
                   className="inline"
                   animationType="fadeInUp"
                   delay={0.8}
