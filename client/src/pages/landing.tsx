@@ -215,10 +215,10 @@ export default function LandingPage() {
                     stagger={0.05}
                   />
                 </div>
-                <div className="block">
+                <div className="block text-cyan-300">
                   <SplitText 
                     text="Without the Payroll"
-                    className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-300 inline"
+                    className="inline"
                     animationType="fadeInUp"
                     delay={1.2}
                     stagger={0.08}
