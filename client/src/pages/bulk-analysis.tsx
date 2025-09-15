@@ -194,16 +194,7 @@ export default function BulkAnalysis() {
   // Analysis mutations
   const performAnalysisMutation = useMutation({
     mutationFn: async ({ callIds, analysisType }: { callIds: string[], analysisType: string }) => {
-      const response = await fetch('/api/bulk-analysis/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ callIds, analysisType })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Analysis failed');
-      }
-      
+      const response = await apiRequest('POST', '/api/bulk-analysis/analyze', { callIds, analysisType });
       return response.json();
     },
     onSuccess: (data, variables) => {
@@ -215,6 +206,13 @@ export default function BulkAnalysis() {
         analysisType: variables.analysisType
       };
       setConversationHistory(prev => [...prev, newMessage]);
+    },
+    onError: (error) => {
+      toast({
+        title: "Analysis failed", 
+        description: error.message || "Unable to analyze data. Please try again.",
+        variant: "destructive"
+      });
     }
   });
 
