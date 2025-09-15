@@ -48,7 +48,7 @@ import {
   FileText,
   LogOut
 } from "lucide-react";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
 import logoTransparent from "@assets/logo_transparent_1757373755849.png";
@@ -122,7 +122,7 @@ export default function BulkAnalysis() {
       // Always set a reasonable limit
       queryParams.append('limit', '1000');
       
-      const response = await fetch(`/api/bulk-analysis/calls?${queryParams.toString()}`);
+      const response = await apiRequest('GET', `/api/bulk-analysis/calls?${queryParams.toString()}`);
       
       if (!response.ok) {
         const errorData = await response.json();

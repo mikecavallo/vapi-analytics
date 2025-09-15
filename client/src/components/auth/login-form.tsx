@@ -107,12 +107,6 @@ export default function LoginForm() {
                 Sign up
               </Link>
             </p>
-            <p className="text-xs text-gray-500">
-              Need to verify your email?{' '}
-              <Link href="/verify-email" className="text-blue-600 hover:underline">
-                Verify now
-              </Link>
-            </p>
           </div>
         </CardContent>
       </Card>
