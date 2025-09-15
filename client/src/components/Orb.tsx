@@ -25,14 +25,14 @@ export default function Orb({
     const handleMouseEnter = () => {
       isHovered.current = true;
       if (rotateOnHover) {
-        orb.style.transform = `rotate(${hoverIntensity * 90}deg) scale(${1 + hoverIntensity * 0.1})`;
+        orb.style.transform = `translate(-50%, -50%) rotate(${hoverIntensity * 90}deg) scale(${1 + hoverIntensity * 0.1})`;
       }
     };
 
     const handleMouseLeave = () => {
       isHovered.current = false;
       if (rotateOnHover) {
-        orb.style.transform = 'rotate(0deg) scale(1)';
+        orb.style.transform = 'translate(-50%, -50%) rotate(0deg) scale(1)';
       }
     };
 
@@ -56,15 +56,18 @@ export default function Orb({
       className={`orb-background ${className}`}
       style={{
         position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        background: `radial-gradient(circle at center, hsl(${hue}, 70%, 50%) 0%, hsl(${hue}, 60%, 30%) 30%, hsl(${hue}, 40%, 10%) 70%, transparent 100%)`,
-        opacity: 0.6,
+        top: '50%',
+        left: '50%',
+        width: '800px',
+        height: '800px',
+        transform: 'translate(-50%, -50%)',
+        background: `radial-gradient(circle at center, hsl(${hue}, 80%, 60%) 0%, hsl(${hue}, 70%, 40%) 20%, hsl(${hue}, 60%, 20%) 40%, hsl(${hue + 20}, 50%, 15%) 60%, transparent 100%)`,
+        borderRadius: '50%',
+        opacity: 0.7,
         transition: 'transform 0.3s ease-out',
         pointerEvents: 'auto',
-        zIndex: -1,
+        zIndex: 1,
+        filter: 'blur(2px)',
       }}
     />
   );
