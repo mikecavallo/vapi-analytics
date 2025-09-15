@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { BarChart3, Users, Zap, Shield, ArrowRight, CheckCircle, Star, Globe, Headphones, Mic, Settings, PieChart, TrendingUp, Brain, Sparkles, Phone, PhoneCall, Activity, MessageCircle, Cog, Database, Hand, Quote } from 'lucide-react';
 import { motion } from 'framer-motion';
 import logoTransparent from "@assets/logo_transparent_1757609077252.png";
-import Orb from '@/components/Orb';
+import { PlasmaBackground } from '@/components/PlasmaBackground';
 import { SplitText } from '@/components/SplitText';
 import { ShinyText } from '@/components/ShinyText';
 
@@ -173,14 +173,8 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-cyan-900 text-white min-h-[90vh] flex items-center">
-        {/* Orb Background */}
-        <Orb 
-          hue={0} 
-          hoverIntensity={1.41} 
-          rotateOnHover={true} 
-          forceHoverState={false}
-          className="opacity-40" 
-        />
+        {/* Plasma Background */}
+        <PlasmaBackground className="opacity-40" />
         {/* Animated Background Beams */}
         <canvas
           ref={canvasRef}
