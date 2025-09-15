@@ -95,6 +95,44 @@ export default function BulkAnalysis() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [callsData, setCallsData] = useState<any[]>([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
+  // Example prompts for user guidance
+  const examplePrompts = [
+    "Analyze sentiment patterns across all calls",
+    "Find common failure points in conversations", 
+    "What are the most frequent customer complaints?",
+    "Identify successful conversation patterns",
+    "Summarize key insights from recent calls"
+  ];
+  
+  // Submission function for chat analysis
+  const handleAnalysisSubmit = () => {
+    if (analysisQuery.trim() && callsData.length > 0) {
+      const selectedCalls = callsData.slice(0, 20).map(call => call.id);
+      performAnalysisMutation.mutate({
+        callIds: selectedCalls,
+        analysisType: analysisQuery
+      });
+      
+      const userMessage: AnalysisMessage = {
+        id: Math.random().toString(36).substr(2, 9),
+        role: 'user',
+        content: analysisQuery,
+        timestamp: new Date()
+      };
+      setConversationHistory(prev => [...prev, userMessage]);
+      setAnalysisQuery('');
+    }
+  };
+  
+  // Handle textarea key press
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleAnalysisSubmit();
+    }
+  };
 
   // Function to fetch data with applied filters
   const fetchDataWithFilters = async () => {
@@ -213,6 +251,12 @@ export default function BulkAnalysis() {
         description: error.message || "Unable to analyze data. Please try again.",
         variant: "destructive"
       });
+    },
+    onMutate: () => {
+      setIsAnalyzing(true);
+    },
+    onSettled: () => {
+      setIsAnalyzing(false);
     }
   });
 
@@ -580,7 +624,18 @@ export default function BulkAnalysis() {
                               {message.role === 'user' ? 'U' : 'AI'}
                             </div>
                             <div className="flex-1">
-                              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                              {message.content === 'thinking' ? (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-sm text-muted-foreground">AI is thinking</span>
+                                  <div className="flex gap-1">
+                                    <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                                    <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                                    <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                              )}
                               <p className="text-xs text-muted-foreground mt-1">
                                 {message.timestamp.toLocaleTimeString()}
                               </p>
@@ -588,6 +643,26 @@ export default function BulkAnalysis() {
                           </div>
                         </div>
                       ))}
+                      {/* Show thinking animation when analyzing */}
+                      {isAnalyzing && (
+                        <div className="p-3 bg-muted mr-8 rounded-lg mb-3">
+                          <div className="flex items-start gap-2">
+                            <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium bg-purple-500 text-white">
+                              AI
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground">AI is analyzing your data</span>
+                                <div className="flex gap-1">
+                                  <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                                  <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                                  <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </ScrollArea>
@@ -595,31 +670,15 @@ export default function BulkAnalysis() {
                 {/* Input Box - Below Conversation */}
                 <div className="flex gap-2">
                   <Textarea
-                    placeholder="Ask AI to analyze your call data (e.g., 'Analyze sentiment patterns', 'Find common failure points', 'Suggest improvements')"
+                    placeholder="Ask AI to analyze your call data - Press Enter to send, Shift+Enter for new line"
                     value={analysisQuery}
                     onChange={(e) => setAnalysisQuery(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     className="min-h-20 flex-1"
                     data-testid="textarea-analysis-query"
                   />
                   <Button
-                    onClick={() => {
-                      if (analysisQuery.trim() && callsData.length > 0) {
-                        const selectedCalls = callsData.slice(0, 20).map(call => call.id);
-                        performAnalysisMutation.mutate({
-                          callIds: selectedCalls,
-                          analysisType: analysisQuery
-                        });
-                        
-                        const userMessage: AnalysisMessage = {
-                          id: Math.random().toString(36).substr(2, 9),
-                          role: 'user',
-                          content: analysisQuery,
-                          timestamp: new Date()
-                        };
-                        setConversationHistory(prev => [...prev, userMessage]);
-                        setAnalysisQuery('');
-                      }
-                    }}
+                    onClick={handleAnalysisSubmit}
                     disabled={!analysisQuery.trim() || callsData.length === 0 || performAnalysisMutation.isPending}
                     className="self-end"
                     data-testid="button-submit-analysis"
