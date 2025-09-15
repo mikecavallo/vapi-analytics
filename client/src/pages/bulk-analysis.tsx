@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
+import type { DateRange } from "react-day-picker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -92,7 +93,7 @@ export default function BulkAnalysis() {
   const [callIdFilter, setCallIdFilter] = useState<string>('');
   const [assistantIdFilter, setAssistantIdFilter] = useState<string>('');
   const [phoneNumberIdFilter, setPhoneNumberIdFilter] = useState<string>('');
-  const [selectedDateRange, setSelectedDateRange] = useState<{from?: Date; to?: Date}>({});
+  const [selectedDateRange, setSelectedDateRange] = useState<DateRange | undefined>(undefined);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [callsData, setCallsData] = useState<any[]>([]);
@@ -151,10 +152,10 @@ export default function BulkAnalysis() {
       if (phoneNumberIdFilter.trim()) {
         queryParams.append('phoneNumberId', phoneNumberIdFilter.trim());
       }
-      if (selectedDateRange.from) {
+      if (selectedDateRange?.from) {
         queryParams.append('createdAtGe', selectedDateRange.from.toISOString());
       }
-      if (selectedDateRange.to) {
+      if (selectedDateRange?.to) {
         queryParams.append('createdAtLe', selectedDateRange.to.toISOString());
       }
       
@@ -192,7 +193,7 @@ export default function BulkAnalysis() {
     setCallIdFilter('');
     setAssistantIdFilter('');
     setPhoneNumberIdFilter('');
-    setSelectedDateRange({});
+    setSelectedDateRange(undefined);
     setCallsData([]);
   };
 
@@ -300,7 +301,7 @@ export default function BulkAnalysis() {
   });
 
   // Check if any filters are set
-  const hasFilters = callIdFilter || assistantIdFilter || phoneNumberIdFilter || (selectedDateRange.from && selectedDateRange.to);
+  const hasFilters = callIdFilter || assistantIdFilter || phoneNumberIdFilter || (selectedDateRange?.from && selectedDateRange?.to);
 
   return (
     <div className="min-h-screen bg-background">
@@ -365,7 +366,7 @@ export default function BulkAnalysis() {
                     data-testid="button-date-picker"
                   >
                     <CalendarDays className="mr-2 h-4 w-4" />
-                    {selectedDateRange.from ? (
+                    {selectedDateRange?.from ? (
                       selectedDateRange.to ? (
                         <>
                           {selectedDateRange.from.toLocaleDateString()} -{" "}

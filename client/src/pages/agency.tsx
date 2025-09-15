@@ -66,19 +66,19 @@ export default function AgencyPage() {
   }
 
   // Fetch customers
-  const { data: customers, isLoading: customersLoading } = useQuery({
+  const { data: customers, isLoading: customersLoading } = useQuery<Customer[]>({
     queryKey: ['/api/admin/customers'],
     enabled: isSuperAdmin,
   });
 
   // Fetch users
-  const { data: users, isLoading: usersLoading } = useQuery({
+  const { data: users, isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ['/api/admin/users'],
     enabled: isSuperAdmin,
   });
 
   // Fetch email whitelist
-  const { data: emailWhitelist, isLoading: emailLoading } = useQuery({
+  const { data: emailWhitelist, isLoading: emailLoading } = useQuery<EmailWhitelist[]>({
     queryKey: ['/api/admin/email-whitelist'],
     enabled: isSuperAdmin,
   });
@@ -236,7 +236,7 @@ export default function AgencyPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {customers.map((customer: Customer) => (
+                    {customers.map((customer) => (
                       <TableRow key={customer.id}>
                         <TableCell className="font-medium">{customer.name}</TableCell>
                         <TableCell>{customer.description || '-'}</TableCell>
@@ -289,7 +289,7 @@ export default function AgencyPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map((user: User) => (
+                    {users.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell className="font-medium">{user.username}</TableCell>
                         <TableCell>{user.email}</TableCell>
@@ -379,7 +379,7 @@ export default function AgencyPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {emailWhitelist.map((item: EmailWhitelist) => (
+                    {emailWhitelist.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">{item.email}</TableCell>
                         <TableCell>

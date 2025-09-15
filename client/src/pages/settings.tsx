@@ -26,6 +26,15 @@ import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
+interface Customer {
+  id: string;
+  name: string;
+  description?: string;
+  vapiApiKey?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /**
  * Settings Page Component
  * Comprehensive settings interface for warning thresholds and system configuration
@@ -42,7 +51,7 @@ export default function SettingsPage() {
   const [showApiKey, setShowApiKey] = useState(false);
 
   // Fetch current customer details to get API key
-  const { data: customer } = useQuery({
+  const { data: customer } = useQuery<Customer>({
     queryKey: ['/api/customer/details'],
     enabled: !!customerId,
   });

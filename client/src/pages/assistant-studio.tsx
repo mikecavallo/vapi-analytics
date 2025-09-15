@@ -406,6 +406,33 @@ export default function AssistantStudio() {
     createMutation.mutate(assistantConfig);
   };
 
+  const exportConfig = () => {
+    if (!generatedConfig) {
+      toast({
+        title: "No configuration to export",
+        description: "Please generate an assistant configuration first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const configBlob = new Blob([JSON.stringify(generatedConfig, null, 2)], {
+      type: 'application/json'
+    });
+    const url = URL.createObjectURL(configBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${assistantName || 'assistant'}-config.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Configuration exported",
+      description: "Assistant configuration has been downloaded as JSON"
+    });
+  };
 
   return (
     <TooltipProvider>
@@ -551,7 +578,7 @@ export default function AssistantStudio() {
                   label="First Message Mode" 
                   tooltip="How the assistant should behave when the call starts. Choose whether the assistant speaks first, waits for the user, or generates a dynamic opening." 
                 />
-                <Select value={firstMessageMode} onValueChange={setFirstMessageMode}>
+                <Select value={firstMessageMode} onValueChange={(value) => setFirstMessageMode(value as typeof firstMessageMode)}>
                   <SelectTrigger data-testid="select-first-message-mode">
                     <SelectValue />
                   </SelectTrigger>
@@ -895,7 +922,7 @@ export default function AssistantStudio() {
                   </div>
                   <div className="flex items-center space-x-2 text-sm">
                     <Activity className="text-orange-500" size={16} />
-                    <span>{generatedConfig.maxDurationSeconds || generatedConfig.conversationConfig?.maxDurationSeconds}s Max</span>
+                    <span>{generatedConfig?.maxDurationSeconds || generatedConfig?.conversationConfig?.maxDurationSeconds || 600}s Max</span>
                   </div>
                 </div>
               </div>
@@ -903,7 +930,7 @@ export default function AssistantStudio() {
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-3">
                 <Button 
-                  onClick={handleCreate}
+                  onClick={handleCreateAssistant}
                   disabled={createMutation.isPending}
                   className="flex-1 min-w-0"
                   data-testid="button-create-assistant"
@@ -918,7 +945,7 @@ export default function AssistantStudio() {
                 
                 <Button 
                   variant="outline"
-                  onClick={exportConfig}
+                  onClick={() => exportConfig()}
                   data-testid="button-export-config"
                 >
                   <Download className="mr-2" size={16} />
