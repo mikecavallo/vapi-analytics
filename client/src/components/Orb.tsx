@@ -53,22 +53,66 @@ export default function Orb({
   return (
     <div 
       ref={orbRef}
-      className={`orb-background ${className}`}
+      className={`orb-container ${className}`}
       style={{
         position: 'absolute',
         top: '50%',
         left: '50%',
-        width: '800px',
-        height: '800px',
+        width: '500px',
+        height: '500px',
         transform: 'translate(-50%, -50%)',
-        background: `radial-gradient(circle at center, hsl(${hue}, 80%, 60%) 0%, hsl(${hue}, 70%, 40%) 20%, hsl(${hue}, 60%, 20%) 40%, hsl(${hue + 20}, 50%, 15%) 60%, transparent 100%)`,
-        borderRadius: '50%',
-        opacity: 0.7,
         transition: 'transform 0.3s ease-out',
         pointerEvents: 'auto',
         zIndex: 1,
-        filter: 'blur(2px)',
       }}
-    />
+    >
+      {/* Outer glow */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          width: '100%',
+          height: '100%',
+          transform: 'translate(-50%, -50%)',
+          borderRadius: '50%',
+          background: `radial-gradient(circle, transparent 70%, hsl(${hue}, 100%, 50%) 75%, transparent 80%)`,
+          filter: 'blur(20px)',
+          opacity: 0.8,
+        }}
+      />
+      
+      {/* Middle glow */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          width: '90%',
+          height: '90%',
+          transform: 'translate(-50%, -50%)',
+          borderRadius: '50%',
+          background: `radial-gradient(circle, transparent 75%, hsl(${hue}, 100%, 60%) 80%, transparent 85%)`,
+          filter: 'blur(10px)',
+          opacity: 0.9,
+        }}
+      />
+      
+      {/* Inner bright ring */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          width: '85%',
+          height: '85%',
+          transform: 'translate(-50%, -50%)',
+          borderRadius: '50%',
+          border: `2px solid hsl(${hue}, 100%, 70%)`,
+          boxShadow: `0 0 20px hsl(${hue}, 100%, 50%), inset 0 0 20px hsl(${hue}, 100%, 50%)`,
+          opacity: 0.7,
+        }}
+      />
+    </div>
   );
 }
