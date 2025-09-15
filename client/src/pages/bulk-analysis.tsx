@@ -592,8 +592,33 @@ export default function BulkAnalysis() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Brain className="h-5 w-5" />
-                AI Analysis
+                Chat with Your Data
               </CardTitle>
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Get instant AI-powered insights from your voice call data. Ask questions in natural language and receive detailed analysis about patterns, sentiment, and performance metrics.
+                </p>
+                {conversationHistory.length === 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Try these example prompts:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {examplePrompts.map((prompt, index) => (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            setAnalysisQuery(prompt);
+                            handleAnalysisSubmit();
+                          }}
+                          className="text-xs bg-blue-50 hover:bg-blue-100 dark:bg-blue-950 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-full border border-blue-200 dark:border-blue-800 transition-colors"
+                          data-testid={`example-prompt-${index}`}
+                        >
+                          "{prompt}"
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
