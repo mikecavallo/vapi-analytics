@@ -568,23 +568,6 @@ export default function AssistantStudio() {
                 </Select>
               </div>
               
-              {/* First Message Mode */}
-              <div className="space-y-2">
-                <LabelWithTooltip 
-                  label="First Message Mode" 
-                  tooltip="How the assistant should behave when the call starts. Choose whether the assistant speaks first, waits for the user, or generates a dynamic opening." 
-                />
-                <Select value={firstMessageMode} onValueChange={(value) => setFirstMessageMode(value as typeof firstMessageMode)}>
-                  <SelectTrigger data-testid="select-first-message-mode">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="assistant-speaks-first">Assistant Speaks First</SelectItem>
-                    <SelectItem value="assistant-waits-for-user">Wait for User</SelectItem>
-                    <SelectItem value="assistant-speaks-first-with-model-generated-message">AI Generated Opening</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
               
               {/* Main Description - Full Width */}
               <div className="col-span-full space-y-2">
@@ -594,7 +577,7 @@ export default function AssistantStudio() {
                 />
                 <Textarea 
                   placeholder="Describe what your assistant should do, its purpose, capabilities, and tone"
-                  className="min-h-20"
+                  className="min-h-40"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   data-testid="textarea-assistant-description"
@@ -609,7 +592,7 @@ export default function AssistantStudio() {
                 />
                 <Textarea 
                   placeholder="Describe the conversation flow and structure"
-                  className="min-h-16"
+                  className="min-h-32"
                   value={conversationFlow}
                   onChange={(e) => setConversationFlow(e.target.value)}
                   data-testid="textarea-conversation-flow"
@@ -630,6 +613,24 @@ export default function AssistantStudio() {
               </p>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* First Message Mode */}
+              <div className="space-y-2">
+                <LabelWithTooltip 
+                  label="First Message Mode" 
+                  tooltip="How the assistant should behave when the call starts. Choose whether the assistant speaks first, waits for the user, or generates a dynamic opening." 
+                />
+                <Select value={firstMessageMode} onValueChange={(value) => setFirstMessageMode(value as typeof firstMessageMode)}>
+                  <SelectTrigger data-testid="select-first-message-mode">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="assistant-speaks-first">Assistant Speaks First</SelectItem>
+                    <SelectItem value="assistant-waits-for-user">Wait for User</SelectItem>
+                    <SelectItem value="assistant-speaks-first-with-model-generated-message">AI Generated Opening</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
               <div className="space-y-2">
                 <LabelWithTooltip 
                   label="Max Call Duration (seconds)" 
