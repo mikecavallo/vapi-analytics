@@ -21,6 +21,7 @@ import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
 import { useAuth } from "@/contexts/auth-context";
+import { DashboardHeader } from "@/components/layout/dashboard-header";
 
 // Helper functions to check if data is meaningful
 const hasKpiData = (data?: DashboardData) => {
@@ -109,59 +110,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16">
-            {/* Logo - Left Aligned */}
-            <div className="flex-shrink-0">
-              <img src={logoTransparent} alt="Invoxa.ai" className="h-8" style={{ width: 'auto' }} />
-            </div>
-            
-            {/* Navigation - Center */}
-            <nav className="hidden md:flex space-x-8 mx-auto">
-              <Link href="/dashboard" className="text-primary border-b-2 border-primary pb-4 px-1 text-sm font-medium">
-                Dashboard
-              </Link>
-              <Link href="/bulk-analysis" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
-                <Brain size={16} />
-                <span>VoiceScope</span>
-              </Link>
-              <Link href="/assistant-studio" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
-                <Wand2 size={16} />
-                <span>Studio</span>
-              </Link>
-              {user?.role === 'super_admin' && (
-                <Link href="/agency" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
-                  <Users size={16} />
-                  <span>Agency</span>
-                </Link>
-              )}
-              <Link href="/settings" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
-                Settings
-              </Link>
-            </nav>
-            
-            {/* Right side controls */}
-            <div className="flex items-center space-x-4 ml-auto">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={toggleTheme}
-                className="w-8 h-8 rounded-full p-0"
-                data-testid="button-toggle-theme"
-              >
-                {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
-              </Button>
-              <div className="relative">
-                <Button variant="secondary" size="sm" className="w-8 h-8 rounded-full p-0" data-testid="button-user">
-                  <User size={16} />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <DashboardHeader />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Show message when no data is available */}
