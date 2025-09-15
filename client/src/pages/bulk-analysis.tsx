@@ -623,7 +623,7 @@ export default function BulkAnalysis() {
             <CardContent>
               <div className="space-y-4">
                 {/* Conversation History - Above Input */}
-                <ScrollArea className="h-64 border rounded-lg p-3">
+                <ScrollArea className="h-128 border rounded-lg p-3">
                   {conversationHistory.length === 0 ? (
                     <div className="text-center text-muted-foreground py-8">
                       <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
