@@ -32,17 +32,13 @@ import {
   User,
   Sun,
   Moon,
-  HelpCircle,
-  Users,
-  Building,
-  Mail,
-  Plus,
-  Trash2
+  HelpCircle
 } from "lucide-react";
 import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
 import { useAuth } from "@/contexts/auth-context";
+import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -151,29 +147,6 @@ interface AssistantConfig {
   complianceNotes?: string[];
 }
 
-// Agency interfaces
-interface Customer {
-  id: string;
-  name: string;
-  description?: string;
-  vapiApiKey: string;
-  createdAt: string;
-}
-
-interface User {
-  id: string;
-  username: string;
-  email: string;
-  role: string;
-  emailVerified: boolean;
-  createdAt: string;
-}
-
-interface EmailWhitelist {
-  id: string;
-  email: string;
-  createdAt: string;
-}
 
 // Helper component for input labels with tooltips
 const LabelWithTooltip = ({ label, tooltip }: { label: string, tooltip: string }) => (
@@ -228,13 +201,6 @@ export default function AssistantStudio() {
   const [voiceProvider, setVoiceProvider] = useState('11labs');
   const [selectedVoice, setSelectedVoice] = useState('Rachel');
 
-  // Agency states
-  const [newCustomerName, setNewCustomerName] = useState('');
-  const [newCustomerDescription, setNewCustomerDescription] = useState('');
-  const [newCustomerApiKey, setNewCustomerApiKey] = useState('');
-  const [newWhitelistEmail, setNewWhitelistEmail] = useState('');
-  const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
-  const [isAddEmailOpen, setIsAddEmailOpen] = useState(false);
   
   // Provider data
   const modelProviders = {
@@ -273,21 +239,6 @@ export default function AssistantStudio() {
   const [generatedConfig, setGeneratedConfig] = useState<AssistantConfig | null>(null);
   const [createdAssistant, setCreatedAssistant] = useState<any>(null);
 
-  // Agency queries
-  const { data: customers, isLoading: customersLoading } = useQuery({
-    queryKey: ['/api/admin/customers'],
-    enabled: isSuperAdmin,
-  });
-
-  const { data: users, isLoading: usersLoading } = useQuery({
-    queryKey: ['/api/admin/users'],
-    enabled: isSuperAdmin,
-  });
-
-  const { data: emailWhitelist, isLoading: emailWhitelistLoading } = useQuery({
-    queryKey: ['/api/admin/email-whitelist'],
-    enabled: isSuperAdmin,
-  });
 
   const generateMutation = useMutation({
     mutationFn: async (formData: any) => {
@@ -459,53 +410,7 @@ export default function AssistantStudio() {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16">
-            {/* Logo - Left Aligned */}
-            <div className="flex-shrink-0">
-              <img src={logoTransparent} alt="Invoxa.ai" className="h-8" style={{ width: 'auto' }} />
-            </div>
-            
-            {/* Navigation - Center */}
-            <nav className="hidden md:flex space-x-8 mx-auto">
-                <Link href="/dashboard" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
-                  Dashboard
-                </Link>
-                <Link href="/bulk-analysis" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1">
-                  <Brain size={16} />
-                  <span>VoiceScope</span>
-                </Link>
-                <Link href="/assistant-studio" className="text-primary border-b-2 border-primary pb-4 px-1 text-sm font-medium flex items-center space-x-1">
-                  <Wand2 size={16} />
-                  <span>Studio</span>
-                </Link>
-                <Link href="/settings" className="text-muted-foreground hover:text-foreground pb-4 px-1 text-sm font-medium transition-colors">
-                  Settings
-                </Link>
-            </nav>
-            
-            {/* Right side controls */}
-            <div className="flex items-center space-x-4 ml-auto">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={toggleTheme}
-                className="w-8 h-8 rounded-full p-0"
-                data-testid="button-toggle-theme"
-              >
-                {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
-              </Button>
-              <div className="relative">
-                <Button variant="secondary" size="sm" className="w-8 h-8 rounded-full p-0" data-testid="button-user">
-                  <User size={16} />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <DashboardHeader />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -514,23 +419,17 @@ export default function AssistantStudio() {
             Assistant Studio
           </h2>
           <p className="text-muted-foreground mt-1">
-            Create AI-powered voice assistants and manage agency operations
+            Create AI-powered voice assistants with advanced configuration options
           </p>
         </div>
 
         {/* Tabs */}
         <Tabs defaultValue="create" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-1">
             <TabsTrigger value="create" className="flex items-center gap-2">
               <Wand2 className="w-4 h-4" />
               Create Assistant
             </TabsTrigger>
-            {isSuperAdmin && (
-              <TabsTrigger value="agency" className="flex items-center gap-2">
-                <Building className="w-4 h-4" />
-                Agency
-              </TabsTrigger>
-            )}
           </TabsList>
 
           {/* Create Assistant Tab */}
@@ -1045,282 +944,6 @@ export default function AssistantStudio() {
         )}
           </TabsContent>
 
-          {/* Agency Tab */}
-          {isSuperAdmin && (
-            <TabsContent value="agency" className="space-y-6">
-              <Tabs defaultValue="customers" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="customers" className="flex items-center gap-2">
-                    <Building className="w-4 h-4" />
-                    Customers
-                  </TabsTrigger>
-                  <TabsTrigger value="users" className="flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    Users
-                  </TabsTrigger>
-                  <TabsTrigger value="email-whitelist" className="flex items-center gap-2">
-                    <Mail className="w-4 h-4" />
-                    Email Whitelist
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="customers" className="space-y-6">
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                      <div>
-                        <CardTitle>Customer Management</CardTitle>
-                        <CardDescription>
-                          Manage customer accounts and their Vapi API configurations
-                        </CardDescription>
-                      </div>
-                      <Dialog open={isCreateCustomerOpen} onOpenChange={setIsCreateCustomerOpen}>
-                        <DialogTrigger asChild>
-                          <Button>
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add Customer
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Create New Customer</DialogTitle>
-                            <DialogDescription>
-                              Add a new customer account with their Vapi API key
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <div>
-                              <Label htmlFor="customerName">Customer Name</Label>
-                              <Input
-                                id="customerName"
-                                value={newCustomerName}
-                                onChange={(e) => setNewCustomerName(e.target.value)}
-                                placeholder="Enter customer name"
-                                data-testid="input-customer-name"
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="customerDescription">Description (Optional)</Label>
-                              <Input
-                                id="customerDescription"
-                                value={newCustomerDescription}
-                                onChange={(e) => setNewCustomerDescription(e.target.value)}
-                                placeholder="Brief description of the customer"
-                                data-testid="input-customer-description"
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="vapiApiKey">Vapi API Key</Label>
-                              <Input
-                                id="vapiApiKey"
-                                type="password"
-                                value={newCustomerApiKey}
-                                onChange={(e) => setNewCustomerApiKey(e.target.value)}
-                                placeholder="Enter Vapi API key"
-                                data-testid="input-vapi-api-key"
-                              />
-                            </div>
-                            <Button 
-                              onClick={() => {
-                                // Handle customer creation
-                                setIsCreateCustomerOpen(false);
-                                setNewCustomerName('');
-                                setNewCustomerDescription('');
-                                setNewCustomerApiKey('');
-                              }}
-                              className="w-full"
-                            >
-                              Create Customer
-                            </Button>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    </CardHeader>
-                    <CardContent>
-                      {customersLoading ? (
-                        <div className="flex items-center justify-center py-4">
-                          <Loader2 className="h-6 w-6 animate-spin" />
-                        </div>
-                      ) : customers && customers.length > 0 ? (
-                        <div className="rounded-md border">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Description</TableHead>
-                                <TableHead>Created</TableHead>
-                                <TableHead>Actions</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {customers.map((customer: Customer) => (
-                                <TableRow key={customer.id}>
-                                  <TableCell className="font-medium">{customer.name}</TableCell>
-                                  <TableCell>{customer.description || 'No description'}</TableCell>
-                                  <TableCell>{new Date(customer.createdAt).toLocaleDateString()}</TableCell>
-                                  <TableCell>
-                                    <Button variant="destructive" size="sm">
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      ) : (
-                        <div className="text-center py-4 text-muted-foreground">
-                          No customers found. Create your first customer to get started.
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="users" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>User Management</CardTitle>
-                      <CardDescription>
-                        Manage user accounts and permissions
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {usersLoading ? (
-                        <div className="flex items-center justify-center py-4">
-                          <Loader2 className="h-6 w-6 animate-spin" />
-                        </div>
-                      ) : users && users.length > 0 ? (
-                        <div className="rounded-md border">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Username</TableHead>
-                                <TableHead>Email</TableHead>
-                                <TableHead>Role</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Created</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {users.map((user: User) => (
-                                <TableRow key={user.id}>
-                                  <TableCell className="font-medium">{user.username}</TableCell>
-                                  <TableCell>{user.email}</TableCell>
-                                  <TableCell>
-                                    <Badge variant={user.role === 'super_admin' ? 'destructive' : 'secondary'}>
-                                      {user.role}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge variant={user.emailVerified ? 'default' : 'outline'}>
-                                      {user.emailVerified ? 'Verified' : 'Pending'}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      ) : (
-                        <div className="text-center py-4 text-muted-foreground">
-                          No users found.
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="email-whitelist" className="space-y-6">
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                      <div>
-                        <CardTitle>Email Whitelist</CardTitle>
-                        <CardDescription>
-                          Manage allowed email addresses for registration
-                        </CardDescription>
-                      </div>
-                      <Dialog open={isAddEmailOpen} onOpenChange={setIsAddEmailOpen}>
-                        <DialogTrigger asChild>
-                          <Button>
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add Email
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Add Email to Whitelist</DialogTitle>
-                            <DialogDescription>
-                              Add an email address to allow registration
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <div>
-                              <Label htmlFor="whitelistEmail">Email Address</Label>
-                              <Input
-                                id="whitelistEmail"
-                                type="email"
-                                value={newWhitelistEmail}
-                                onChange={(e) => setNewWhitelistEmail(e.target.value)}
-                                placeholder="Enter email address"
-                                data-testid="input-whitelist-email"
-                              />
-                            </div>
-                            <Button 
-                              onClick={() => {
-                                // Handle email whitelist addition
-                                setIsAddEmailOpen(false);
-                                setNewWhitelistEmail('');
-                              }}
-                              className="w-full"
-                            >
-                              Add Email
-                            </Button>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    </CardHeader>
-                    <CardContent>
-                      {emailWhitelistLoading ? (
-                        <div className="flex items-center justify-center py-4">
-                          <Loader2 className="h-6 w-6 animate-spin" />
-                        </div>
-                      ) : emailWhitelist && emailWhitelist.length > 0 ? (
-                        <div className="rounded-md border">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Email Address</TableHead>
-                                <TableHead>Added Date</TableHead>
-                                <TableHead>Actions</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {emailWhitelist.map((email: EmailWhitelist) => (
-                                <TableRow key={email.id}>
-                                  <TableCell className="font-medium">{email.email}</TableCell>
-                                  <TableCell>{new Date(email.createdAt).toLocaleDateString()}</TableCell>
-                                  <TableCell>
-                                    <Button variant="destructive" size="sm">
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      ) : (
-                        <div className="text-center py-4 text-muted-foreground">
-                          No emails in whitelist. Add emails to allow user registration.
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </TabsContent>
-          )}
         </Tabs>
       </main>
       </div>
