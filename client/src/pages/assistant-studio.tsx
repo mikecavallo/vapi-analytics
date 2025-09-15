@@ -445,22 +445,18 @@ export default function AssistantStudio() {
           <h2 className="text-3xl font-bold text-foreground">
             Assistant Studio
           </h2>
-          <p className="text-muted-foreground mt-1">
-            Create AI-powered voice assistants with advanced configuration options
-          </p>
+          <div className="mt-4 space-y-2">
+            <p className="text-muted-foreground text-lg">
+              Create AI-powered voice assistants with advanced configuration options
+            </p>
+            <p className="text-sm text-muted-foreground max-w-4xl">
+              Design custom voice assistants tailored to your needs. Configure conversation flow, AI model settings, voice preferences, and advanced features like function calling and knowledge base integration. Use the form below to set up your assistant's personality, behavior, and capabilities.
+            </p>
+          </div>
         </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="create" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-1">
-            <TabsTrigger value="create" className="flex items-center gap-2">
-              <Wand2 className="w-4 h-4" />
-              Create Assistant
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Create Assistant Tab */}
-          <TabsContent value="create">
+        {/* Assistant Configuration Form */}
+        <div className="space-y-6">
             {/* Configuration Form - Horizontal Sections */}
         <div className="space-y-6">
           {/* Basic Information Section */}
@@ -969,9 +965,7 @@ export default function AssistantStudio() {
             </CardContent>
           </Card>
         )}
-          </TabsContent>
-
-        </Tabs>
+        </div>
       </main>
       </div>
     </TooltipProvider>
