@@ -54,7 +54,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
 import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 import { useAuth } from "@/contexts/auth-context";
-import { SiteHeader } from "@/components/layout/site-header";
+import { DashboardHeader } from "@/components/layout/dashboard-header";
 
 interface FilterCriteria {
   id: string;
@@ -305,7 +305,7 @@ export default function BulkAnalysis() {
 
   return (
     <div className="min-h-screen bg-background">
-      <SiteHeader />
+      <DashboardHeader />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 

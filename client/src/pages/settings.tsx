@@ -22,7 +22,7 @@ import { Settings, AlertTriangle, RotateCcw, Save, User, Sun, Moon, ChartLine, B
 import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/contexts/theme-context";
-import { SiteHeader } from "@/components/layout/site-header";
+import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -137,7 +137,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <SiteHeader />
+      <DashboardHeader />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Header */}

@@ -66,14 +66,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           });
 
           if (!response.ok) {
-            // Only clear auth state for actual auth failures (401/403)
-            // Keep auth state for network errors or temporary server issues
-            if (response.status === 401 || response.status === 403) {
-              console.log('Token expired or invalid, clearing auth state');
-              clearAuthState();
-            } else {
-              console.warn('Auth verification failed with status:', response.status, 'keeping existing auth state');
-            }
+            // Token is invalid, clear auth state
+            clearAuthState();
           } else {
             const data = await response.json();
             setUser(data.user);
@@ -82,8 +76,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         } catch (error) {
           console.error('Auth initialization error:', error);
-          // Keep existing auth state on network errors - only clear on 401/403
-          // clearAuthState(); // Removed - don't clear on network failures
+          clearAuthState();
         }
       }
       setIsLoading(false);

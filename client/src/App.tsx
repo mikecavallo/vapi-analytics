@@ -16,7 +16,6 @@ import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
 import VerifyEmailPage from "@/pages/verify-email";
 import AgencyPage from "@/pages/agency";
-import VoiceScopePage from "@/pages/voicescope";
 import LandingPage from "@/pages/landing";
 import SolutionsPage from "@/pages/solutions";
 import PlatformPage from "@/pages/platform";
@@ -82,11 +81,6 @@ function AppRouter() {
       <Route path="/agency">
         <ProtectedRoute>
           <AgencyPage />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/voicescope">
-        <ProtectedRoute>
-          <VoiceScopePage />
         </ProtectedRoute>
       </Route>
       

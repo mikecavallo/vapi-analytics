@@ -15,7 +15,7 @@ import { Link } from 'wouter';
 import { useTheme } from '@/contexts/theme-context';
 import { Sun, Moon } from 'lucide-react';
 import logoTransparent from "@assets/logo_transparent_1757373755849.png";
-import { SiteHeader } from "@/components/layout/site-header";
+import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
@@ -121,7 +121,7 @@ export default function AgencyPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <SiteHeader />
+      <DashboardHeader />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
