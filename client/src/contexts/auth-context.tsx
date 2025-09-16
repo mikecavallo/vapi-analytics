@@ -82,7 +82,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         } catch (error) {
           console.error('Auth initialization error:', error);
-          clearAuthState();
+          // Keep existing auth state on network errors - only clear on 401/403
+          // clearAuthState(); // Removed - don't clear on network failures
         }
       }
       setIsLoading(false);

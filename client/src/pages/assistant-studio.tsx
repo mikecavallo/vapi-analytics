@@ -38,7 +38,7 @@ import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
 import { useAuth } from "@/contexts/auth-context";
-import { DashboardHeader } from "@/components/layout/dashboard-header";
+import { SiteHeader } from "@/components/layout/site-header";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -437,7 +437,7 @@ export default function AssistantStudio() {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background">
-      <DashboardHeader />
+      <SiteHeader />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

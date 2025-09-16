@@ -21,7 +21,7 @@ import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
 import { useAuth } from "@/contexts/auth-context";
-import { DashboardHeader } from "@/components/layout/dashboard-header";
+import { SiteHeader } from "@/components/layout/site-header";
 
 // Helper functions to check if data is meaningful
 const hasKpiData = (data?: DashboardData) => {
@@ -110,7 +110,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardHeader />
+      <SiteHeader />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Show message when no data is available */}
