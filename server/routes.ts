@@ -240,25 +240,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current user info
   app.get("/api/auth/me", authenticateUser, async (req, res) => {
     try {
-      const token = extractTokenFromHeader(req.headers.authorization);
-      if (!token) {
-        return res.status(401).json({ error: "No token provided" });
-      }
+      // User info is already verified and attached by authenticateUser middleware
+      const userId = req.user!.id;
+      const customerId = req.user!.customerId;
 
-      const payload = verifyToken(token);
-      if (!payload) {
-        return res.status(401).json({ error: "Invalid or expired token" });
-      }
-
-      // Get current user data
-      const user = await storage.getUser(payload.userId);
+      // Get fresh user data
+      const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
 
       // Get user's customer assignments
       const assignments = await storage.getUserCustomerAssignments(user.id);
-      const primaryCustomerId = assignments.length > 0 ? assignments[0].customerId : undefined;
+      const primaryCustomerId = assignments.length > 0 ? assignments[0].customerId : customerId;
 
       res.json({
         user: sanitizeUser(user),
