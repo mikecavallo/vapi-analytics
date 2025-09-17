@@ -336,40 +336,50 @@ export default function AssistantStudio() {
       }
     }
 
-    // Build configuration directly without OpenAI generation
+    // Build configuration exactly matching Vapi API structure
     const assistantConfig = {
+      // Basic required fields
       name: assistantName.trim(),
+      
+      // First message configuration
       firstMessage: `Hello! I'm ${assistantName.trim()}. ${description.trim()}`,
-      firstMessageMode: firstMessageMode || 'assistant-speaks-first',
-      firstMessageInterruptionsEnabled: firstMessageInterruptions || false,
-      maxDurationSeconds: maxDuration || 600,
-      backgroundSound: backgroundSound || 'office',
-      modelOutputInMessagesEnabled: modelOutputInMessages || false,
+      firstMessageMode: firstMessageMode,
+      firstMessageInterruptionsEnabled: firstMessageInterruptions,
+      
+      // Call behavior
+      maxDurationSeconds: maxDuration,
+      backgroundSound: backgroundSound,
+      modelOutputInMessagesEnabled: modelOutputInMessages,
+      
+      // Optional messages
       ...(voicemailMessage.trim() && { voicemailMessage: voicemailMessage.trim() }),
       ...(endCallMessage.trim() && { endCallMessage: endCallMessage.trim() }),
-      ...(endCallPhrases.trim() && { endCallPhrases: endCallPhrases.split(',').map(p => p.trim()) }),
+      ...(endCallPhrases.trim() && { 
+        endCallPhrases: endCallPhrases.split(',').map(p => p.trim()).filter(p => p)
+      }),
+      
+      // Model configuration - exactly matching API structure
       model: {
-        provider: modelProvider || 'openai',
-        model: selectedModel || 'gpt-5',
-        temperature: temperature || 0.7,
-        maxTokens: 150,
-        emotionRecognitionEnabled: true
+        provider: modelProvider,
+        model: selectedModel,
+        temperature: temperature,
+        maxTokens: 150
       },
+      
+      // Voice configuration - exactly matching API structure  
       voice: {
-        provider: voiceProvider || '11labs',
-        voiceId: selectedVoice || 'burt',
-        stability: 0.5,
-        similarityBoost: 0.8,
-        style: 0.0,
-        useSpeakerBoost: true
+        provider: voiceProvider,
+        voiceId: selectedVoice
       },
+      
+      // Transcriber configuration - exactly matching API structure
       transcriber: {
         provider: 'deepgram',
         model: 'nova-2',
-        language: 'en-US',
-        smartFormat: true,
-        keywords: []
+        language: 'en-US'
       },
+      
+      // Optional plans
       ...(enableAnalysis && {
         analysisPlan: {
           summaryPrompt: "Summarize this call focusing on key outcomes and insights",
@@ -383,24 +393,32 @@ export default function AssistantStudio() {
           }
         }
       }),
+      
+      // Speaking plans with correct field names
       startSpeakingPlan: {
-        waitSeconds: startSpeakingWait || 0.5,
-        smartEndpointingEnabled: true
+        waitSeconds: startSpeakingWait
       },
+      
       stopSpeakingPlan: {
-        numWords: stopSpeakingWords || 2,
-        voiceSeconds: 0.4,
-        backoffSeconds: 0.5
+        numWords: stopSpeakingWords
       },
+      
+      // Optional background denoising
+      ...(enableDenoising && {
+        backgroundSpeechDenoisingPlan: {
+          enabled: true
+        }
+      }),
+      
+      // Optional monitoring
       ...(enableMonitoring && {
         monitorPlan: {
           listenEnabled: true,
           controlEnabled: false
         }
       }),
-      ...(enableDenoising && {
-        backgroundSpeechDenoisingPlan: {}
-      }),
+      
+      // Custom metadata
       ...(parsedMetadata && { metadata: parsedMetadata })
     };
 
