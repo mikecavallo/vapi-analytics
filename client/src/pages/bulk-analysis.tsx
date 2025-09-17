@@ -431,7 +431,7 @@ export default function BulkAnalysis() {
               </CardHeader>
               <CardContent className="flex-1 min-h-0 flex flex-col p-4 overflow-hidden">
                 {/* Conversation History */}
-                <ScrollArea className="flex-1 min-h-0 border rounded-lg p-3 mb-4">
+                <ScrollArea className="flex-1 min-h-[400px] border rounded-lg p-3 mb-4">
                   {conversationHistory.length === 0 ? (
                     <div className="text-center text-muted-foreground py-8">
                       <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />

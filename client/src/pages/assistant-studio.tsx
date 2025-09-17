@@ -204,7 +204,7 @@ export default function AssistantStudio() {
   
   // Provider data
   const modelProviders = {
-    'openai': ['gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+    'openai': ['gpt-5', 'gpt-5 mini', 'gpt-5 nano', 'gpt-4.1', 'gpt-4.1 mini', 'gpt-4.1 nano', 'gpt-4o cluster', 'gpt-4o mini-cluster'],
     'anthropic': ['claude-3-5-sonnet-20241022', 'claude-3-haiku-20240307', 'claude-3-opus-20240229'],
     'google': ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-pro'],
     'meta': ['llama-3.1-8b-instruct', 'llama-3.1-70b-instruct', 'llama-3.1-405b-instruct'],
