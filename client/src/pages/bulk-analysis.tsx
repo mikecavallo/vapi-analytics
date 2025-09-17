@@ -276,9 +276,9 @@ export default function BulkAnalysis() {
       {/* Main Content Area */}
       <div className="flex-1 min-h-0 flex flex-col gap-6 p-6">
         {/* Top Row: Filters + Chat */}
-        <div className="flex gap-6 h-96">
+        <div className="flex gap-6 min-h-[500px]">
           {/* Left: Data Filters */}
-          <div className="w-80 h-full bg-card border border-border rounded-lg p-6 overflow-y-auto">
+          <div className="w-80 h-full bg-card border border-border rounded-lg p-6">
             <div className="space-y-6">
             <div>
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -497,7 +497,7 @@ export default function BulkAnalysis() {
                     value={analysisQuery}
                     onChange={(e) => setAnalysisQuery(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    className="min-h-20 flex-1"
+                    className="min-h-32 flex-1"
                     data-testid="textarea-analysis-query"
                   />
                   <Button
