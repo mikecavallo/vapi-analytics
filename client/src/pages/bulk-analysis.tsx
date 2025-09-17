@@ -274,10 +274,12 @@ export default function BulkAnalysis() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 min-h-0 flex">
-        {/* Left Sidebar - Data Filters */}
-        <div className="w-80 bg-card border-r border-border p-6 overflow-y-auto">
-          <div className="space-y-6">
+      <div className="flex-1 min-h-0 flex flex-col gap-6 p-6">
+        {/* Top Row: Filters + Chat */}
+        <div className="flex gap-6 h-96">
+          {/* Left: Data Filters */}
+          <div className="w-80 h-full bg-card border border-border rounded-lg p-6 overflow-y-auto">
+            <div className="space-y-6">
             <div>
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <Filter className="h-5 w-5 text-blue-500" />
@@ -288,18 +290,6 @@ export default function BulkAnalysis() {
               </p>
             </div>
 
-            {/* Call ID Filter */}
-            <div className="space-y-2">
-              <Label htmlFor="call-id-filter" className="text-sm font-medium">Call ID</Label>
-              <Input
-                id="call-id-filter"
-                placeholder="Enter specific call ID"
-                value={callIdFilter}
-                onChange={(e) => setCallIdFilter(e.target.value)}
-                data-testid="input-call-id"
-                className="w-full"
-              />
-            </div>
 
             {/* Assistant ID Filter */}
             <div className="space-y-2">
@@ -400,13 +390,11 @@ export default function BulkAnalysis() {
                 </p>
               </div>
             )}
+            </div>
           </div>
-        </div>
 
-        {/* Right Content Area */}
-        <div className="flex-1 min-h-0 flex flex-col gap-4">
-          {/* AI Chat Window - Always Visible */}
-          <div className="flex-1 min-h-0">
+          {/* Right: AI Chat Window */}
+          <div className="flex-1 h-full min-h-0">
             <Card className="h-full rounded-none border-0 flex flex-col">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -534,9 +522,10 @@ export default function BulkAnalysis() {
               </CardContent>
             </Card>
           </div>
+        </div>
 
-          {/* Dataset Preview - Fixed Height */}
-          <div className="flex-none h-80 overflow-hidden">
+        {/* Bottom Row: Dataset Preview - Full Width */}
+        <div className="flex-none h-80 overflow-hidden">
             {callsData.length > 0 ? (
               <Card className="h-full rounded-none border-0 flex flex-col">
                 <CardHeader>
@@ -606,6 +595,5 @@ export default function BulkAnalysis() {
           </div>
         </div>
       </div>
-    </div>
   );
 }
