@@ -348,8 +348,8 @@ export default function AssistantStudio() {
       ...(endCallPhrases.trim() && { endCallPhrases: endCallPhrases.split(',').map(p => p.trim()) }),
       model: {
         provider: modelProvider || 'openai',
-        model: selectedModel || 'gpt-4',
-        temperature: 0.7,
+        model: selectedModel || 'gpt-5',
+        temperature: temperature || 0.7,
         maxTokens: 150,
         emotionRecognitionEnabled: true
       },
