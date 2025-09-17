@@ -195,7 +195,8 @@ export default function AssistantStudio() {
   
   // Model provider and model states
   const [modelProvider, setModelProvider] = useState('openai');
-  const [selectedModel, setSelectedModel] = useState('gpt-4');
+  const [selectedModel, setSelectedModel] = useState('gpt-5');
+  const [temperature, setTemperature] = useState(0.7);
   
   // Voice provider and voice states
   const [voiceProvider, setVoiceProvider] = useState('11labs');
