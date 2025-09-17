@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/contexts/theme-context";
 import { WarningSettingsProvider } from "@/contexts/warning-settings-context";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
 import { ProtectedRoute } from "@/components/auth/protected-route";
+import { Footer } from "@/components/layout/footer";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import BulkAnalysis from "@/pages/bulk-analysis";
@@ -45,47 +46,52 @@ function AppRouter() {
   }, [isAuthenticated, isLoading, location, setLocation]);
 
   return (
-    <Switch>
-      {/* Public routes */}
-      <Route path="/" component={LandingPage} />
-      <Route path="/solutions" component={SolutionsPage} />
-      <Route path="/platform" component={PlatformPage} />
-      <Route path="/why-invoxa" component={WhyInvoxaPage} />
-      <Route path="/resources" component={ResourcesPage} />
-      <Route path="/book-demo" component={BookDemoPage} />
-      <Route path="/login" component={LoginPage} />
-      <Route path="/signup" component={SignupPage} />
-      <Route path="/verify-email" component={VerifyEmailPage} />
-      
-      {/* Protected dashboard routes */}
-      <Route path="/dashboard">
-        <ProtectedRoute>
-          <Dashboard />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/bulk-analysis">
-        <ProtectedRoute>
-          <BulkAnalysis />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/assistant-studio">
-        <ProtectedRoute>
-          <AssistantStudio />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/settings">
-        <ProtectedRoute>
-          <SettingsPage />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/agency">
-        <ProtectedRoute>
-          <AgencyPage />
-        </ProtectedRoute>
-      </Route>
-      
-      <Route component={NotFound} />
-    </Switch>
+    <div className="min-h-screen flex flex-col">
+      <main className="flex-1 min-h-0">
+        <Switch>
+          {/* Public routes */}
+          <Route path="/" component={LandingPage} />
+          <Route path="/solutions" component={SolutionsPage} />
+          <Route path="/platform" component={PlatformPage} />
+          <Route path="/why-invoxa" component={WhyInvoxaPage} />
+          <Route path="/resources" component={ResourcesPage} />
+          <Route path="/book-demo" component={BookDemoPage} />
+          <Route path="/login" component={LoginPage} />
+          <Route path="/signup" component={SignupPage} />
+          <Route path="/verify-email" component={VerifyEmailPage} />
+          
+          {/* Protected dashboard routes */}
+          <Route path="/dashboard">
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/bulk-analysis">
+            <ProtectedRoute>
+              <BulkAnalysis />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/assistant-studio">
+            <ProtectedRoute>
+              <AssistantStudio />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/settings">
+            <ProtectedRoute>
+              <SettingsPage />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/agency">
+            <ProtectedRoute>
+              <AgencyPage />
+            </ProtectedRoute>
+          </Route>
+          
+          <Route component={NotFound} />
+        </Switch>
+      </main>
+      <Footer />
+    </div>
   );
 }
 

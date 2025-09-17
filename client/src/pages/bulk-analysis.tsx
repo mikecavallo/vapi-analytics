@@ -215,7 +215,7 @@ export default function BulkAnalysis() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <DashboardHeader />
 
       {/* VoiceScope Header Section */}
@@ -274,7 +274,7 @@ export default function BulkAnalysis() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex h-screen">
+      <div className="flex-1 min-h-0 flex">
         {/* Left Sidebar - Data Filters */}
         <div className="w-80 bg-card border-r border-border p-6 overflow-y-auto">
           <div className="space-y-6">
@@ -441,7 +441,7 @@ export default function BulkAnalysis() {
                   </div>
                 )}
               </CardHeader>
-              <CardContent className="flex flex-col h-full p-4">
+              <CardContent className="flex flex-col h-full p-4 overflow-hidden">
                 {/* Conversation History */}
                 <ScrollArea className="flex-1 border rounded-lg p-3 mb-4">
                   {conversationHistory.length === 0 ? (
@@ -535,17 +535,17 @@ export default function BulkAnalysis() {
             </Card>
           </div>
 
-          {/* Dataset Preview - Flexible Height */}
-          <div className="flex-shrink-0 max-h-80 overflow-y-auto">
+          {/* Dataset Preview - Fixed Height */}
+          <div className="flex-none h-80 overflow-hidden">
             {callsData.length > 0 ? (
-              <Card className="h-full rounded-none border-0">
+              <Card className="h-full rounded-none border-0 flex flex-col">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="h-5 w-5 text-blue-500" />
                     Dataset Preview ({callsData.length} calls)
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1 min-h-0">
                   <ScrollArea className="h-full">
                     <Table>
                       <TableHeader>
