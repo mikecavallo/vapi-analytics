@@ -1289,6 +1289,82 @@ export default function AssistantStudio() {
                       />
                     </CardContent>
                   </Card>
+
+                  {/* Action Buttons */}
+                  <Card>
+                    <CardContent className="pt-6">
+                      {createdAssistant ? (
+                        <div className="space-y-4">
+                          <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                            <div className="flex items-center space-x-2">
+                              <CheckCircle2 className="h-5 w-5 text-green-600" />
+                              <h4 className="text-sm font-medium text-green-800 dark:text-green-200">
+                                Assistant Created Successfully!
+                              </h4>
+                            </div>
+                            <div className="mt-2 text-xs text-green-700 dark:text-green-300" data-testid="text-created-assistant">
+                              <p><strong>Assistant ID:</strong> {createdAssistant.id}</p>
+                              <p><strong>Name:</strong> {createdAssistant.name}</p>
+                              <p><strong>Created:</strong> {new Date(createdAssistant.createdAt).toLocaleString()}</p>
+                            </div>
+                          </div>
+                          
+                          <Button 
+                            className="w-full" 
+                            onClick={resetAssistant}
+                            data-testid="button-create-another"
+                          >
+                            Create Another Assistant
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {/* Generate Assistant Button */}
+                          <Button 
+                            type="button"
+                            onClick={generationForm.handleSubmit(handleGenerate)}
+                            size="lg"
+                            disabled={generateMutation.isPending || generationStep === 'generating'}
+                            data-testid="button-generate-assistant"
+                            className="w-full"
+                            variant="outline"
+                          >
+                            {generateMutation.isPending || generationStep === 'generating' ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Generating Configuration...
+                              </>
+                            ) : (
+                              <>
+                                <Wand2 className="h-4 w-4 mr-2" />
+                                Generate Assistant Configuration
+                              </>
+                            )}
+                          </Button>
+                          
+                          {/* Create Assistant Button */}
+                          <Button 
+                            type="submit"
+                            className="w-full" 
+                            disabled={createMutation.isPending || !form.getValues('name')?.trim()}
+                            data-testid="button-create-assistant"
+                          >
+                            {createMutation.isPending ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Creating Assistant...
+                              </>
+                            ) : (
+                              <>
+                                <Wand2 className="h-4 w-4 mr-2" />
+                                Create Assistant
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 </form>
               </Form>
             </TabsContent>
@@ -1659,104 +1735,27 @@ export default function AssistantStudio() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
-                      <Wand2 size={20} />
-                      <span>Deploy Assistant</span>
+                      <Eye size={20} />
+                      <span>Configuration Summary</span>
                     </CardTitle>
                     <CardDescription>
-                      Create and deploy your assistant to the Vapi platform
+                      Review your assistant configuration before deployment
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-4">
-                      <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                        <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
-                          Configuration Summary
-                        </h4>
-                        <div className="text-xs text-blue-700 dark:text-blue-300 space-y-1" data-testid="text-configuration-summary">
-                          <p>• <strong>Name:</strong> {currentConfig.name || 'Unnamed Assistant'}</p>
-                          <p>• <strong>Model:</strong> {currentConfig.model.provider}/{currentConfig.model.model}</p>
-                          <p>• <strong>Voice:</strong> {currentConfig.voice.provider}/{currentConfig.voice.voiceId}</p>
-                          <p>• <strong>Language:</strong> {currentConfig.transcriber.language}</p>
-                          <p>• <strong>Analysis:</strong> {currentConfig.analysisPlan ? 'Enabled' : 'Disabled'}</p>
-                          <p>• <strong>Tools:</strong> {currentConfig.tools?.length || 0} configured</p>
-                          <p>• <strong>Knowledge Base:</strong> {currentConfig.knowledgeBase ? 'Enabled' : 'Disabled'}</p>
-                        </div>
+                  <CardContent className="space-y-4">
+                    <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
+                        Configuration Overview
+                      </h4>
+                      <div className="text-xs text-blue-700 dark:text-blue-300 space-y-1" data-testid="text-configuration-summary">
+                        <p>• <strong>Name:</strong> {currentConfig.name || 'Unnamed Assistant'}</p>
+                        <p>• <strong>Model:</strong> {currentConfig.model.provider}/{currentConfig.model.model}</p>
+                        <p>• <strong>Voice:</strong> {currentConfig.voice.provider}/{currentConfig.voice.voiceId}</p>
+                        <p>• <strong>Language:</strong> {currentConfig.transcriber.language}</p>
+                        <p>• <strong>Analysis:</strong> {currentConfig.analysisPlan ? 'Enabled' : 'Disabled'}</p>
+                        <p>• <strong>Tools:</strong> {currentConfig.tools?.length || 0} configured</p>
+                        <p>• <strong>Knowledge Base:</strong> {currentConfig.knowledgeBase ? 'Enabled' : 'Disabled'}</p>
                       </div>
-
-                      {createdAssistant ? (
-                        <div className="space-y-4">
-                          <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                            <div className="flex items-center space-x-2">
-                              <CheckCircle2 className="h-5 w-5 text-green-600" />
-                              <h4 className="text-sm font-medium text-green-800 dark:text-green-200">
-                                Assistant Created Successfully!
-                              </h4>
-                            </div>
-                            <div className="mt-2 text-xs text-green-700 dark:text-green-300" data-testid="text-created-assistant">
-                              <p><strong>Assistant ID:</strong> {createdAssistant.id}</p>
-                              <p><strong>Name:</strong> {createdAssistant.name}</p>
-                              <p><strong>Created:</strong> {new Date(createdAssistant.createdAt).toLocaleString()}</p>
-                            </div>
-                          </div>
-                          
-                          <Button 
-                            className="w-full" 
-                            onClick={resetAssistant}
-                            data-testid="button-create-another"
-                          >
-                            Create Another Assistant
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {/* Generate Assistant Button */}
-                          <Button 
-                            type="button"
-                            onClick={generationForm.handleSubmit(handleGenerate)}
-                            size="lg"
-                            disabled={generateMutation.isPending || generationStep === 'generating'}
-                            data-testid="button-generate-assistant"
-                            className="w-full"
-                            variant="outline"
-                          >
-                            {generateMutation.isPending || generationStep === 'generating' ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Generating Configuration...
-                              </>
-                            ) : (
-                              <>
-                                <Wand2 className="h-4 w-4 mr-2" />
-                                Generate Assistant Configuration
-                              </>
-                            )}
-                          </Button>
-                          
-                          {/* Create Assistant Button */}
-                          <Form {...form}>
-                            <form onSubmit={form.handleSubmit(handleCreate)}>
-                              <Button 
-                                type="submit"
-                                className="w-full" 
-                                disabled={createMutation.isPending || !form.getValues('name')?.trim()}
-                                data-testid="button-create-assistant"
-                              >
-                                {createMutation.isPending ? (
-                                  <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Creating Assistant...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Wand2 className="h-4 w-4 mr-2" />
-                                    Create Assistant
-                                  </>
-                                )}
-                              </Button>
-                            </form>
-                          </Form>
-                        </div>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
