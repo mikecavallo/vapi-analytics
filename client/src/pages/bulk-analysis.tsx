@@ -404,10 +404,10 @@ export default function BulkAnalysis() {
         </div>
 
         {/* Right Content Area */}
-        <div className="flex-1 flex flex-col gap-4">
+        <div className="flex-1 min-h-0 flex flex-col gap-4">
           {/* AI Chat Window - Always Visible */}
           <div className="flex-1 min-h-0">
-            <Card className="h-full rounded-none border-0">
+            <Card className="h-full rounded-none border-0 flex flex-col">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
@@ -441,9 +441,9 @@ export default function BulkAnalysis() {
                   </div>
                 )}
               </CardHeader>
-              <CardContent className="flex flex-col h-full p-4 overflow-hidden">
+              <CardContent className="flex-1 min-h-0 flex flex-col p-4 overflow-hidden">
                 {/* Conversation History */}
-                <ScrollArea className="flex-1 border rounded-lg p-3 mb-4">
+                <ScrollArea className="flex-1 min-h-0 border rounded-lg p-3 mb-4">
                   {conversationHistory.length === 0 ? (
                     <div className="text-center text-muted-foreground py-8">
                       <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -503,7 +503,7 @@ export default function BulkAnalysis() {
                 </ScrollArea>
 
                 {/* Input Box */}
-                <div className="flex gap-3">
+                <div className="flex gap-3 flex-none">
                   <Textarea
                     placeholder="Ask AI to analyze your call data - Press Enter to send, Shift+Enter for new line"
                     value={analysisQuery}
