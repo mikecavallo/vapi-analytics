@@ -341,7 +341,7 @@ export default function AssistantStudio() {
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleCreate)} className="space-y-6">
                   
-                  {/* AI Generation Section - Moved from Generate Tab */}
+                  {/* AI-Powered Assistant Generation */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center space-x-2">
@@ -354,52 +354,24 @@ export default function AssistantStudio() {
                     </CardHeader>
                     <CardContent>
                       <Form {...generationForm}>
-                        <div className="space-y-6">
-                          {/* Basic Information */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                              control={generationForm.control}
-                              name="name"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Assistant Name</FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      placeholder="Customer Support Assistant"
-                                      data-testid="input-generation-name"
-                                      {...field} 
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={generationForm.control}
-                              name="voiceSettings.provider"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Voice Provider</FormLabel>
-                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                      <SelectTrigger data-testid="select-voice-provider">
-                                        <SelectValue placeholder="Select voice provider" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      <SelectItem value="11labs">ElevenLabs</SelectItem>
-                                      <SelectItem value="openai">OpenAI</SelectItem>
-                                      <SelectItem value="playht">PlayHT</SelectItem>
-                                      <SelectItem value="azure">Azure</SelectItem>
-                                      <SelectItem value="deepgram">Deepgram</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
+                        <div className="space-y-4">
+                          <FormField
+                            control={generationForm.control}
+                            name="name"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Assistant Name</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Customer Support Assistant"
+                                    data-testid="input-generation-name"
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
                           <FormField
                             control={generationForm.control}
@@ -428,7 +400,7 @@ export default function AssistantStudio() {
                             name="conversationFlow"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Conversation Flow (Optional)</FormLabel>
+                                <FormLabel>Conversation Flow</FormLabel>
                                 <FormControl>
                                   <Textarea 
                                     placeholder="Describe the typical conversation structure..."
@@ -445,259 +417,73 @@ export default function AssistantStudio() {
                             )}
                           />
 
-                          {/* Voice & Model Settings */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <Card>
-                              <CardHeader>
-                                <CardTitle className="text-lg flex items-center space-x-2">
-                                  <Headphones size={18} />
-                                  <span>Voice Preferences</span>
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent className="space-y-4">
-                                <FormField
-                                  control={generationForm.control}
-                                  name="voiceSettings.tone"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Tone</FormLabel>
-                                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                          <SelectTrigger data-testid="select-voice-tone">
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                          <SelectItem value="professional">Professional</SelectItem>
-                                          <SelectItem value="friendly">Friendly</SelectItem>
-                                          <SelectItem value="casual">Casual</SelectItem>
-                                          <SelectItem value="authoritative">Authoritative</SelectItem>
-                                          <SelectItem value="empathetic">Empathetic</SelectItem>
-                                          <SelectItem value="energetic">Energetic</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-
-                                <FormField
-                                  control={generationForm.control}
-                                  name="voiceSettings.gender"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Gender Preference</FormLabel>
-                                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                          <SelectTrigger data-testid="select-voice-gender">
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                          <SelectItem value="neutral">No Preference</SelectItem>
-                                          <SelectItem value="female">Female</SelectItem>
-                                          <SelectItem value="male">Male</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </CardContent>
-                            </Card>
-
-                            <Card>
-                              <CardHeader>
-                                <CardTitle className="text-lg flex items-center space-x-2">
-                                  <Brain size={18} />
-                                  <span>AI Model Settings</span>
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent className="space-y-4">
-                                <FormField
-                                  control={generationForm.control}
-                                  name="modelSettings.provider"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Model Provider</FormLabel>
-                                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                          <SelectTrigger data-testid="select-model-provider">
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                          <SelectItem value="openai">OpenAI</SelectItem>
-                                          <SelectItem value="anthropic">Anthropic</SelectItem>
-                                          <SelectItem value="groq">Groq</SelectItem>
-                                          <SelectItem value="perplexity-ai">Perplexity AI</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-
-                                <FormField
-                                  control={generationForm.control}
-                                  name="modelSettings.creativity"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Creativity Level</FormLabel>
-                                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                          <SelectTrigger data-testid="select-creativity">
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                          <SelectItem value="low">Low (Conservative)</SelectItem>
-                                          <SelectItem value="medium">Medium (Balanced)</SelectItem>
-                                          <SelectItem value="high">High (Creative)</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-
-                                <FormField
-                                  control={generationForm.control}
-                                  name="modelSettings.responseLength"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Response Length</FormLabel>
-                                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                          <SelectTrigger data-testid="select-response-length">
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                          <SelectItem value="concise">Concise</SelectItem>
-                                          <SelectItem value="balanced">Balanced</SelectItem>
-                                          <SelectItem value="detailed">Detailed</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </CardContent>
-                            </Card>
-                          </div>
-
-                          {/* Advanced Features */}
-                          <Card>
-                            <CardHeader>
-                              <CardTitle className="text-lg flex items-center space-x-2">
-                                <Zap size={18} />
-                                <span>Advanced Features</span>
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <FormField
-                                  control={generationForm.control}
-                                  name="advancedFeatures.enableAnalytics"
-                                  render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                                      <div className="space-y-0.5">
-                                        <FormLabel>Analytics</FormLabel>
-                                      </div>
-                                      <FormControl>
-                                        <Switch
-                                          checked={field.value}
-                                          onCheckedChange={field.onChange}
-                                          data-testid="switch-analytics"
-                                        />
-                                      </FormControl>
-                                    </FormItem>
-                                  )}
-                                />
-
-                                <FormField
-                                  control={generationForm.control}
-                                  name="advancedFeatures.enableTools"
-                                  render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                                      <div className="space-y-0.5">
-                                        <FormLabel>Function Tools</FormLabel>
-                                      </div>
-                                      <FormControl>
-                                        <Switch
-                                          checked={field.value}
-                                          onCheckedChange={field.onChange}
-                                          data-testid="switch-tools"
-                                        />
-                                      </FormControl>
-                                    </FormItem>
-                                  )}
-                                />
-
-                                <FormField
-                                  control={generationForm.control}
-                                  name="advancedFeatures.enableKnowledgeBase"
-                                  render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                                      <div className="space-y-0.5">
-                                        <FormLabel>Knowledge Base</FormLabel>
-                                      </div>
-                                      <FormControl>
-                                        <Switch
-                                          checked={field.value}
-                                          onCheckedChange={field.onChange}
-                                          data-testid="switch-knowledge-base"
-                                        />
-                                      </FormControl>
-                                    </FormItem>
-                                  )}
-                                />
-
-                                <FormField
-                                  control={generationForm.control}
-                                  name="advancedFeatures.enableVoicemailDetection"
-                                  render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                                      <div className="space-y-0.5">
-                                        <FormLabel>Voicemail Detection</FormLabel>
-                                      </div>
-                                      <FormControl>
-                                        <Switch
-                                          checked={field.value}
-                                          onCheckedChange={field.onChange}
-                                          data-testid="switch-voicemail-detection"
-                                        />
-                                      </FormControl>
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-                            </CardContent>
-                          </Card>
-
-                          <div className="flex justify-center">
-                            <Button 
-                              type="button"
-                              onClick={generationForm.handleSubmit(handleGenerate)}
-                              size="lg"
-                              disabled={generateMutation.isPending || generationStep === 'generating'}
-                              data-testid="button-generate-assistant"
-                              className="px-8"
-                            >
-                              {generateMutation.isPending || generationStep === 'generating' ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Generating Configuration...
-                                </>
-                              ) : (
-                                <>
-                                  <Wand2 className="h-4 w-4 mr-2" />
-                                  Generate Assistant Configuration
-                                </>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="firstMessageMode"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>First Message Mode</FormLabel>
+                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger data-testid="select-first-message-mode">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="assistant-speaks-first">Assistant Speaks First</SelectItem>
+                                      <SelectItem value="assistant-waits-for-user">Wait for User</SelectItem>
+                                      <SelectItem value="assistant-speaks-first-with-model-generated-message">Auto-Generate First Message</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
                               )}
-                            </Button>
+                            />
                           </div>
+
+                          <FormField
+                            control={form.control}
+                            name="firstMessage"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>First Message</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Hello! How can I help you today?"
+                                    data-testid="input-first-message"
+                                    {...field} 
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  The initial greeting message your assistant will use to start conversations.
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="firstMessageInterruptionsEnabled"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                  <FormLabel>Allow First Message Interruptions</FormLabel>
+                                  <FormDescription>
+                                    Allow users to interrupt the assistant during the first message
+                                  </FormDescription>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                    data-testid="switch-first-message-interruptions"
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
 
                           {generationStep === 'ready' && (
                             <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
@@ -716,32 +502,43 @@ export default function AssistantStudio() {
                       </Form>
                     </CardContent>
                   </Card>
-                  {/* Basic Information */}
+
+                  {/* Model */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center space-x-2">
-                        <MessageSquare size={20} />
-                        <span>Basic Information</span>
+                        <Brain size={20} />
+                        <span>Model</span>
                       </CardTitle>
                       <CardDescription>
-                        Core settings that define your assistant's identity and initial behavior
+                        Configure the AI model that powers your assistant's responses
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
-                          name="name"
+                          name="model.provider"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Assistant Name</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder="Enter assistant name"
-                                  data-testid="input-assistant-name"
-                                  {...field} 
-                                />
-                              </FormControl>
+                              <FormLabel>Provider</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-model-provider">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="openai">OpenAI</SelectItem>
+                                  <SelectItem value="anthropic">Anthropic</SelectItem>
+                                  <SelectItem value="google">Google</SelectItem>
+                                  <SelectItem value="meta">Meta</SelectItem>
+                                  <SelectItem value="mistral">Mistral</SelectItem>
+                                  <SelectItem value="cohere">Cohere</SelectItem>
+                                  <SelectItem value="perplexity-ai">Perplexity AI</SelectItem>
+                                  <SelectItem value="groq">Groq</SelectItem>
+                                </SelectContent>
+                              </Select>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -749,20 +546,25 @@ export default function AssistantStudio() {
 
                         <FormField
                           control={form.control}
-                          name="firstMessageMode"
+                          name="model.model"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>First Message Mode</FormLabel>
+                              <FormLabel>Model</FormLabel>
                               <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
-                                  <SelectTrigger data-testid="select-first-message-mode">
+                                  <SelectTrigger data-testid="select-model">
                                     <SelectValue />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="assistant-speaks-first">Assistant Speaks First</SelectItem>
-                                  <SelectItem value="assistant-waits-for-user">Wait for User</SelectItem>
-                                  <SelectItem value="assistant-speaks-first-with-model-generated-message">Auto-Generate First Message</SelectItem>
+                                  <SelectItem value="gpt-5">GPT-5</SelectItem>
+                                  <SelectItem value="gpt-5-mini">GPT-5 Mini</SelectItem>
+                                  <SelectItem value="gpt-5-nano">GPT-5 Nano</SelectItem>
+                                  <SelectItem value="gpt-4.1">GPT-4.1</SelectItem>
+                                  <SelectItem value="gpt-4.1-mini">GPT-4.1 Mini</SelectItem>
+                                  <SelectItem value="gpt-4.1-nano">GPT-4.1 Nano</SelectItem>
+                                  <SelectItem value="gpt-4o-cluster">GPT-4o Cluster</SelectItem>
+                                  <SelectItem value="gpt-4o-mini-cluster">GPT-4o Mini Cluster</SelectItem>
                                 </SelectContent>
                               </Select>
                               <FormMessage />
@@ -773,72 +575,127 @@ export default function AssistantStudio() {
 
                       <FormField
                         control={form.control}
-                        name="firstMessage"
+                        name="model.temperature"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>First Message</FormLabel>
+                            <FormLabel>Temperature: {field.value}</FormLabel>
                             <FormControl>
-                              <Textarea 
-                                placeholder="Hello! How can I help you today?"
-                                data-testid="textarea-first-message"
-                                {...field} 
+                              <Slider
+                                min={0}
+                                max={2}
+                                step={0.1}
+                                value={[field.value]}
+                                onValueChange={(value) => field.onChange(value[0])}
+                                data-testid="slider-temperature"
+                                className="w-full"
                               />
                             </FormControl>
                             <FormDescription>
-                              The initial greeting message your assistant will use to start conversations.
+                              Controls randomness. Lower = more focused, Higher = more creative
                             </FormDescription>
                             <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="systemMessage"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>System Message</FormLabel>
-                            <FormControl>
-                              <Textarea 
-                                placeholder="You are a helpful assistant that..."
-                                className="min-h-[120px]"
-                                data-testid="textarea-system-message"
-                                {...field} 
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Instructions that define your assistant's behavior, personality, and knowledge.
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="firstMessageInterruptionsEnabled"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                            <div className="space-y-0.5">
-                              <FormLabel>Allow First Message Interruptions</FormLabel>
-                              <FormDescription>
-                                Allow users to interrupt the assistant during the first message
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                                data-testid="switch-first-message-interruptions"
-                              />
-                            </FormControl>
                           </FormItem>
                         )}
                       />
                     </CardContent>
                   </Card>
 
-                  {/* Model Configuration */}
+                  {/* Voice */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2">
+                        <Headphones size={20} />
+                        <span>Voice</span>
+                      </CardTitle>
+                      <CardDescription>
+                        Configure how your assistant speaks and sounds
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="voice.provider"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Voice Provider</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-voice-provider">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="11labs">ElevenLabs</SelectItem>
+                                  <SelectItem value="openai">OpenAI</SelectItem>
+                                  <SelectItem value="playht">PlayHT</SelectItem>
+                                  <SelectItem value="deepgram">Deepgram</SelectItem>
+                                  <SelectItem value="azure">Azure</SelectItem>
+                                  <SelectItem value="cartesia">Cartesia</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="voice.voiceId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Model</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-voice-model">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="eleven_flash_v2_5">Eleven Flash v2.5</SelectItem>
+                                  <SelectItem value="eleven_turbo_v2_5">Eleven Turbo v2.5</SelectItem>
+                                  <SelectItem value="eleven_multilingual_v2">Eleven Multilingual v2</SelectItem>
+                                  <SelectItem value="tts-1">TTS-1</SelectItem>
+                                  <SelectItem value="tts-1-hd">TTS-1 HD</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="voice.voiceId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Voice</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-voice">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="burt">Burt</SelectItem>
+                                  <SelectItem value="marissa">Marissa</SelectItem>
+                                  <SelectItem value="andrea">Andrea</SelectItem>
+                                  <SelectItem value="sarah">Sarah</SelectItem>
+                                  <SelectItem value="phillip">Phillip</SelectItem>
+                                  <SelectItem value="steve">Steve</SelectItem>
+                                  <SelectItem value="joseph">Joseph</SelectItem>
+                                  <SelectItem value="myra">Myra</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Speech Recognition */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center space-x-2">
@@ -1752,65 +1609,6 @@ export default function AssistantStudio() {
                     </CardContent>
                   </Card>
 
-                  {/* Monitoring & Control */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center space-x-2">
-                        <Shield size={20} />
-                        <span>Monitoring & Control</span>
-                      </CardTitle>
-                      <CardDescription>
-                        Configure call monitoring and manual control options
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="monitorPlan.listenEnabled"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                              <div className="space-y-0.5">
-                                <FormLabel>Enable Call Listening</FormLabel>
-                                <FormDescription>
-                                  Allow supervisors to listen to live calls
-                                </FormDescription>
-                              </div>
-                              <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                  data-testid="switch-listen-enabled"
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="monitorPlan.controlEnabled"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                              <div className="space-y-0.5">
-                                <FormLabel>Enable Call Control</FormLabel>
-                                <FormDescription>
-                                  Allow manual intervention and control during calls
-                                </FormDescription>
-                              </div>
-                              <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                  data-testid="switch-control-enabled"
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
                 </form>
               </Form>
             </TabsContent>
@@ -1910,28 +1708,54 @@ export default function AssistantStudio() {
                           </Button>
                         </div>
                       ) : (
-                        <Form {...form}>
-                          <form onSubmit={form.handleSubmit(handleCreate)}>
-                            <Button 
-                              type="submit"
-                              className="w-full" 
-                              disabled={createMutation.isPending || !form.getValues('name')?.trim()}
-                              data-testid="button-create-assistant"
-                            >
-                              {createMutation.isPending ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Creating Assistant...
-                                </>
-                              ) : (
-                                <>
-                                  <Wand2 className="h-4 w-4 mr-2" />
-                                  Create Assistant
-                                </>
-                              )}
-                            </Button>
-                          </form>
-                        </Form>
+                        <div className="space-y-4">
+                          {/* Generate Assistant Button */}
+                          <Button 
+                            type="button"
+                            onClick={generationForm.handleSubmit(handleGenerate)}
+                            size="lg"
+                            disabled={generateMutation.isPending || generationStep === 'generating'}
+                            data-testid="button-generate-assistant"
+                            className="w-full"
+                            variant="outline"
+                          >
+                            {generateMutation.isPending || generationStep === 'generating' ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Generating Configuration...
+                              </>
+                            ) : (
+                              <>
+                                <Wand2 className="h-4 w-4 mr-2" />
+                                Generate Assistant Configuration
+                              </>
+                            )}
+                          </Button>
+                          
+                          {/* Create Assistant Button */}
+                          <Form {...form}>
+                            <form onSubmit={form.handleSubmit(handleCreate)}>
+                              <Button 
+                                type="submit"
+                                className="w-full" 
+                                disabled={createMutation.isPending || !form.getValues('name')?.trim()}
+                                data-testid="button-create-assistant"
+                              >
+                                {createMutation.isPending ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Creating Assistant...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Wand2 className="h-4 w-4 mr-2" />
+                                    Create Assistant
+                                  </>
+                                )}
+                              </Button>
+                            </form>
+                          </Form>
+                        </div>
                       )}
                     </div>
                   </CardContent>
