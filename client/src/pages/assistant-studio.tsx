@@ -201,11 +201,8 @@ export default function AssistantStudio() {
   // React Query mutations for API calls
   const generateMutation = useMutation({
     mutationFn: async (data: AssistantGenerationRequest): Promise<AssistantConfig> => {
-      const response = await apiRequest('/api/assistant-studio/generate', {
-        method: 'POST',
-        body: data,
-      });
-      return response;
+      const response = await apiRequest('POST', '/api/assistant-studio/generate', data);
+      return response.json();
     },
     onSuccess: (generatedConfig) => {
       // Populate the main form with generated configuration
@@ -228,11 +225,8 @@ export default function AssistantStudio() {
 
   const createMutation = useMutation({
     mutationFn: async (config: AssistantConfig) => {
-      const response = await apiRequest('/api/assistant-studio/create', {
-        method: 'POST',
-        body: { config },
-      });
-      return response;
+      const response = await apiRequest('POST', '/api/assistant-studio/create', config);
+      return response.json();
     },
     onSuccess: (response) => {
       setCreatedAssistant(response.assistant);
