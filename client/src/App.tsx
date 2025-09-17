@@ -71,6 +71,11 @@ function AppRouter() {
               <BulkAnalysis />
             </ProtectedRoute>
           </Route>
+          <Route path="/studio">
+            <ProtectedRoute>
+              <AssistantStudio />
+            </ProtectedRoute>
+          </Route>
           <Route path="/assistant-studio">
             <ProtectedRoute>
               <AssistantStudio />
