@@ -73,122 +73,34 @@ interface AnalysisMessage {
 }
 
 export default function BulkAnalysis() {
+  // State management (keeping all existing state variables)
   const { toast } = useToast();
-  const { theme, toggleTheme } = useTheme();
-  const [location] = useLocation();
-  const { user, logout } = useAuth();
-  const [filters, setFilters] = useState<FilterCriteria[]>([]);
-  const [analysisQuery, setAnalysisQuery] = useState('');
-  const [conversationHistory, setConversationHistory] = useState<AnalysisMessage[]>([]);
-  
-  // Prompt optimization states
-  const [currentPrompt, setCurrentPrompt] = useState('');
-  const [optimizationResults, setOptimizationResults] = useState<any>(null);
-  
-  // Conversation flow analysis states
-  const [activeTab, setActiveTab] = useState<'analysis' | 'optimization' | 'flows'>('analysis');
-  const [flowAnalysisResults, setFlowAnalysisResults] = useState<any>(null);
-  
-  // API-supported filter states
-  const [callIdFilter, setCallIdFilter] = useState<string>('');
-  const [assistantIdFilter, setAssistantIdFilter] = useState<string>('');
-  const [phoneNumberIdFilter, setPhoneNumberIdFilter] = useState<string>('');
-  const [selectedDateRange, setSelectedDateRange] = useState<DateRange | undefined>(undefined);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [isLoadingData, setIsLoadingData] = useState(false);
   const [callsData, setCallsData] = useState<any[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(false);
+  const [callIdFilter, setCallIdFilter] = useState('');
+  const [assistantIdFilter, setAssistantIdFilter] = useState('');
+  const [phoneNumberIdFilter, setPhoneNumberIdFilter] = useState('');
+  const [selectedDateRange, setSelectedDateRange] = useState<DateRange | undefined>(undefined);
+  const [conversationHistory, setConversationHistory] = useState<AnalysisMessage[]>([]);
+  const [analysisQuery, setAnalysisQuery] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  
-  // Example prompts for user guidance
+
+  // Example prompts for the chat
   const examplePrompts = [
-    "Analyze sentiment patterns across all calls",
-    "Find common failure points in conversations", 
-    "What are the most frequent customer complaints?",
-    "Identify successful conversation patterns",
-    "Summarize key insights from recent calls"
+    "What are the main conversation patterns?",
+    "Which assistants perform best?",
+    "Show me cost analysis by time period",
+    "What are common failure points?",
+    "Analyze call duration trends"
   ];
-  
-  // Submission function for chat analysis
-  const handleAnalysisSubmit = () => {
-    if (analysisQuery.trim() && callsData.length > 0) {
-      const selectedCalls = callsData.slice(0, 20).map(call => call.id);
-      performAnalysisMutation.mutate({
-        callIds: selectedCalls,
-        analysisType: analysisQuery
-      });
-      
-      const userMessage: AnalysisMessage = {
-        id: Math.random().toString(36).substr(2, 9),
-        role: 'user',
-        content: analysisQuery,
-        timestamp: new Date()
-      };
-      setConversationHistory(prev => [...prev, userMessage]);
-      setAnalysisQuery('');
-    }
-  };
-  
-  // Handle textarea key press
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleAnalysisSubmit();
-    }
-  };
 
-  // Function to fetch data with applied filters
-  const fetchDataWithFilters = async () => {
-    setIsLoadingData(true);
-    try {
-      const queryParams = new URLSearchParams();
-      
-      // Add filters based on user selections
-      if (callIdFilter.trim()) {
-        queryParams.append('id', callIdFilter.trim());
-      }
-      if (assistantIdFilter.trim()) {
-        queryParams.append('assistantId', assistantIdFilter.trim());
-      }
-      if (phoneNumberIdFilter.trim()) {
-        queryParams.append('phoneNumberId', phoneNumberIdFilter.trim());
-      }
-      if (selectedDateRange?.from) {
-        queryParams.append('createdAtGe', selectedDateRange.from.toISOString());
-      }
-      if (selectedDateRange?.to) {
-        queryParams.append('createdAtLe', selectedDateRange.to.toISOString());
-      }
-      
-      // Always set a reasonable limit
-      queryParams.append('limit', '1000');
-      
-      const response = await apiRequest('GET', `/api/bulk-analysis/calls?${queryParams.toString()}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch calls');
-      }
-      
-      const data = await response.json();
-      setCallsData(data);
-      
-      toast({
-        title: "Data loaded successfully",
-        description: `Found ${data.length} calls matching your filters`,
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error loading data",
-        description: error.message,
-        variant: "destructive",
-      });
-      setCallsData([]);
-    } finally {
-      setIsLoadingData(false);
-    }
-  };
+  // Check if any filters are set
+  const hasFilters = callIdFilter.trim() !== '' || 
+                    assistantIdFilter.trim() !== '' || 
+                    phoneNumberIdFilter.trim() !== '' || 
+                    selectedDateRange?.from;
 
-  // Clear all filters
+  // Filter functions (keeping existing logic)
   const clearAllFilters = () => {
     setCallIdFilter('');
     setAssistantIdFilter('');
@@ -197,41 +109,51 @@ export default function BulkAnalysis() {
     setCallsData([]);
   };
 
-  // Add filter to list
-  const addFilter = (type: FilterCriteria['type'], value: string, value2?: string) => {
-    const label = getFilterLabel(type, value, value2);
-    const newFilter: FilterCriteria = {
-      id: Math.random().toString(36).substr(2, 9),
-      type,
-      value,
-      value2,
-      label
-    };
-    setFilters([...filters, newFilter]);
-  };
+  const fetchDataWithFilters = async () => {
+    if (!hasFilters) {
+      toast({
+        title: "No filters set",
+        description: "Please set at least one filter before getting data.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  // Remove filter from list
-  const removeFilter = (filterId: string) => {
-    setFilters(filters.filter(f => f.id !== filterId));
-  };
+    setIsLoadingData(true);
+    try {
+      const filters = [];
+      if (callIdFilter.trim()) filters.push({ type: 'callId', value: callIdFilter.trim() });
+      if (assistantIdFilter.trim()) filters.push({ type: 'assistantId', value: assistantIdFilter.trim() });
+      if (phoneNumberIdFilter.trim()) filters.push({ type: 'phoneNumberId', value: phoneNumberIdFilter.trim() });
+      if (selectedDateRange?.from) {
+        filters.push({
+          type: 'createdAtRange',
+          value: selectedDateRange.from.toISOString(),
+          value2: selectedDateRange.to?.toISOString() || selectedDateRange.from.toISOString()
+        });
+      }
 
-  // Get filter label for display
-  const getFilterLabel = (type: FilterCriteria['type'], value: string, value2?: string): string => {
-    switch (type) {
-      case 'callId':
-        return `Call ID: ${value}`;
-      case 'assistantId':
-        return `Assistant ID: ${value}`;
-      case 'phoneNumberId':
-        return `Phone Number ID: ${value}`;
-      case 'createdAtRange':
-        return `Created: ${value}${value2 ? ` to ${value2}` : ''}`;
-      default:
-        return `${type}: ${value}`;
+      const response = await apiRequest('POST', '/api/bulk-analysis/filter-calls', { filters });
+      const data = await response.json();
+      setCallsData(data.calls || []);
+
+      toast({
+        title: "Data loaded successfully",
+        description: `Found ${data.calls?.length || 0} matching calls.`,
+      });
+    } catch (error) {
+      console.error('Error fetching filtered calls:', error);
+      toast({
+        title: "Error loading data",
+        description: "There was an error loading your call data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingData(false);
     }
   };
 
-  // Analysis mutations
+  // Analysis mutation
   const performAnalysisMutation = useMutation({
     mutationFn: async ({ callIds, analysisType }: { callIds: string[], analysisType: string }) => {
       const response = await apiRequest('POST', '/api/bulk-analysis/analyze', { callIds, analysisType });
@@ -239,139 +161,186 @@ export default function BulkAnalysis() {
     },
     onSuccess: (data, variables) => {
       const newMessage: AnalysisMessage = {
-        id: Math.random().toString(36).substr(2, 9),
+        id: Date.now().toString(),
         role: 'assistant',
-        content: data.analysis,
+        content: data.analysis || 'Analysis completed',
         timestamp: new Date(),
-        analysisType: variables.analysisType
+        analysisType: variables.analysisType,
       };
       setConversationHistory(prev => [...prev, newMessage]);
+      setIsAnalyzing(false);
     },
     onError: (error) => {
+      console.error('Analysis error:', error);
       toast({
-        title: "Analysis failed", 
-        description: error.message || "Unable to analyze data. Please try again.",
-        variant: "destructive"
+        title: "Analysis failed",
+        description: "There was an error analyzing your data. Please try again.",
+        variant: "destructive",
       });
-    },
-    onMutate: () => {
-      setIsAnalyzing(true);
-    },
-    onSettled: () => {
       setIsAnalyzing(false);
     }
   });
 
-  const optimizePromptMutation = useMutation({
-    mutationFn: async ({ assistantId, currentPrompt, transcriptIds }: { assistantId: string, currentPrompt: string, transcriptIds: string[] }) => {
-      const response = await fetch('/api/bulk-analysis/optimize-prompt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assistantId, currentPrompt, transcriptIds })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Prompt optimization failed');
-      }
-      
-      return response.json();
-    },
-    onSuccess: (data) => {
-      setOptimizationResults(data);
-    }
-  });
+  const handleAnalysisSubmit = async () => {
+    if (!analysisQuery.trim() || callsData.length === 0) return;
 
-  const analyzeConversationFlowMutation = useMutation({
-    mutationFn: async ({ callIds }: { callIds: string[] }) => {
-      const response = await fetch('/api/bulk-analysis/conversation-flow', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ callIds })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Conversation flow analysis failed');
-      }
-      
-      return response.json();
-    },
-    onSuccess: (data) => {
-      setFlowAnalysisResults(data);
-    }
-  });
+    const userMessage: AnalysisMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: analysisQuery.trim(),
+      timestamp: new Date(),
+    };
+    
+    setConversationHistory(prev => [...prev, userMessage]);
+    setIsAnalyzing(true);
+    setAnalysisQuery('');
 
-  // Check if any filters are set
-  const hasFilters = callIdFilter || assistantIdFilter || phoneNumberIdFilter || (selectedDateRange?.from && selectedDateRange?.to);
+    try {
+      const callIds = callsData.map(call => call.id);
+      await performAnalysisMutation.mutateAsync({
+        callIds,
+        analysisType: analysisQuery.trim()
+      });
+    } catch (error) {
+      console.error('Error submitting analysis:', error);
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleAnalysisSubmit();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <DashboardHeader />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* VoiceScope Header Section */}
+      <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-950 dark:to-purple-950 border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+              <img src={logoTransparent} alt="Invoxa.ai" className="h-10 w-auto" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                VoiceScope
+              </h1>
+              <p className="text-lg text-muted-foreground mt-1">
+                AI-Powered Call Data Analysis Platform
+              </p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div>
+              <h3 className="text-xl font-semibold mb-4 text-foreground">What is VoiceScope?</h3>
+              <p className="text-muted-foreground mb-4 leading-relaxed">
+                VoiceScope is our proprietary AI analysis engine that transforms your voice call data into actionable insights. 
+                Simply filter your call data and ask natural language questions to uncover patterns, trends, and optimization opportunities.
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="text-xl font-semibold mb-4 text-foreground">What You Can Accomplish</h3>
+              <ul className="space-y-2 text-muted-foreground">
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  <span>Identify conversation patterns and success factors</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  <span>Analyze call performance across different time periods</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  <span>Compare assistant effectiveness and optimization areas</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  <span>Generate detailed reports and compliance summaries</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  <span>Discover cost optimization and ROI improvement opportunities</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      {/* Filter Section */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Data Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Main Content Area */}
+      <div className="flex h-screen">
+        {/* Left Sidebar - Data Filters */}
+        <div className="w-80 bg-card border-r border-border p-6 overflow-y-auto">
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Filter className="h-5 w-5 text-blue-500" />
+                Data Filters
+              </h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                Apply filters to focus your analysis on specific call data
+              </p>
+            </div>
+
             {/* Call ID Filter */}
             <div className="space-y-2">
-              <Label htmlFor="call-id-filter">Call ID</Label>
+              <Label htmlFor="call-id-filter" className="text-sm font-medium">Call ID</Label>
               <Input
                 id="call-id-filter"
                 placeholder="Enter specific call ID"
                 value={callIdFilter}
                 onChange={(e) => setCallIdFilter(e.target.value)}
                 data-testid="input-call-id"
+                className="w-full"
               />
             </div>
 
             {/* Assistant ID Filter */}
             <div className="space-y-2">
-              <Label htmlFor="assistant-id-filter">Assistant ID</Label>
+              <Label htmlFor="assistant-id-filter" className="text-sm font-medium">Assistant ID</Label>
               <Input
                 id="assistant-id-filter"
                 placeholder="Enter assistant ID"
                 value={assistantIdFilter}
                 onChange={(e) => setAssistantIdFilter(e.target.value)}
                 data-testid="input-assistant-id"
+                className="w-full"
               />
             </div>
 
             {/* Phone Number ID Filter */}
             <div className="space-y-2">
-              <Label htmlFor="phone-number-id-filter">Phone Number ID</Label>
+              <Label htmlFor="phone-number-id-filter" className="text-sm font-medium">Phone Number ID</Label>
               <Input
                 id="phone-number-id-filter"
                 placeholder="Enter phone number ID"
                 value={phoneNumberIdFilter}
                 onChange={(e) => setPhoneNumberIdFilter(e.target.value)}
                 data-testid="input-phone-number-id"
+                className="w-full"
               />
             </div>
 
             {/* Date Range Filter */}
             <div className="space-y-2">
-              <Label>Created Date Range</Label>
-              <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
+              <Label className="text-sm font-medium">Date Range</Label>
+              <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className="w-full justify-start text-left font-normal"
-                    data-testid="button-date-picker"
+                    data-testid="button-date-range"
                   >
-                    <CalendarDays className="mr-2 h-4 w-4" />
+                    <CalendarIcon className="mr-2 h-4 w-4" />
                     {selectedDateRange?.from ? (
                       selectedDateRange.to ? (
-                        <>
-                          {selectedDateRange.from.toLocaleDateString()} -{" "}
-                          {selectedDateRange.to.toLocaleDateString()}
-                        </>
+                        `${selectedDateRange.from.toLocaleDateString()} - ${selectedDateRange.to.toLocaleDateString()}`
                       ) : (
                         selectedDateRange.from.toLocaleDateString()
                       )
@@ -391,167 +360,78 @@ export default function BulkAnalysis() {
                 </PopoverContent>
               </Popover>
             </div>
-          </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 pt-4">
-            <Button 
-              onClick={fetchDataWithFilters}
-              disabled={!hasFilters || isLoadingData}
-              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-              data-testid="button-get-data"
-            >
-              {isLoadingData ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Loading Data...
-                </>
-              ) : (
-                <>
-                  <Download className="mr-2 h-4 w-4" />
-                  Get Data
-                </>
-              )}
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={clearAllFilters}
-              data-testid="button-clear-filters"
-            >
-              <X className="mr-2 h-4 w-4" />
-              Clear All
-            </Button>
-          </div>
-
-          {/* Show filter requirements */}
-          {!hasFilters && (
-            <div className="bg-muted/50 rounded-lg p-4">
-              <p className="text-sm text-muted-foreground">
-                Please set at least one filter above, then click "Get Data" to load call records for analysis.
-              </p>
+            {/* Action Buttons */}
+            <div className="space-y-3 pt-4">
+              <Button 
+                onClick={fetchDataWithFilters}
+                disabled={!hasFilters || isLoadingData}
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                data-testid="button-get-data"
+              >
+                {isLoadingData ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading Data...
+                  </>
+                ) : (
+                  <>
+                    <Download className="mr-2 h-4 w-4" />
+                    Get Data
+                  </>
+                )}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={clearAllFilters}
+                className="w-full"
+                data-testid="button-clear-filters"
+              >
+                <X className="mr-2 h-4 w-4" />
+                Clear All
+              </Button>
             </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Results Section */}
-      {callsData.length > 0 ? (
-        <div className="space-y-6">
-          {/* Dataset Preview - Full Width First */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Dataset Preview ({callsData.length} calls)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-96">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted">
-                      <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Call ID</TableHead>
-                      <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Type</TableHead>
-                      <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">
-                        <div className="flex items-center space-x-1">
-                          <span>Assistant</span>
-                          <Phone size={12} />
-                        </div>
-                      </TableHead>
-                      <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">
-                        <div className="flex items-center space-x-1">
-                          <span>Customer</span>
-                          <Phone size={12} />
-                        </div>
-                      </TableHead>
-                      <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Assistant Name</TableHead>
-                      <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Date & Time</TableHead>
-                      <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Duration</TableHead>
-                      <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Cost</TableHead>
-                      <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Success Evaluation</TableHead>
-                      <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Details</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {callsData.slice(0, 100).map((call) => (
-                      <TableRow key={call.id}>
-                        <TableCell className="font-mono text-xs">
-                          <div className="flex items-center gap-2">
-                            <span>{call.id.substring(0, 8)}...</span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => navigator.clipboard.writeText(call.id)}
-                              className="h-6 w-6 p-0"
-                            >
-                              <Copy className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={call.type === 'inbound' ? 'default' : 'secondary'}>
-                            {call.type || 'N/A'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {call.assistantPhoneNumber || call.phoneNumber || 'N/A'}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {call.customerPhoneNumber || call.customer?.number || 'N/A'}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {call.assistantName || call.assistant?.name || 'N/A'}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {call.createdAt ? new Date(call.createdAt).toLocaleString() : 'N/A'}
-                        </TableCell>
-                        <TableCell>{call.duration ? `${Math.round(call.duration)}s` : 'N/A'}</TableCell>
-                        <TableCell>${call.cost?.toFixed(4) || '0.00'}</TableCell>
-                        <TableCell>
-                          <Badge variant={call.status === 'ended' ? 'default' : 'secondary'}>
-                            {call.analysis?.successEvaluation || call.status || 'N/A'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-
-          {/* AI Analysis Panel - Full Width Below Dataset */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Brain className="h-5 w-5" />
-                Chat with Your Data
-              </CardTitle>
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Get instant AI-powered insights from your voice call data. Ask questions in natural language and receive detailed analysis about patterns, sentiment, and performance metrics.
+            {/* Show filter requirements */}
+            {!hasFilters && (
+              <div className="bg-muted/50 rounded-lg p-3 mt-4">
+                <p className="text-sm text-muted-foreground text-center">
+                  Set at least one filter above and click "Get Data" to load call records for analysis.
                 </p>
-                {conversationHistory.length === 0 && (
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-2">Try these example prompts:</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Content Area */}
+        <div className="flex-1 flex flex-col">
+          {/* AI Chat Window - Always Visible */}
+          <div className="h-1/2 border-b border-border">
+            <Card className="h-full rounded-none border-0 border-b">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Brain className="h-5 w-5 text-purple-500" />
+                    AI Analysis Chat
+                  </CardTitle>
+                  {callsData.length > 0 && (
+                    <Badge variant="secondary">
+                      {callsData.length} calls loaded
+                    </Badge>
+                  )}
+                </div>
+                {/* Show example prompts when no data */}
+                {callsData.length === 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Try these example questions once you load your data:
+                    </p>
                     <div className="flex flex-wrap gap-2">
                       {examplePrompts.map((prompt, index) => (
                         <button
                           key={index}
-                          onClick={() => {
-                            setAnalysisQuery(prompt);
-                            handleAnalysisSubmit();
-                          }}
-                          className="text-xs bg-blue-50 hover:bg-blue-100 dark:bg-blue-950 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-full border border-blue-200 dark:border-blue-800 transition-colors"
+                          onClick={() => setAnalysisQuery(prompt)}
+                          className="text-xs px-3 py-1 bg-muted hover:bg-muted/80 rounded-full transition-colors cursor-pointer"
                           data-testid={`example-prompt-${index}`}
                         >
                           "{prompt}"
@@ -560,16 +440,15 @@ export default function BulkAnalysis() {
                     </div>
                   </div>
                 )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {/* Conversation History - Above Input */}
-                <ScrollArea className="h-128 border rounded-lg p-3">
+              </CardHeader>
+              <CardContent className="flex flex-col h-full p-4">
+                {/* Conversation History */}
+                <ScrollArea className="flex-1 border rounded-lg p-3 mb-4">
                   {conversationHistory.length === 0 ? (
                     <div className="text-center text-muted-foreground py-8">
                       <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>AI analysis results will appear here</p>
+                      <p className="font-medium">Ready to Analyze Your Data</p>
+                      <p className="text-sm">Load call data from the filters on the left, then ask questions to get AI-powered insights</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -591,18 +470,7 @@ export default function BulkAnalysis() {
                               {message.role === 'user' ? 'U' : 'AI'}
                             </div>
                             <div className="flex-1">
-                              {message.content === 'thinking' ? (
-                                <div className="flex items-center gap-1">
-                                  <span className="text-sm text-muted-foreground">AI is thinking</span>
-                                  <div className="flex gap-1">
-                                    <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
-                                    <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
-                                    <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
-                                  </div>
-                                </div>
-                              ) : (
-                                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                              )}
+                              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                               <p className="text-xs text-muted-foreground mt-1">
                                 {message.timestamp.toLocaleTimeString()}
                               </p>
@@ -634,7 +502,7 @@ export default function BulkAnalysis() {
                   )}
                 </ScrollArea>
 
-                {/* Input Box - Below Conversation */}
+                {/* Input Box */}
                 <div className="flex gap-2">
                   <Textarea
                     placeholder="Ask AI to analyze your call data - Press Enter to send, Shift+Enter for new line"
@@ -663,24 +531,81 @@ export default function BulkAnalysis() {
                     )}
                   </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Dataset Preview - Bottom Half */}
+          <div className="h-1/2 overflow-y-auto">
+            {callsData.length > 0 ? (
+              <Card className="h-full rounded-none border-0">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-blue-500" />
+                    Dataset Preview ({callsData.length} calls)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-full">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted">
+                          <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Call ID</TableHead>
+                          <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Type</TableHead>
+                          <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Assistant Name</TableHead>
+                          <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Date & Time</TableHead>
+                          <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Duration</TableHead>
+                          <TableHead className="text-foreground font-medium sticky top-0 bg-muted z-10 border-b border-border">Cost</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {callsData.slice(0, 100).map((call) => (
+                          <TableRow key={call.id}>
+                            <TableCell className="font-mono text-xs">
+                              <div className="flex items-center gap-2">
+                                <span>{call.id.substring(0, 8)}...</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => navigator.clipboard.writeText(call.id)}
+                                  className="h-6 w-6 p-0"
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={call.type === 'inbound' ? 'default' : 'secondary'}>
+                                {call.type || 'N/A'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {call.assistantName || call.assistant?.name || 'N/A'}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {call.createdAt ? new Date(call.createdAt).toLocaleString() : 'N/A'}
+                            </TableCell>
+                            <TableCell>{call.duration ? `${Math.round(call.duration)}s` : 'N/A'}</TableCell>
+                            <TableCell>${call.cost?.toFixed(4) || '0.00'}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="h-full rounded-none border-0 flex items-center justify-center">
+                <CardContent className="text-center text-muted-foreground">
+                  <Filter size={48} className="mx-auto mb-4 opacity-50" />
+                  <p className="font-semibold mb-2">No Data Loaded</p>
+                  <p className="text-sm">Set filters on the left and click "Get Data" to load call records for analysis</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
-      ) : (
-        <Card>
-          <CardContent className="py-12">
-            <div className="text-center text-muted-foreground">
-              <div className="text-center">
-                <Filter size={48} className="mx-auto mb-4 opacity-50" />
-                <p className="font-semibold mb-2">No Data Loaded</p>
-                <p className="text-sm">Set filters above and click "Get Data" to load call records for analysis</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      </main>
+      </div>
     </div>
   );
 }
