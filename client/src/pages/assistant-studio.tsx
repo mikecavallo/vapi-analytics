@@ -44,6 +44,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -458,22 +459,16 @@ export default function AssistantStudio() {
 
         {/* Assistant Configuration Form */}
         <div className="space-y-6">
-            {/* Configuration Form - Horizontal Sections */}
-        <div className="space-y-6">
-          {/* Basic Information Section */}
+          {/* Assistant Name Section - Own Row */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <MessageSquare size={20} />
-                <span>Basic Information</span>
+                <span>Assistant Name</span>
               </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Essential details and description for your voice assistant
-              </p>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-              {/* Assistant Name */}
-              <div className="space-y-2">
+            <CardContent>
+              <div className="max-w-md space-y-2">
                 <LabelWithTooltip 
                   label="Assistant Name *" 
                   tooltip="A unique name for your voice assistant. This will be used to identify the assistant in your dashboard and API calls." 
@@ -489,12 +484,23 @@ export default function AssistantStudio() {
                   {assistantName.length}/40 characters
                 </div>
               </div>
+            </CardContent>
+          </Card>
 
+          {/* Model Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Brain size={20} />
+                <span>Model Configuration</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Model Provider */}
               <div className="space-y-2">
                 <LabelWithTooltip 
-                  label="Model Provider" 
-                  tooltip="The AI model provider to use for generating responses. Different providers offer different capabilities and pricing." 
+                  label="Provider" 
+                  tooltip="The AI model provider to use for generating responses." 
                 />
                 <Select value={modelProvider} onValueChange={handleModelProviderChange}>
                   <SelectTrigger data-testid="select-model-provider">
@@ -511,12 +517,12 @@ export default function AssistantStudio() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               {/* Model Selection */}
               <div className="space-y-2">
                 <LabelWithTooltip 
                   label="Model" 
-                  tooltip="The specific AI model to use. More advanced models provide better responses but may cost more." 
+                  tooltip="The specific AI model to use." 
                 />
                 <Select value={selectedModel} onValueChange={setSelectedModel}>
                   <SelectTrigger data-testid="select-model">
@@ -529,12 +535,47 @@ export default function AssistantStudio() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
+              {/* Temperature Slider */}
+              <div className="space-y-2">
+                <LabelWithTooltip 
+                  label="Temperature" 
+                  tooltip="Controls the randomness of responses. 0 = focused, 2 = creative." 
+                />
+                <div className="space-y-3">
+                  <Slider
+                    value={[temperature]}
+                    onValueChange={(value) => setTemperature(value[0])}
+                    max={2}
+                    min={0}
+                    step={0.1}
+                    className="w-full"
+                    data-testid="slider-temperature"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>0</span>
+                    <span className="font-medium">{temperature}</span>
+                    <span>2</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Voice Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Mic size={20} />
+                <span>Voice Configuration</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Voice Provider */}
               <div className="space-y-2">
                 <LabelWithTooltip 
-                  label="Voice Provider" 
-                  tooltip="The voice synthesis provider to use. Each provider offers different voice styles and quality levels." 
+                  label="Provider" 
+                  tooltip="The voice synthesis provider to use." 
                 />
                 <Select value={voiceProvider} onValueChange={handleVoiceProviderChange}>
                   <SelectTrigger data-testid="select-voice-provider">
@@ -550,12 +591,12 @@ export default function AssistantStudio() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               {/* Voice Selection */}
               <div className="space-y-2">
                 <LabelWithTooltip 
                   label="Voice" 
-                  tooltip="The specific voice character to use. Each voice has unique tone, accent, and personality characteristics." 
+                  tooltip="The specific voice character to use." 
                 />
                 <Select value={selectedVoice} onValueChange={setSelectedVoice}>
                   <SelectTrigger data-testid="select-voice">
@@ -568,405 +609,8 @@ export default function AssistantStudio() {
                   </SelectContent>
                 </Select>
               </div>
-              
-              
-              {/* Main Description - Full Width */}
-              <div className="col-span-full space-y-2">
-                <LabelWithTooltip 
-                  label="Assistant Description *" 
-                  tooltip="Detailed description of what your assistant should do, its purpose, capabilities, and communication style. This forms the core personality of your assistant." 
-                />
-                <Textarea 
-                  placeholder="Describe what your assistant should do, its purpose, capabilities, and tone"
-                  className="min-h-40"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  data-testid="textarea-assistant-description"
-                />
-              </div>
-
-              {/* Conversation Flow - Full Width */}
-              <div className="col-span-full space-y-2">
-                <LabelWithTooltip 
-                  label="Conversation Flow (Optional)" 
-                  tooltip="Define the structure and flow of conversations. Specify how the assistant should guide users through interactions and handle different scenarios." 
-                />
-                <Textarea 
-                  placeholder="Describe the conversation flow and structure"
-                  className="min-h-32"
-                  value={conversationFlow}
-                  onChange={(e) => setConversationFlow(e.target.value)}
-                  data-testid="textarea-conversation-flow"
-                />
-              </div>
             </CardContent>
           </Card>
-
-          {/* Call Behavior Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Phone size={20} />
-                <span>Call Behavior</span>
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Configure how your assistant handles calls and interactions
-              </p>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* First Message Mode */}
-              <div className="space-y-2">
-                <LabelWithTooltip 
-                  label="First Message Mode" 
-                  tooltip="How the assistant should behave when the call starts. Choose whether the assistant speaks first, waits for the user, or generates a dynamic opening." 
-                />
-                <Select value={firstMessageMode} onValueChange={(value) => setFirstMessageMode(value as typeof firstMessageMode)}>
-                  <SelectTrigger data-testid="select-first-message-mode">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="assistant-speaks-first">Assistant Speaks First</SelectItem>
-                    <SelectItem value="assistant-waits-for-user">Wait for User</SelectItem>
-                    <SelectItem value="assistant-speaks-first-with-model-generated-message">AI Generated Opening</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <LabelWithTooltip 
-                  label="Max Call Duration (seconds)" 
-                  tooltip="Maximum length of time a call can last before being automatically ended. Set between 10 seconds and 12 hours." 
-                />
-                <Input 
-                  type="number"
-                  min="10"
-                  max="43200"
-                  value={maxDuration}
-                  onChange={(e) => setMaxDuration(Number(e.target.value))}
-                  data-testid="input-max-duration"
-                />
-                <div className="text-xs text-muted-foreground">10 sec - 12 hours</div>
-              </div>
-
-              <div className="space-y-2">
-                <LabelWithTooltip 
-                  label="Background Sound" 
-                  tooltip="Background audio to play during calls. Can help mask ambient noise and provide a professional atmosphere." 
-                />
-                <Select value={backgroundSound} onValueChange={setBackgroundSound}>
-                  <SelectTrigger data-testid="select-background-sound">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="off">None</SelectItem>
-                    <SelectItem value="office">Office</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <LabelWithTooltip 
-                  label="Start Speaking Delay (seconds)" 
-                  tooltip="How long the assistant waits before speaking after user stops talking. Prevents interrupting users who pause mid-sentence." 
-                />
-                <Input 
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="5"
-                  value={startSpeakingWait}
-                  onChange={(e) => setStartSpeakingWait(Number(e.target.value))}
-                  data-testid="input-start-speaking-wait"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <LabelWithTooltip 
-                  label="Stop on Interruption (words)" 
-                  tooltip="Number of words the user needs to speak to interrupt the assistant. Lower values make the assistant more responsive to interruptions." 
-                />
-                <Input 
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={stopSpeakingWords}
-                  onChange={(e) => setStopSpeakingWords(Number(e.target.value))}
-                  data-testid="input-stop-speaking-words"
-                />
-              </div>
-
-              <div className="flex items-center justify-between col-span-full">
-                <div className="space-y-0.5">
-                  <LabelWithTooltip 
-                    label="Allow First Message Interruptions" 
-                    tooltip="Whether users can interrupt the assistant's opening message. Useful for users who want to skip introductions." 
-                  />
-                  <div className="text-xs text-muted-foreground">Users can interrupt opening message</div>
-                </div>
-                <Switch 
-                  checked={firstMessageInterruptions}
-                  onCheckedChange={setFirstMessageInterruptions}
-                  data-testid="switch-first-message-interruptions"
-                />
-              </div>
-
-              <div className="flex items-center justify-between col-span-full">
-                <div className="space-y-0.5">
-                  <LabelWithTooltip 
-                    label="Use Model Output in Messages" 
-                    tooltip="Use the AI model's exact output instead of the speech transcription in message logs. Provides cleaner text for analysis." 
-                  />
-                  <div className="text-xs text-muted-foreground">Use AI model output instead of speech transcription</div>
-                </div>
-                <Switch 
-                  checked={modelOutputInMessages}
-                  onCheckedChange={setModelOutputInMessages}
-                  data-testid="switch-model-output-messages"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Messages Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <MessageCircle size={20} />
-                <span>Messages & Scripts</span>
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Configure voicemail, end call messages, and auto-hangup phrases
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <LabelWithTooltip 
-                    label="Voicemail Message (Optional)" 
-                    tooltip="Message to play when the call goes to voicemail. Leave empty to simply hang up without leaving a message." 
-                  />
-                  <Textarea 
-                    placeholder="Message for voicemail (leave empty to hang up)"
-                    value={voicemailMessage}
-                    onChange={(e) => setVoicemailMessage(e.target.value.slice(0, 1000))}
-                    data-testid="textarea-voicemail-message"
-                    maxLength={1000}
-                  />
-                  <div className="text-xs text-muted-foreground">{voicemailMessage.length}/1000 characters</div>
-                </div>
-                
-                <div className="space-y-2">
-                  <LabelWithTooltip 
-                    label="End Call Message (Optional)" 
-                    tooltip="Message to play before ending the call. Leave empty to hang up silently without a goodbye message." 
-                  />
-                  <Textarea 
-                    placeholder="Message when ending the call (leave empty to hang up silently)"
-                    value={endCallMessage}
-                    onChange={(e) => setEndCallMessage(e.target.value.slice(0, 1000))}
-                    data-testid="textarea-end-call-message"
-                    maxLength={1000}
-                  />
-                  <div className="text-xs text-muted-foreground">{endCallMessage.length}/1000 characters</div>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <LabelWithTooltip 
-                  label="Auto-Hangup Phrases (Optional)" 
-                  tooltip="Phrases that automatically end the call when spoken by the user or assistant. Separate multiple phrases with commas." 
-                />
-                <Input 
-                  placeholder="Enter phrases separated by commas (e.g., goodbye, thank you, have a great day)"
-                  value={endCallPhrases}
-                  onChange={(e) => setEndCallPhrases(e.target.value)}
-                  data-testid="input-end-call-phrases"
-                />
-                <div className="text-xs text-muted-foreground">Phrases that automatically end the call when spoken</div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Advanced Features Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Settings size={20} />
-                <span>Advanced Features</span>
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Enable advanced analysis, monitoring, and optimization features
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex items-center justify-between py-2">
-                  <div className="space-y-0.5">
-                    <LabelWithTooltip 
-                      label="Enable Call Analysis" 
-                      tooltip="Generate detailed insights, summaries, and performance metrics from call data for optimization and reporting." 
-                    />
-                    <div className="text-xs text-muted-foreground">Generate insights and summaries</div>
-                  </div>
-                  <Switch 
-                    checked={enableAnalysis}
-                    onCheckedChange={setEnableAnalysis}
-                    data-testid="switch-enable-analysis"
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between py-2">
-                  <div className="space-y-0.5">
-                    <LabelWithTooltip 
-                      label="Enable Background Noise Reduction" 
-                      tooltip="Automatically filter out background noise from calls to improve speech recognition and call quality." 
-                    />
-                    <div className="text-xs text-muted-foreground">Filter out background noise</div>
-                  </div>
-                  <Switch 
-                    checked={enableDenoising}
-                    onCheckedChange={setEnableDenoising}
-                    data-testid="switch-enable-denoising"
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between py-2">
-                  <div className="space-y-0.5">
-                    <LabelWithTooltip 
-                      label="Enable Call Monitoring" 
-                      tooltip="Allow real-time listening and control capabilities for live call supervision and quality assurance." 
-                    />
-                    <div className="text-xs text-muted-foreground">Allow real-time listening and control</div>
-                  </div>
-                  <Switch 
-                    checked={enableMonitoring}
-                    onCheckedChange={setEnableMonitoring}
-                    data-testid="switch-enable-monitoring"
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <LabelWithTooltip 
-                  label="Custom Metadata (JSON)" 
-                  tooltip="Additional data to store with the assistant in JSON format. Useful for custom tags, department info, or integration data." 
-                />
-                <Textarea 
-                  placeholder='{"department": "support", "priority": "high"}'
-                  value={customMetadata}
-                  onChange={(e) => setCustomMetadata(e.target.value)}
-                  data-testid="textarea-custom-metadata"
-                />
-                <div className="text-xs text-muted-foreground">Custom data to store with the assistant (JSON format)</div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Generate Button Section */}
-          <div className="flex justify-center">
-            <Button 
-              className="px-8 py-3 text-lg" 
-              size="lg"
-              onClick={handleCreateAssistant}
-              disabled={!assistantName.trim() || !description.trim() || createMutation.isPending}
-              data-testid="button-generate-assistant"
-            >
-              {createMutation.isPending ? (
-                <Loader2 className="mr-2 animate-spin" size={20} />
-              ) : (
-                <Wand2 className="mr-2" size={20} />
-              )}
-              {createMutation.isPending ? 'Creating Assistant...' : 'Create Assistant'}
-            </Button>
-          </div>
-        </div>
-
-        {/* Created Assistant Panel - Full Width at Bottom */}
-        {createdAssistant && (
-          <Card className="mt-8">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Settings size={20} />
-                <span>Created Assistant</span>
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Your voice assistant has been successfully created and deployed
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Summary Info */}
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <h3 className="text-lg font-semibold mb-2">{createdAssistant.name}</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  ID: {createdAssistant.id}
-                </p>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Created: {new Date(createdAssistant.createdAt).toLocaleString()}
-                </p>
-                
-                {/* Assistant Info */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  <div className="flex items-center space-x-2 text-sm">
-                    <CheckCircle className="text-green-500" size={16} />
-                    <span>Successfully Created</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm">
-                    <Calendar className="text-blue-500" size={16} />
-                    <span>{new Date(createdAssistant.createdAt).toLocaleDateString()}</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm">
-                    <Settings className="text-purple-500" size={16} />
-                    <span>Assistant ID: {createdAssistant.id.slice(0, 8)}...</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm">
-                    <Activity className="text-orange-500" size={16} />
-                    <span>{generatedConfig?.maxDurationSeconds || generatedConfig?.conversationConfig?.maxDurationSeconds || 600}s Max</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-3">
-                <Button 
-                  onClick={handleCreateAssistant}
-                  disabled={createMutation.isPending}
-                  className="flex-1 min-w-0"
-                  data-testid="button-create-assistant"
-                >
-                  {createMutation.isPending ? (
-                    <Loader2 className="mr-2 animate-spin" size={16} />
-                  ) : (
-                    <CheckCircle2 className="mr-2" size={16} />
-                  )}
-                  {createMutation.isPending ? 'Creating...' : 'Deploy Assistant'}
-                </Button>
-                
-                <Button 
-                  variant="outline"
-                  onClick={() => exportConfig()}
-                  data-testid="button-export-config"
-                >
-                  <Download className="mr-2" size={16} />
-                  Export Config
-                </Button>
-              </div>
-
-              {createdAssistant && (
-                <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
-                  <div className="flex items-start space-x-3">
-                    <CheckCircle2 className="text-green-600 flex-shrink-0" size={20} />
-                    <div>
-                      <h4 className="font-medium text-green-800">Assistant Created Successfully!</h4>
-                      <p className="text-green-700 text-sm mt-1">
-                        Your assistant "{createdAssistant.name}" (ID: {createdAssistant.id}) is now live and ready to use.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
         </div>
       </main>
       </div>
