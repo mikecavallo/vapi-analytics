@@ -406,8 +406,8 @@ export default function BulkAnalysis() {
         {/* Right Content Area */}
         <div className="flex-1 flex flex-col">
           {/* AI Chat Window - Always Visible */}
-          <div className="h-1/2 border-b border-border">
-            <Card className="h-full rounded-none border-0 border-b">
+          <div className="h-1/2">
+            <Card className="h-full rounded-none border-0">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
