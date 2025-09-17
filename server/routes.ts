@@ -783,7 +783,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Extract query parameters - only use supported Vapi API parameters
-      const allowedParams = ['id', 'assistantId', 'phoneNumberId', 'limit', 'createdAtGt', 'createdAtLt', 'createdAtGe', 'createdAtLe', 'updatedAtGt', 'updatedAtLt', 'updatedAtGe', 'updatedAtLe'];
+      const allowedParams = ['id', 'assistantId', 'phoneNumberId', 'squadId', 'limit', 'createdAtGt', 'createdAtLt', 'createdAtGe', 'createdAtLe', 'updatedAtGt', 'updatedAtLt', 'updatedAtGe', 'updatedAtLe'];
       const queryParams: Record<string, string> = {};
       
       allowedParams.forEach(param => {
@@ -791,6 +791,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           queryParams[param] = req.query[param] as string;
         }
       });
+
+      // Map squadId to phoneNumberId for Vapi API compatibility
+      if (req.query.squadId) {
+        queryParams['phoneNumberId'] = req.query.squadId as string;
+        delete queryParams['squadId']; // Remove squadId since Vapi API expects phoneNumberId
+      }
 
       // Ensure a reasonable default limit if not provided
       if (!queryParams.limit) {

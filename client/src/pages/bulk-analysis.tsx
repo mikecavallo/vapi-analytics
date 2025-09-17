@@ -58,7 +58,7 @@ import { DashboardHeader } from "@/components/layout/dashboard-header";
 
 interface FilterCriteria {
   id: string;
-  type: 'callId' | 'assistantId' | 'phoneNumberId' | 'createdAtRange';
+  type: 'callId' | 'assistantId' | 'squadId' | 'createdAtRange';
   value: string;
   value2?: string;
   label: string;
@@ -79,7 +79,7 @@ export default function BulkAnalysis() {
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [callIdFilter, setCallIdFilter] = useState('');
   const [assistantIdFilter, setAssistantIdFilter] = useState('');
-  const [phoneNumberIdFilter, setPhoneNumberIdFilter] = useState('');
+  const [squadIdFilter, setSquadIdFilter] = useState('');
   const [selectedDateRange, setSelectedDateRange] = useState<DateRange | undefined>(undefined);
   const [conversationHistory, setConversationHistory] = useState<AnalysisMessage[]>([]);
   const [analysisQuery, setAnalysisQuery] = useState('');
@@ -97,14 +97,14 @@ export default function BulkAnalysis() {
   // Check if any filters are set
   const hasFilters = callIdFilter.trim() !== '' || 
                     assistantIdFilter.trim() !== '' || 
-                    phoneNumberIdFilter.trim() !== '' || 
+                    squadIdFilter.trim() !== '' || 
                     selectedDateRange?.from;
 
   // Filter functions (keeping existing logic)
   const clearAllFilters = () => {
     setCallIdFilter('');
     setAssistantIdFilter('');
-    setPhoneNumberIdFilter('');
+    setSquadIdFilter('');
     setSelectedDateRange(undefined);
     setCallsData([]);
   };
@@ -121,25 +121,25 @@ export default function BulkAnalysis() {
 
     setIsLoadingData(true);
     try {
-      const filters = [];
-      if (callIdFilter.trim()) filters.push({ type: 'callId', value: callIdFilter.trim() });
-      if (assistantIdFilter.trim()) filters.push({ type: 'assistantId', value: assistantIdFilter.trim() });
-      if (phoneNumberIdFilter.trim()) filters.push({ type: 'phoneNumberId', value: phoneNumberIdFilter.trim() });
+      // Build query parameters
+      const queryParams = new URLSearchParams();
+      if (callIdFilter.trim()) queryParams.append('id', callIdFilter.trim());
+      if (assistantIdFilter.trim()) queryParams.append('assistantId', assistantIdFilter.trim());
+      if (squadIdFilter.trim()) queryParams.append('squadId', squadIdFilter.trim());
       if (selectedDateRange?.from) {
-        filters.push({
-          type: 'createdAtRange',
-          value: selectedDateRange.from.toISOString(),
-          value2: selectedDateRange.to?.toISOString() || selectedDateRange.from.toISOString()
-        });
+        queryParams.append('createdAtGt', selectedDateRange.from.toISOString());
+        if (selectedDateRange.to) {
+          queryParams.append('createdAtLt', selectedDateRange.to.toISOString());
+        }
       }
 
-      const response = await apiRequest('POST', '/api/bulk-analysis/filter-calls', { filters });
+      const response = await apiRequest('GET', `/api/bulk-analysis/calls?${queryParams.toString()}`);
       const data = await response.json();
-      setCallsData(data.calls || []);
+      setCallsData(Array.isArray(data) ? data : []);
 
       toast({
         title: "Data loaded successfully",
-        description: `Found ${data.calls?.length || 0} matching calls.`,
+        description: `Found ${Array.isArray(data) ? data.length : 0} matching calls.`,
       });
     } catch (error) {
       console.error('Error fetching filtered calls:', error);
@@ -314,15 +314,15 @@ export default function BulkAnalysis() {
               />
             </div>
 
-            {/* Phone Number ID Filter */}
+            {/* Squad ID Filter */}
             <div className="space-y-2">
-              <Label htmlFor="phone-number-id-filter" className="text-sm font-medium">Phone Number ID</Label>
+              <Label htmlFor="squad-id-filter" className="text-sm font-medium">Squad ID</Label>
               <Input
-                id="phone-number-id-filter"
-                placeholder="Enter phone number ID"
-                value={phoneNumberIdFilter}
-                onChange={(e) => setPhoneNumberIdFilter(e.target.value)}
-                data-testid="input-phone-number-id"
+                id="squad-id-filter"
+                placeholder="Enter squad ID"
+                value={squadIdFilter}
+                onChange={(e) => setSquadIdFilter(e.target.value)}
+                data-testid="input-squad-id"
                 className="w-full"
               />
             </div>
