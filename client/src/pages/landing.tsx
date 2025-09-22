@@ -144,6 +144,9 @@ export default function LandingPage() {
               <Link href="/solutions">
                 <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Solutions</span>
               </Link>
+              <Link href="/use-cases">
+                <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Use Cases</span>
+              </Link>
               <Link href="/platform">
                 <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Platform</span>
               </Link>
@@ -355,77 +358,77 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
-              AI Solutions That Grow With Your Business
+              White-Glove Voice AI Services
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              We don't sell tools. We deliver outcomes. Whether you need an agent that books appointments, a chatbot that never sleeps, or a CRM that nurtures every lead—we design the solution and make it work.
+              Complete implementation from discovery to deployment. We don't just provide tools—we deliver working AI agents that transform your business operations with full-service support.
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* AI Voice Agents */}
-            <Link href="/solutions/voice-agents">
+            {/* Voice AI Agents */}
+            <Link href="/solutions">
               <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer group">
                 <CardContent className="p-6 text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                    <PhoneCall className="w-8 h-8 text-white" />
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                    <Phone className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
-                    AI Voice Agents
+                    Voice AI Agents
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Answer calls, qualify leads, and schedule—without human overhead.
+                    24/7 inbound & outbound call handling with warm transfers and lead qualification.
                   </p>
                 </CardContent>
               </Card>
             </Link>
 
-            {/* Chatbots & Digital Agents */}
-            <Link href="/solutions/chatbots">
+            {/* Messaging AI */}
+            <Link href="/solutions">
               <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer group">
                 <CardContent className="p-6 text-center">
                   <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
                     <MessageCircle className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
-                    Chatbots & Digital Agents
+                    Messaging AI
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300">
-                    24/7 chat that understands your customers.
+                    Automated SMS, email, and direct mail campaigns with 2-way conversations.
                   </p>
                 </CardContent>
               </Card>
             </Link>
 
-            {/* AI Business Automations */}
-            <Link href="/solutions/automations">
+            {/* CRM & Integrations */}
+            <Link href="/solutions">
               <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer group">
                 <CardContent className="p-6 text-center">
                   <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                    <Zap className="w-8 h-8 text-white" />
+                    <Settings className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
-                    AI Business Automations
+                    CRM & Integrations
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Cut manual work, scale faster.
+                    Seamless workflow automation across all your existing platforms.
                   </p>
                 </CardContent>
               </Card>
             </Link>
 
-            {/* AI Consulting & CRM */}
-            <Link href="/solutions/consulting">
+            {/* Analytics & Intelligence */}
+            <Link href="/solutions">
               <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer group">
                 <CardContent className="p-6 text-center">
                   <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                    <Users className="w-8 h-8 text-white" />
+                    <BarChart3 className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
-                    AI Consulting & CRM
+                    Analytics & Intelligence
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Custom strategy + our branded CRM built for lead nurturing.
+                    Real-time performance monitoring with automated insights and alerts.
                   </p>
                 </CardContent>
               </Card>
