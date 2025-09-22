@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { ArrowRight, Home, Phone, MessageCircle, Users, Zap, Shield, Building2, Heart, DollarSign, Home as HomeIcon, Plane, ShoppingCart, CheckCircle, Mic, PhoneCall, Mail, Calendar, CreditCard, Database, Bot, BarChart3, Bell, Settings } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function UseCasesPage() {
   return (
@@ -53,16 +54,60 @@ export default function UseCasesPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
+      <section className="relative py-24 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-center"
+          >
+            <motion.h1 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="text-5xl md:text-7xl font-bold text-gray-900 dark:text-white mb-8 leading-tight"
+            >
               Voice AI Use Cases
-            </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-              Discover how leading businesses across industries leverage Invoxa.ai's white-glove voice AI services to automate operations, enhance customer experience, and drive growth.
-            </p>
-          </div>
+              <br />by Industry
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+              className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-12 max-w-4xl mx-auto leading-relaxed"
+            >
+              See how leaders automate support, scheduling, and follow-ups across insurance, healthcare, finance, and more.
+            </motion.p>
+          </motion.div>
+        </div>
+        
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <motion.div
+            animate={{ 
+              rotate: [0, 360],
+              scale: [1, 1.1, 1]
+            }}
+            transition={{ 
+              duration: 20, 
+              repeat: Infinity, 
+              ease: "linear" 
+            }}
+            className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-green-400/10 to-blue-400/10 rounded-full blur-3xl"
+          />
+          <motion.div
+            animate={{ 
+              rotate: [360, 0],
+              scale: [1, 1.2, 1]
+            }}
+            transition={{ 
+              duration: 25, 
+              repeat: Infinity, 
+              ease: "linear" 
+            }}
+            className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-cyan-400/10 to-green-400/10 rounded-full blur-3xl"
+          />
         </div>
       </section>
 

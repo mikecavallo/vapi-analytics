@@ -202,7 +202,7 @@ export default function LandingPage() {
               <div className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
                 <div className="block">
                   <SplitText 
-                    text="AI Agents That" 
+                    text="Voice AI That" 
                     className="inline"
                     animationType="fadeInUp"
                     delay={0.5}
@@ -211,7 +211,7 @@ export default function LandingPage() {
                 </div>
                 <div className="block">
                   <SplitText 
-                    text="Work Like People" 
+                    text="Answers, Qualifies," 
                     className="inline"
                     animationType="fadeInUp"
                     delay={0.8}
@@ -220,7 +220,7 @@ export default function LandingPage() {
                 </div>
                 <div className="block whitespace-nowrap">
                   <SplitText 
-                    text="Without the Payroll"
+                    text="and Books 24/7"
                     className="inline text-cyan-300 font-bold"
                     animationType="fadeInUp"
                     delay={1.2}
@@ -231,7 +231,7 @@ export default function LandingPage() {
               
               <p className="text-xl md:text-2xl text-cyan-100 max-w-2xl">
                 <ShinyText 
-                  text="Deploy intelligent voice assistants that handle your calls, capture every lead, and scale your business—all while you sleep."
+                  text="Deploy white-glove call automation with real-time analytics to turn conversations into revenue."
                   shimmerDuration={3}
                   shimmerDelay={2}
                   shimmerColor="rgba(191, 219, 254, 0.8)"

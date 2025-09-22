@@ -53,16 +53,60 @@ export default function WhyInvoxaPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
-              Why Businesses Choose Our White-Glove Service
-            </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-              Real stories from real businesses who transformed their operations with our hands-on voice AI implementation and ongoing support.
-            </p>
-          </div>
+      <section className="relative py-24 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-center"
+          >
+            <motion.h1 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="text-5xl md:text-7xl font-bold text-gray-900 dark:text-white mb-8 leading-tight"
+            >
+              Proven Results with
+              <br />White-Glove Voice AI
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+              className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-12 max-w-4xl mx-auto leading-relaxed"
+            >
+              Client stories, measurable ROI, and a partnership that scales with your business.
+            </motion.p>
+          </motion.div>
+        </div>
+        
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <motion.div
+            animate={{ 
+              rotate: [0, 360],
+              scale: [1, 1.1, 1]
+            }}
+            transition={{ 
+              duration: 22, 
+              repeat: Infinity, 
+              ease: "linear" 
+            }}
+            className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-orange-400/10 to-yellow-400/10 rounded-full blur-3xl"
+          />
+          <motion.div
+            animate={{ 
+              rotate: [360, 0],
+              scale: [1, 1.2, 1]
+            }}
+            transition={{ 
+              duration: 28, 
+              repeat: Infinity, 
+              ease: "linear" 
+            }}
+            className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-purple-400/10 to-pink-400/10 rounded-full blur-3xl"
+          />
         </div>
       </section>
 
