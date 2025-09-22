@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { ArrowRight, Home, CheckCircle, Star, Users, Quote, TrendingUp, Shield, Clock, Hand, Phone, MessageCircle, Building2, Heart, DollarSign, HomeIcon } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function WhyInvoxaPage() {
   return (
