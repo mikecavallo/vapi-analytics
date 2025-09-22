@@ -19,6 +19,7 @@ import VerifyEmailPage from "@/pages/verify-email";
 import AgencyPage from "@/pages/agency";
 import LandingPage from "@/pages/landing";
 import SolutionsPage from "@/pages/solutions";
+import UseCasesPage from "@/pages/use-cases";
 import PlatformPage from "@/pages/platform";
 import WhyInvoxaPage from "@/pages/why-invoxa";
 import ResourcesPage from "@/pages/resources";
@@ -33,7 +34,7 @@ function AppRouter() {
   useEffect(() => {
     const publicRoutes = [
       '/', '/login', '/signup', '/verify-email',
-      '/solutions', '/platform', '/why-invoxa', '/resources', '/book-demo'
+      '/solutions', '/use-cases', '/platform', '/why-invoxa', '/resources', '/book-demo'
     ];
     
     const isPublicRoute = publicRoutes.some(route => 
@@ -52,6 +53,7 @@ function AppRouter() {
           {/* Public routes */}
           <Route path="/" component={LandingPage} />
           <Route path="/solutions" component={SolutionsPage} />
+          <Route path="/use-cases" component={UseCasesPage} />
           <Route path="/platform" component={PlatformPage} />
           <Route path="/why-invoxa" component={WhyInvoxaPage} />
           <Route path="/resources" component={ResourcesPage} />
