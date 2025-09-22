@@ -13,7 +13,7 @@ export default function ResourcesPage() {
             <div className="flex items-center space-x-4">
               <Link href="/">
                 <div className="flex items-center space-x-2 cursor-pointer">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-700 to-cyan-600 rounded-lg flex items-center justify-center">
                     <span className="text-white font-bold text-sm">I</span>
                   </div>
                   <span className="text-xl font-bold text-gray-900 dark:text-white">Invoxa.ai</span>
@@ -31,6 +31,9 @@ export default function ResourcesPage() {
               <Link href="/solutions">
                 <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Solutions</span>
               </Link>
+              <Link href="/use-cases">
+                <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Use Cases</span>
+              </Link>
               <Link href="/platform">
                 <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Platform</span>
               </Link>
@@ -39,7 +42,7 @@ export default function ResourcesPage() {
               </Link>
               <span className="text-blue-600 dark:text-blue-400 font-medium">Resources</span>
               <Link href="/book-demo">
-                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                <Button className="bg-gradient-to-r from-blue-700 to-cyan-600 hover:from-blue-800 hover:to-cyan-700">
                   Book a Demo
                 </Button>
               </Link>
@@ -130,7 +133,7 @@ export default function ResourcesPage() {
             Our team is here to help you succeed with voice AI analytics
           </p>
           <Link href="/book-demo">
-            <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700" data-testid="button-book-demo">
+            <Button size="lg" className="bg-gradient-to-r from-blue-700 to-cyan-600 hover:from-blue-800 hover:to-cyan-700" data-testid="button-book-demo">
               Get Expert Help
               <ArrowRight className="ml-2" size={20} />
             </Button>

@@ -310,7 +310,7 @@ export default function AssistantStudio() {
         
         <main className="container mx-auto px-4 py-6 space-y-8">
           <div className="text-center space-y-2">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-700 to-cyan-600 bg-clip-text text-transparent">
               Assistant Studio
             </h1>
             <p className="text-muted-foreground max-w-2xl mx-auto">

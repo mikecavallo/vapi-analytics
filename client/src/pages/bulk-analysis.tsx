@@ -226,7 +226,7 @@ export default function BulkAnalysis() {
               <img src={logoTransparent} alt="Invoxa.ai" className="h-10 w-auto" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-700 to-cyan-600 bg-clip-text text-transparent">
                 VoiceScope
               </h1>
               <p className="text-lg text-muted-foreground mt-1">
@@ -356,7 +356,7 @@ export default function BulkAnalysis() {
               <Button 
                 onClick={fetchDataWithFilters}
                 disabled={!hasFilters || isLoadingData}
-                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                className="w-full bg-gradient-to-r from-blue-700 to-cyan-600 hover:from-blue-800 hover:to-cyan-700"
                 data-testid="button-get-data"
               >
                 {isLoadingData ? (

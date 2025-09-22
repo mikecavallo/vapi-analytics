@@ -727,7 +727,7 @@ export default function LandingPage() {
 
               <div className="pt-6">
                 <Link href="/book-demo">
-                  <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg px-8 py-4">
+                  <Button size="lg" className="bg-gradient-to-r from-blue-700 to-cyan-600 hover:from-blue-800 hover:to-cyan-700 text-lg px-8 py-4">
                     Experience White-Glove Service
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
