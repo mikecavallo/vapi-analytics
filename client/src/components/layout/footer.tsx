@@ -4,7 +4,7 @@ export function Footer() {
   return (
     <footer className="bg-white dark:bg-black border-t border-border mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Brand Section */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-black dark:text-white">Invoxa.ai</h3>
@@ -32,24 +32,6 @@ export function Footer() {
             </nav>
           </div>
 
-          {/* Resources Links */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-black dark:text-white">Resources</h4>
-            <nav className="flex flex-col space-y-2">
-              <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-documentation">
-                Documentation
-              </a>
-              <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-api-reference">
-                API Reference
-              </a>
-              <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-support">
-                Support
-              </a>
-              <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-changelog">
-                Changelog
-              </a>
-            </nav>
-          </div>
 
           {/* Company Links */}
           <div className="space-y-4">
