@@ -151,15 +151,7 @@ const SetupForm = ({ onSuccess }: { onSuccess: () => void }) => {
 
   const setupMutation = useMutation({
     mutationFn: async (data: { accessToken: string }) => {
-      const response = await fetch("/api/facebook-ads/setup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Setup failed');
-      }
+      const response = await apiRequest("POST", "/api/facebook-ads/setup", data);
       return response.json();
     },
     onSuccess: () => {
@@ -409,23 +401,13 @@ export default function FacebookAdsPage() {
   // Check Facebook Ads account status
   const { data: statusData, isLoading: statusLoading } = useQuery<StatusResponse>({
     queryKey: ["/api/facebook-ads/status"],
-    queryFn: async () => {
-      const response = await fetch("/api/facebook-ads/status");
-      if (!response.ok) {
-        throw new Error('Failed to fetch status');
-      }
-      return response.json();
-    },
   });
 
   // Fetch campaign hierarchy data
   const { data: hierarchyData, isLoading: hierarchyLoading, error: hierarchyError } = useQuery<CampaignHierarchy>({
     queryKey: ["/api/facebook-ads/hierarchy", dateRange.since, dateRange.until],
     queryFn: async () => {
-      const response = await fetch(`/api/facebook-ads/hierarchy?since=${dateRange.since}&until=${dateRange.until}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch hierarchy data');
-      }
+      const response = await apiRequest("GET", `/api/facebook-ads/hierarchy?since=${dateRange.since}&until=${dateRange.until}`);
       return response.json();
     },
     enabled: statusData?.connected && selectedTab === "overview",
@@ -433,11 +415,7 @@ export default function FacebookAdsPage() {
 
   const disconnectMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/facebook-ads/disconnect", { method: "DELETE" });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Disconnect failed');
-      }
+      const response = await apiRequest("DELETE", "/api/facebook-ads/disconnect");
       return response.json();
     },
     onSuccess: () => {
