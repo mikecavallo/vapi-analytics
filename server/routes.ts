@@ -153,8 +153,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Hash password
       const hashedPassword = await hashPassword(password);
 
-      // Create user
-      const user = await storage.createUser({
+      // Create user, customer, and assignment atomically using database transaction
+      const { user, customer } = await storage.createUserWithCustomerAndAssignment({
         username,
         email,
         password: hashedPassword,
@@ -2241,10 +2241,19 @@ Generate professional insights in JSON format:
   app.get("/api/facebook-ads/status", authenticateUser, async (req, res) => {
     try {
       const userId = req.user!.userId;
-      const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
+      let userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
       
+      // If user has no customer assignments, create one automatically (for existing users)
       if (userCustomerAssignments.length === 0) {
-        return res.status(403).json({ error: "No customer assigned to user" });
+        console.log(`User ${userId} has no customer assignments, creating one automatically...`);
+        const result = await storage.ensureUserHasCustomerAssignment(userId);
+        if (result) {
+          console.log(`Created customer ${result.customer.id} and assignment for user ${userId}`);
+          // Refetch assignments after creating
+          userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
+        } else {
+          return res.status(500).json({ error: "Failed to create customer assignment" });
+        }
       }
 
       const customerId = userCustomerAssignments[0].customerId;

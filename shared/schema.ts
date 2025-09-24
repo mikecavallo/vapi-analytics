@@ -27,7 +27,7 @@ export const emailWhitelist = pgTable("email_whitelist", {
 export const customers = pgTable("customers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
-  vapiApiKey: text("vapi_api_key").notNull(),
+  vapiApiKey: text("vapi_api_key"), // Optional - users can set this later
   description: text("description"),
   createdByUserId: varchar("created_by_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),

@@ -56,8 +56,12 @@ export interface IStorage {
   // User-customer assignments
   getUserCustomerAssignments(userId: string): Promise<UserCustomerAssignment[]>;
   getCustomerUsers(customerId: string): Promise<UserCustomerAssignment[]>;
-  assignUserToCustomer(assignment: InsertUserCustomerAssignment): Promise<UserCustomerAssignment>;
+  assignUserToCustomer(assignment: InsertUserCustomerAssignment & { assignedByUserId: string }): Promise<UserCustomerAssignment>;
   removeUserFromCustomer(userId: string, customerId: string): Promise<boolean>;
+  
+  // Atomic operations
+  createUserWithCustomerAndAssignment(userData: { username: string; email: string; password: string }): Promise<{ user: User; customer: Customer; assignment: UserCustomerAssignment }>;
+  ensureUserHasCustomerAssignment(userId: string): Promise<{ customer: Customer; assignment: UserCustomerAssignment } | null>;
   
   // Email verification tokens
   createEmailVerificationToken(userId: string, token: string, expiresAt: Date): Promise<EmailVerificationToken>;
@@ -207,6 +211,109 @@ export class DbStorage implements IStorage {
       createdAt: new Date(),
     }).returning();
     return result[0];
+  }
+
+  // Idempotent signup with customer creation and assignment (no transactions)
+  async createUserWithCustomerAndAssignment(userData: {
+    username: string;
+    email: string;
+    password: string;
+  }): Promise<{ user: User; customer: Customer; assignment: UserCustomerAssignment }> {
+    try {
+      // Step 1: Create user
+      const userInsertData = {
+        ...userData,
+        emailVerified: false,
+        role: "customer" as const,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+      const userResult = await db.insert(users).values(userInsertData).returning();
+      const user = userResult[0];
+
+      try {
+        // Step 2: Create customer for this user
+        const customerResult = await db.insert(customers).values({
+          name: `${userData.username}'s Account`,
+          description: `Customer account for ${userData.username}`,
+          createdByUserId: user.id,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }).returning();
+        const customer = customerResult[0];
+
+        try {
+          // Step 3: Assign user to customer
+          const assignmentResult = await db.insert(userCustomerAssignments).values({
+            userId: user.id,
+            customerId: customer.id,
+            assignedByUserId: user.id,
+            createdAt: new Date(),
+          }).returning();
+          const assignment = assignmentResult[0];
+
+          return { user, customer, assignment };
+        } catch (assignmentError) {
+          // Cleanup: Remove customer if assignment fails
+          await db.delete(customers).where(eq(customers.id, customer.id));
+          throw assignmentError;
+        }
+      } catch (customerError) {
+        // Cleanup: Remove user if customer creation fails  
+        await db.delete(users).where(eq(users.id, user.id));
+        throw customerError;
+      }
+    } catch (error) {
+      console.error("Signup operation failed:", error);
+      throw error;
+    }
+  }
+
+  // Ensure existing user has a customer assignment - for fixing existing users
+  async ensureUserHasCustomerAssignment(userId: string): Promise<{ customer: Customer; assignment: UserCustomerAssignment } | null> {
+    // Check if user already has assignments
+    const existingAssignments = await this.getUserCustomerAssignments(userId);
+    if (existingAssignments.length > 0) {
+      return null; // User already has assignments
+    }
+
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    try {
+      // Create customer for this existing user
+      const customerResult = await db.insert(customers).values({
+        name: `${user.username}'s Account`,
+        description: `Customer account for ${user.username}`,
+        createdByUserId: user.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }).returning();
+      const customer = customerResult[0];
+
+      try {
+        // Assign user to customer
+        const assignmentResult = await db.insert(userCustomerAssignments).values({
+          userId: user.id,
+          customerId: customer.id,
+          assignedByUserId: user.id,
+          createdAt: new Date(),
+        }).returning();
+        const assignment = assignmentResult[0];
+
+        return { customer, assignment };
+      } catch (assignmentError) {
+        // Cleanup: Remove customer if assignment fails
+        await db.delete(customers).where(eq(customers.id, customer.id));
+        throw assignmentError;
+      }
+    } catch (error) {
+      console.error("Failed to ensure user has customer assignment:", error);
+      throw error;
+    }
   }
 
   async removeUserFromCustomer(userId: string, customerId: string): Promise<boolean> {
