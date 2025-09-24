@@ -37,6 +37,18 @@ interface FacebookAdsAccount {
   lastValidatedAt: string | null;
 }
 
+interface StatusResponse {
+  connected: boolean;
+  account?: {
+    id: string;
+    adAccountId: string;
+    accountName: string;
+    isActive: boolean;
+    lastValidatedAt: string | null;
+  };
+  message?: string;
+}
+
 interface Campaign {
   id: string;
   name: string;
@@ -395,12 +407,19 @@ export default function FacebookAdsPage() {
   const queryClient = useQueryClient();
 
   // Check Facebook Ads account status
-  const { data: statusData, isLoading: statusLoading } = useQuery({
+  const { data: statusData, isLoading: statusLoading } = useQuery<StatusResponse>({
     queryKey: ["/api/facebook-ads/status"],
+    queryFn: async () => {
+      const response = await fetch("/api/facebook-ads/status");
+      if (!response.ok) {
+        throw new Error('Failed to fetch status');
+      }
+      return response.json();
+    },
   });
 
   // Fetch campaign hierarchy data
-  const { data: hierarchyData, isLoading: hierarchyLoading, error: hierarchyError } = useQuery({
+  const { data: hierarchyData, isLoading: hierarchyLoading, error: hierarchyError } = useQuery<CampaignHierarchy>({
     queryKey: ["/api/facebook-ads/hierarchy", dateRange.since, dateRange.until],
     queryFn: async () => {
       const response = await fetch(`/api/facebook-ads/hierarchy?since=${dateRange.since}&until=${dateRange.until}`);
@@ -409,7 +428,7 @@ export default function FacebookAdsPage() {
       }
       return response.json();
     },
-    enabled: (statusData as any)?.connected && selectedTab === "overview",
+    enabled: statusData?.connected && selectedTab === "overview",
   });
 
   const disconnectMutation = useMutation({
@@ -467,7 +486,7 @@ export default function FacebookAdsPage() {
     );
   }
 
-  if (!(statusData as any)?.connected) {
+  if (!statusData?.connected) {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center gap-3 mb-6">
@@ -479,7 +498,7 @@ export default function FacebookAdsPage() {
     );
   }
 
-  const hierarchy = hierarchyData as CampaignHierarchy | undefined;
+  const hierarchy = hierarchyData;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -490,9 +509,9 @@ export default function FacebookAdsPage() {
           <div>
             <h1 className="text-3xl font-bold">Facebook Ads Analytics</h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Account: {(statusData as any).account?.accountName} 
+              Account: {statusData.account?.accountName} 
               <Badge variant="outline" className="ml-2">
-                {(statusData as any).account?.adAccountId}
+                {statusData.account?.adAccountId}
               </Badge>
             </p>
           </div>
@@ -567,7 +586,7 @@ export default function FacebookAdsPage() {
           ) : hierarchyError ? (
             <Alert variant="destructive">
               <AlertDescription>
-                Failed to load Facebook Ads data. Please check your connection and try again.
+                Failed to load Facebook Ads data: {hierarchyError.message || 'Unknown error'}. Please check your Facebook access token and try again.
               </AlertDescription>
             </Alert>
           ) : hierarchy ? (
@@ -614,15 +633,22 @@ export default function FacebookAdsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {hierarchy.campaigns.map((campaign) => (
-                      <CampaignItem
-                        key={campaign.id}
-                        campaign={campaign}
-                        isExpanded={expandedCampaigns.has(campaign.id)}
-                        onToggle={() => toggleCampaign(campaign.id)}
-                        dateRange={hierarchy.dateRange}
-                      />
-                    ))}
+                    {hierarchy.campaigns.length > 0 ? (
+                      hierarchy.campaigns.map((campaign) => (
+                        <CampaignItem
+                          key={campaign.id}
+                          campaign={campaign}
+                          isExpanded={expandedCampaigns.has(campaign.id)}
+                          onToggle={() => toggleCampaign(campaign.id)}
+                          dateRange={hierarchy.dateRange}
+                        />
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500 mb-2">No campaigns found for the selected date range.</p>
+                        <p className="text-sm text-gray-400">Try adjusting your date range or check your Facebook Ads account.</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
