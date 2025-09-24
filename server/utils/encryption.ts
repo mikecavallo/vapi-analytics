@@ -58,9 +58,14 @@ export function generateAppSecretProof(accessToken: string): string {
  * Validates that an access token format is correct
  */
 export function validateAccessTokenFormat(token: string): boolean {
-  // Facebook access tokens are typically long alphanumeric strings
-  // This is a basic validation - adjust as needed
-  return typeof token === 'string' && 
-         token.length > 50 && 
-         /^[A-Za-z0-9_-]+$/.test(token);
+  // Accept various Facebook token formats:
+  // - Long access tokens (100+ chars starting with EAA)
+  // - Short-lived tokens 
+  // - App secrets and other token types for testing
+  if (typeof token !== 'string' || token.length < 20) {
+    return false;
+  }
+  
+  // Allow alphanumeric, underscores, hyphens, and pipes
+  return /^[A-Za-z0-9_|-]+$/.test(token);
 }
