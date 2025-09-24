@@ -2187,7 +2187,7 @@ Generate professional insights in JSON format:
       }
 
       // Get customer ID from authenticated user
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
       
       if (userCustomerAssignments.length === 0) {
@@ -2240,7 +2240,7 @@ Generate professional insights in JSON format:
   // Get Facebook Ads account status
   app.get("/api/facebook-ads/status", authenticateUser, async (req, res) => {
     try {
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       let userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
       
       // If user has no customer assignments, create one automatically (for existing users)
@@ -2288,7 +2288,7 @@ Generate professional insights in JSON format:
   // Get Facebook Ads campaigns
   app.get("/api/facebook-ads/campaigns", authenticateUser, async (req, res) => {
     try {
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
       
       if (userCustomerAssignments.length === 0) {
@@ -2321,7 +2321,7 @@ Generate professional insights in JSON format:
   app.get("/api/facebook-ads/campaigns/:campaignId/adsets", authenticateUser, async (req, res) => {
     try {
       const { campaignId } = req.params;
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
       
       if (userCustomerAssignments.length === 0) {
@@ -2354,7 +2354,7 @@ Generate professional insights in JSON format:
   app.get("/api/facebook-ads/adsets/:adSetId/ads", authenticateUser, async (req, res) => {
     try {
       const { adSetId } = req.params;
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
       
       if (userCustomerAssignments.length === 0) {
@@ -2406,7 +2406,7 @@ Generate professional insights in JSON format:
         return res.status(400).json({ error: "Invalid level. Must be campaign, adset, or ad" });
       }
 
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
       
       if (userCustomerAssignments.length === 0) {
@@ -2457,7 +2457,7 @@ Generate professional insights in JSON format:
         return res.status(400).json({ error: "Since date is required" });
       }
 
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
       
       if (userCustomerAssignments.length === 0) {
@@ -2493,7 +2493,7 @@ Generate professional insights in JSON format:
   // Delete Facebook Ads account
   app.delete("/api/facebook-ads/disconnect", authenticateUser, async (req, res) => {
     try {
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
       
       if (userCustomerAssignments.length === 0) {
