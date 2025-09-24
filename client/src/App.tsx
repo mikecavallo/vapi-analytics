@@ -17,6 +17,7 @@ import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
 import VerifyEmailPage from "@/pages/verify-email";
 import AgencyPage from "@/pages/agency";
+import FacebookAdsPage from "@/pages/FacebookAdsPage";
 import LandingPage from "@/pages/landing";
 import SolutionsPage from "@/pages/solutions";
 import UseCasesPage from "@/pages/use-cases";
@@ -91,6 +92,11 @@ function AppRouter() {
           <Route path="/agency">
             <ProtectedRoute>
               <AgencyPage />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/media">
+            <ProtectedRoute>
+              <FacebookAdsPage />
             </ProtectedRoute>
           </Route>
           
