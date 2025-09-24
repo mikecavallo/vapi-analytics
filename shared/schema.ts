@@ -460,6 +460,135 @@ export type AssistantConfig = z.infer<typeof assistantConfigSchema>;
 export type AssistantGenerationRequest = z.infer<typeof assistantGenerationRequestSchema>;
 export type AssistantCreationRequest = z.infer<typeof assistantCreationRequestSchema>;
 
+// Facebook Ads integration tables
+export const facebookAdsAccounts = pgTable("facebook_ads_accounts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  customerId: varchar("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }),
+  adAccountId: text("ad_account_id").notNull(),
+  encryptedAccessToken: text("encrypted_access_token").notNull(), // Encrypted access token
+  accountName: text("account_name"),
+  tokenIssuedAt: timestamp("token_issued_at"), // When the token was issued
+  tokenExpiresAt: timestamp("token_expires_at"), // When the token expires (if known)
+  lastValidatedAt: timestamp("last_validated_at"), // Last time we validated the token
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+}, (table) => ({
+  customerAdAccountUnique: unique("customer_ad_account_unique").on(table.customerId, table.adAccountId),
+}));
+
+// Facebook Ads campaigns cache table for better performance
+export const facebookAdsCampaigns = pgTable("facebook_ads_campaigns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  facebookAdsAccountId: varchar("facebook_ads_account_id").notNull().references(() => facebookAdsAccounts.id, { onDelete: "cascade" }),
+  campaignId: text("campaign_id").notNull(),
+  campaignName: text("campaign_name").notNull(),
+  status: text("status").notNull(),
+  objective: text("objective"),
+  lastUpdated: timestamp("last_updated").notNull().default(sql`now()`),
+}, (table) => ({
+  accountCampaignUnique: unique("account_campaign_unique").on(table.facebookAdsAccountId, table.campaignId),
+}));
+
+// Facebook Ads schemas
+export const insertFacebookAdsAccountSchema = createInsertSchema(facebookAdsAccounts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFacebookAdsCampaignSchema = createInsertSchema(facebookAdsCampaigns).omit({
+  id: true,
+  lastUpdated: true,
+});
+
+// Facebook Ads types
+export type InsertFacebookAdsAccount = z.infer<typeof insertFacebookAdsAccountSchema>;
+export type FacebookAdsAccount = typeof facebookAdsAccounts.$inferSelect;
+export type InsertFacebookAdsCampaign = z.infer<typeof insertFacebookAdsCampaignSchema>;
+export type FacebookAdsCampaign = typeof facebookAdsCampaigns.$inferSelect;
+
+// Facebook Ads API response types
+export const facebookAdsInsightsSchema = z.object({
+  campaign_id: z.string().optional(),
+  campaign_name: z.string().optional(),
+  adset_id: z.string().optional(),
+  adset_name: z.string().optional(),
+  ad_id: z.string().optional(),
+  ad_name: z.string().optional(),
+  impressions: z.string().optional(),
+  reach: z.string().optional(),
+  clicks: z.string().optional(),
+  unique_clicks: z.string().optional(),
+  spend: z.string().optional(),
+  cpm: z.string().optional(),
+  cpc: z.string().optional(),
+  ctr: z.string().optional(),
+  unique_ctr: z.string().optional(),
+  unique_link_clicks_ctr: z.string().optional(),
+  outbound_clicks: z.string().optional(),
+  outbound_clicks_ctr: z.string().optional(),
+  unique_outbound_clicks: z.string().optional(),
+  unique_outbound_clicks_ctr: z.string().optional(),
+  actions: z.array(z.object({
+    action_type: z.string(),
+    value: z.string(),
+  })).optional(),
+  cost_per_action_type: z.array(z.object({
+    action_type: z.string(),
+    value: z.string(),
+  })).optional(),
+  action_values: z.array(z.object({
+    action_type: z.string(),
+    value: z.string(),
+  })).optional(),
+  date_start: z.string(),
+  date_stop: z.string(),
+});
+
+export const facebookAdsMetricsSchema = z.object({
+  adAccountId: z.string(),
+  level: z.enum(['campaign', 'adset', 'ad']),
+  data: z.array(facebookAdsInsightsSchema),
+  dateRange: z.object({
+    since: z.string(),
+    until: z.string(),
+  }),
+});
+
+// Processed Facebook Ads metrics for frontend
+export const processedFacebookAdsMetricsSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  level: z.enum(['campaign', 'adset', 'ad']),
+  parentId: z.string().optional(),
+  amountSpent: z.number(),
+  reach: z.number(),
+  impressions: z.number(),
+  cpm: z.number(),
+  uniqueClicks: z.number(),
+  costPerUniqueClick: z.number(),
+  uniqueCtr: z.number(),
+  uniqueLinkClicks: z.number(),
+  costPerUniqueLinkClick: z.number(),
+  uniqueLinkClicksCtr: z.number(),
+  uniqueOutboundClicks: z.number(),
+  costPerUniqueOutboundClick: z.number(),
+  outboundCtr: z.number(),
+  results: z.number(),
+  costPerResult: z.number(),
+  resultRate: z.number(),
+  roas: z.number(),
+  dateRange: z.object({
+    since: z.string(),
+    until: z.string(),
+  }),
+});
+
+export type FacebookAdsInsights = z.infer<typeof facebookAdsInsightsSchema>;
+export type FacebookAdsMetrics = z.infer<typeof facebookAdsMetricsSchema>;
+export type ProcessedFacebookAdsMetrics = z.infer<typeof processedFacebookAdsMetricsSchema>;
+
 // Authentication response types
 export type AuthResponse = {
   user: {

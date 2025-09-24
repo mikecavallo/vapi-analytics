@@ -8,6 +8,10 @@ import {
   type UserCustomerAssignment,
   type InsertUserCustomerAssignment,
   type EmailVerificationToken,
+  type FacebookAdsAccount,
+  type InsertFacebookAdsAccount,
+  type FacebookAdsCampaign,
+  type InsertFacebookAdsCampaign,
   type VapiAnalyticsQuery, 
   type VapiAnalyticsResponse, 
   type DashboardData,
@@ -15,12 +19,15 @@ import {
   customers,
   emailWhitelist,
   userCustomerAssignments,
-  emailVerificationTokens
+  emailVerificationTokens,
+  facebookAdsAccounts,
+  facebookAdsCampaigns
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { eq, and } from "drizzle-orm";
+import { encrypt, decrypt } from './utils/encryption';
 
 export interface IStorage {
   // User management
@@ -60,6 +67,18 @@ export interface IStorage {
   // Analytics caching
   getCachedAnalytics(cacheKey: string): Promise<DashboardData | undefined>;
   setCachedAnalytics(cacheKey: string, data: DashboardData, ttl?: number): Promise<void>;
+  
+  // Facebook Ads management
+  getFacebookAdsAccount(customerId: string): Promise<FacebookAdsAccount | undefined>;
+  getFacebookAdsAccountByAdAccountId(adAccountId: string): Promise<FacebookAdsAccount | undefined>;
+  createFacebookAdsAccount(account: InsertFacebookAdsAccount): Promise<FacebookAdsAccount>;
+  updateFacebookAdsAccount(id: string, updates: Partial<FacebookAdsAccount>): Promise<FacebookAdsAccount | undefined>;
+  deleteFacebookAdsAccount(id: string): Promise<boolean>;
+  
+  // Facebook Ads campaigns cache
+  getFacebookAdsCampaigns(facebookAdsAccountId: string): Promise<FacebookAdsCampaign[]>;
+  createOrUpdateFacebookAdsCampaign(campaign: InsertFacebookAdsCampaign): Promise<FacebookAdsCampaign>;
+  deleteFacebookAdsCampaign(facebookAdsAccountId: string, campaignId: string): Promise<boolean>;
 }
 
 // Database connection setup
@@ -253,6 +272,150 @@ export class DbStorage implements IStorage {
   async getAllEmailWhitelist(): Promise<EmailWhitelist[]> {
     const result = await db.select().from(emailWhitelist);
     return result;
+  }
+
+  // Facebook Ads management with secure token handling
+  async getFacebookAdsAccount(customerId: string): Promise<FacebookAdsAccount | undefined> {
+    const result = await db.select().from(facebookAdsAccounts)
+      .where(and(eq(facebookAdsAccounts.customerId, customerId), eq(facebookAdsAccounts.isActive, true)))
+      .limit(1);
+    
+    if (result[0]) {
+      // Decrypt the access token before returning
+      try {
+        const decryptedToken = decrypt(result[0].encryptedAccessToken);
+        return {
+          ...result[0],
+          accessToken: decryptedToken, // Add decrypted token to response
+        } as any; // Type assertion needed due to schema mismatch
+      } catch (error) {
+        console.error('Failed to decrypt access token for account:', result[0].id);
+        return undefined;
+      }
+    }
+    return undefined;
+  }
+
+  async getFacebookAdsAccountByAdAccountId(adAccountId: string): Promise<FacebookAdsAccount | undefined> {
+    const result = await db.select().from(facebookAdsAccounts)
+      .where(eq(facebookAdsAccounts.adAccountId, adAccountId))
+      .limit(1);
+    
+    if (result[0]) {
+      // Decrypt the access token before returning
+      try {
+        const decryptedToken = decrypt(result[0].encryptedAccessToken);
+        return {
+          ...result[0],
+          accessToken: decryptedToken, // Add decrypted token to response
+        } as any; // Type assertion needed due to schema mismatch
+      } catch (error) {
+        console.error('Failed to decrypt access token for account:', result[0].id);
+        return undefined;
+      }
+    }
+    return undefined;
+  }
+
+  async createFacebookAdsAccount(account: InsertFacebookAdsAccount & { accessToken: string }): Promise<FacebookAdsAccount> {
+    // Encrypt the access token before storing
+    const encryptedToken = encrypt(account.accessToken);
+    
+    const result = await db.insert(facebookAdsAccounts).values({
+      ...account,
+      encryptedAccessToken: encryptedToken,
+      tokenIssuedAt: new Date(),
+      lastValidatedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).returning();
+    
+    // Return with decrypted token for immediate use
+    return {
+      ...result[0],
+      accessToken: account.accessToken,
+    } as any;
+  }
+
+  async updateFacebookAdsAccount(id: string, updates: Partial<FacebookAdsAccount & { accessToken?: string }>): Promise<FacebookAdsAccount | undefined> {
+    const updateData: any = {
+      ...updates,
+      updatedAt: new Date(),
+    };
+    
+    // If access token is being updated, encrypt it
+    if (updates.accessToken) {
+      updateData.encryptedAccessToken = encrypt(updates.accessToken);
+      updateData.lastValidatedAt = new Date();
+      delete updateData.accessToken; // Remove plain text token from update
+    }
+    
+    const result = await db.update(facebookAdsAccounts)
+      .set(updateData)
+      .where(eq(facebookAdsAccounts.id, id))
+      .returning();
+    
+    if (result[0] && updates.accessToken) {
+      // Return with decrypted token for immediate use
+      return {
+        ...result[0],
+        accessToken: updates.accessToken,
+      } as any;
+    }
+    
+    return result[0] as any;
+  }
+
+  async deleteFacebookAdsAccount(id: string): Promise<boolean> {
+    const result = await db.delete(facebookAdsAccounts)
+      .where(eq(facebookAdsAccounts.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  // Facebook Ads campaigns cache
+  async getFacebookAdsCampaigns(facebookAdsAccountId: string): Promise<FacebookAdsCampaign[]> {
+    return db.select().from(facebookAdsCampaigns)
+      .where(eq(facebookAdsCampaigns.facebookAdsAccountId, facebookAdsAccountId));
+  }
+
+  async createOrUpdateFacebookAdsCampaign(campaign: InsertFacebookAdsCampaign): Promise<FacebookAdsCampaign> {
+    // Try to find existing campaign first
+    const existing = await db.select().from(facebookAdsCampaigns)
+      .where(and(
+        eq(facebookAdsCampaigns.facebookAdsAccountId, campaign.facebookAdsAccountId),
+        eq(facebookAdsCampaigns.campaignId, campaign.campaignId)
+      ))
+      .limit(1);
+
+    if (existing.length > 0) {
+      // Update existing campaign
+      const result = await db.update(facebookAdsCampaigns)
+        .set({
+          ...campaign,
+          lastUpdated: new Date(),
+        })
+        .where(eq(facebookAdsCampaigns.id, existing[0].id))
+        .returning();
+      return result[0];
+    } else {
+      // Create new campaign
+      const result = await db.insert(facebookAdsCampaigns).values({
+        ...campaign,
+        lastUpdated: new Date(),
+      }).returning();
+      return result[0];
+    }
+  }
+
+  async deleteFacebookAdsCampaign(facebookAdsAccountId: string, campaignId: string): Promise<boolean> {
+    const result = await db.delete(facebookAdsCampaigns)
+      .where(and(
+        eq(facebookAdsCampaigns.facebookAdsAccountId, facebookAdsAccountId),
+        eq(facebookAdsCampaigns.campaignId, campaignId)
+      ))
+      .returning();
+    return result.length > 0;
   }
 }
 
