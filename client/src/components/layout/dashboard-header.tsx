@@ -6,7 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Brain, Wand2, Users, User, Sun, Moon, LogOut } from "lucide-react";
+import { Brain, Wand2, Users, User, Sun, Moon, LogOut, BarChart3 } from "lucide-react";
 import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 import { useTheme } from "@/contexts/theme-context";
 import { useAuth } from "@/contexts/auth-context";
@@ -54,6 +54,16 @@ export function DashboardHeader() {
               }`}>
                 <Wand2 size={16} />
                 <span>Studio</span>
+              </span>
+            </Link>
+            <Link href="/media">
+              <span className={`pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1 ${
+                location === '/media' 
+                  ? 'text-primary border-b-2 border-primary' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`} data-testid="link-media">
+                <BarChart3 size={16} />
+                <span>Media</span>
               </span>
             </Link>
             {user?.role === 'super_admin' && (

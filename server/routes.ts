@@ -12,7 +12,11 @@ import {
   type SignupRequest,
   type LoginRequest,
   type UserRole,
+  insertFacebookAdsAccountSchema,
+  type InsertFacebookAdsAccount,
+  type ProcessedFacebookAdsMetrics,
 } from "@shared/schema";
+import { facebookAdsService } from "./services/facebook-ads";
 import { z } from "zod";
 import { VapiClient } from "@vapi-ai/server-sdk";
 import {
@@ -2157,6 +2161,358 @@ Generate professional insights in JSON format:
       console.error("Analysis error:", error);
       res.status(500).json({ 
         error: error instanceof Error ? error.message : "Analysis failed" 
+      });
+    }
+  });
+
+  // Facebook Ads API Routes
+  
+  // Validate and save Facebook access token
+  app.post("/api/facebook-ads/setup", authenticateUser, async (req, res) => {
+    try {
+      const { accessToken, adAccountId, accountName } = req.body;
+      
+      if (!accessToken) {
+        return res.status(400).json({ error: "Access token is required" });
+      }
+
+      // Validate the access token with Facebook
+      const validation = await facebookAdsService.validateAccessToken(accessToken);
+      
+      if (!validation.isValid) {
+        return res.status(400).json({ 
+          error: validation.error || "Invalid access token",
+          accounts: validation.accounts 
+        });
+      }
+
+      // Get customer ID from authenticated user
+      const userId = req.user!.userId;
+      const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
+      
+      if (userCustomerAssignments.length === 0) {
+        return res.status(403).json({ error: "No customer assigned to user" });
+      }
+
+      const customerId = userCustomerAssignments[0].customerId;
+
+      // Check if Facebook Ads account already exists for this customer
+      const existingAccount = await storage.getFacebookAdsAccount(customerId);
+      
+      if (existingAccount) {
+        // Update existing account
+        const updatedAccount = await storage.updateFacebookAdsAccount(existingAccount.id, {
+          accessToken,
+          adAccountId: adAccountId || validation.adAccountId!,
+          accountName: accountName || validation.accountName!,
+          isActive: true,
+        });
+        
+        res.json({ 
+          success: true, 
+          account: updatedAccount,
+          message: "Facebook Ads account updated successfully" 
+        });
+      } else {
+        // Create new account
+        const newAccount = await storage.createFacebookAdsAccount({
+          customerId,
+          accessToken,
+          adAccountId: adAccountId || validation.adAccountId!,
+          accountName: accountName || validation.accountName!,
+        });
+        
+        res.json({ 
+          success: true, 
+          account: newAccount,
+          message: "Facebook Ads account connected successfully" 
+        });
+      }
+
+    } catch (error) {
+      console.error("Facebook Ads setup error:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Failed to setup Facebook Ads integration" 
+      });
+    }
+  });
+
+  // Get Facebook Ads account status
+  app.get("/api/facebook-ads/status", authenticateUser, async (req, res) => {
+    try {
+      const userId = req.user!.userId;
+      const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
+      
+      if (userCustomerAssignments.length === 0) {
+        return res.status(403).json({ error: "No customer assigned to user" });
+      }
+
+      const customerId = userCustomerAssignments[0].customerId;
+      const account = await storage.getFacebookAdsAccount(customerId);
+
+      if (!account) {
+        return res.json({ 
+          connected: false, 
+          message: "No Facebook Ads account connected" 
+        });
+      }
+
+      res.json({
+        connected: true,
+        account: {
+          id: account.id,
+          adAccountId: account.adAccountId,
+          accountName: account.accountName,
+          isActive: account.isActive,
+          lastValidatedAt: account.lastValidatedAt,
+        }
+      });
+
+    } catch (error) {
+      console.error("Facebook Ads status error:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Failed to get Facebook Ads status" 
+      });
+    }
+  });
+
+  // Get Facebook Ads campaigns
+  app.get("/api/facebook-ads/campaigns", authenticateUser, async (req, res) => {
+    try {
+      const userId = req.user!.userId;
+      const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
+      
+      if (userCustomerAssignments.length === 0) {
+        return res.status(403).json({ error: "No customer assigned to user" });
+      }
+
+      const customerId = userCustomerAssignments[0].customerId;
+      const account = await storage.getFacebookAdsAccount(customerId);
+
+      if (!account || !account.isActive) {
+        return res.status(400).json({ error: "No active Facebook Ads account found" });
+      }
+
+      const campaigns = await facebookAdsService.getCampaigns(
+        (account as any).accessToken, 
+        account.adAccountId
+      );
+
+      res.json({ campaigns });
+
+    } catch (error) {
+      console.error("Facebook Ads campaigns error:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Failed to fetch campaigns" 
+      });
+    }
+  });
+
+  // Get Facebook Ads ad sets for a campaign
+  app.get("/api/facebook-ads/campaigns/:campaignId/adsets", authenticateUser, async (req, res) => {
+    try {
+      const { campaignId } = req.params;
+      const userId = req.user!.userId;
+      const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
+      
+      if (userCustomerAssignments.length === 0) {
+        return res.status(403).json({ error: "No customer assigned to user" });
+      }
+
+      const customerId = userCustomerAssignments[0].customerId;
+      const account = await storage.getFacebookAdsAccount(customerId);
+
+      if (!account || !account.isActive) {
+        return res.status(400).json({ error: "No active Facebook Ads account found" });
+      }
+
+      const adSets = await facebookAdsService.getAdSets(
+        (account as any).accessToken, 
+        campaignId
+      );
+
+      res.json({ adSets });
+
+    } catch (error) {
+      console.error("Facebook Ads adsets error:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Failed to fetch ad sets" 
+      });
+    }
+  });
+
+  // Get Facebook Ads ads for an ad set
+  app.get("/api/facebook-ads/adsets/:adSetId/ads", authenticateUser, async (req, res) => {
+    try {
+      const { adSetId } = req.params;
+      const userId = req.user!.userId;
+      const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
+      
+      if (userCustomerAssignments.length === 0) {
+        return res.status(403).json({ error: "No customer assigned to user" });
+      }
+
+      const customerId = userCustomerAssignments[0].customerId;
+      const account = await storage.getFacebookAdsAccount(customerId);
+
+      if (!account || !account.isActive) {
+        return res.status(400).json({ error: "No active Facebook Ads account found" });
+      }
+
+      const ads = await facebookAdsService.getAds(
+        (account as any).accessToken, 
+        adSetId
+      );
+
+      res.json({ ads });
+
+    } catch (error) {
+      console.error("Facebook Ads ads error:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Failed to fetch ads" 
+      });
+    }
+  });
+
+  // Get Facebook Ads insights/metrics
+  app.get("/api/facebook-ads/insights", authenticateUser, async (req, res) => {
+    try {
+      const { 
+        objectId, 
+        level = 'campaign', 
+        since, 
+        until = new Date().toISOString().split('T')[0] // Default to today
+      } = req.query;
+
+      if (!objectId) {
+        return res.status(400).json({ error: "Object ID is required" });
+      }
+
+      if (!since) {
+        return res.status(400).json({ error: "Since date is required" });
+      }
+
+      const validLevels = ['campaign', 'adset', 'ad'];
+      if (!validLevels.includes(level as string)) {
+        return res.status(400).json({ error: "Invalid level. Must be campaign, adset, or ad" });
+      }
+
+      const userId = req.user!.userId;
+      const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
+      
+      if (userCustomerAssignments.length === 0) {
+        return res.status(403).json({ error: "No customer assigned to user" });
+      }
+
+      const customerId = userCustomerAssignments[0].customerId;
+      const account = await storage.getFacebookAdsAccount(customerId);
+
+      if (!account || !account.isActive) {
+        return res.status(400).json({ error: "No active Facebook Ads account found" });
+      }
+
+      const insights = await facebookAdsService.getInsights(
+        (account as any).accessToken,
+        objectId as string,
+        level as 'campaign' | 'adset' | 'ad',
+        {
+          since: since as string,
+          until: until as string,
+        }
+      );
+
+      const processedMetrics = facebookAdsService.processInsights(insights.data);
+
+      res.json({ 
+        insights: processedMetrics,
+        dateRange: insights.dateRange 
+      });
+
+    } catch (error) {
+      console.error("Facebook Ads insights error:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Failed to fetch insights" 
+      });
+    }
+  });
+
+  // Get hierarchical Facebook Ads data (campaigns -> adsets -> ads with metrics)
+  app.get("/api/facebook-ads/hierarchy", authenticateUser, async (req, res) => {
+    try {
+      const { 
+        since, 
+        until = new Date().toISOString().split('T')[0] // Default to today
+      } = req.query;
+
+      if (!since) {
+        return res.status(400).json({ error: "Since date is required" });
+      }
+
+      const userId = req.user!.userId;
+      const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
+      
+      if (userCustomerAssignments.length === 0) {
+        return res.status(403).json({ error: "No customer assigned to user" });
+      }
+
+      const customerId = userCustomerAssignments[0].customerId;
+      const account = await storage.getFacebookAdsAccount(customerId);
+
+      if (!account || !account.isActive) {
+        return res.status(400).json({ error: "No active Facebook Ads account found" });
+      }
+
+      const hierarchy = await facebookAdsService.getCampaignHierarchy(
+        (account as any).accessToken,
+        account.adAccountId,
+        {
+          since: since as string,
+          until: until as string,
+        }
+      );
+
+      res.json(hierarchy);
+
+    } catch (error) {
+      console.error("Facebook Ads hierarchy error:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Failed to fetch campaign hierarchy" 
+      });
+    }
+  });
+
+  // Delete Facebook Ads account
+  app.delete("/api/facebook-ads/disconnect", authenticateUser, async (req, res) => {
+    try {
+      const userId = req.user!.userId;
+      const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
+      
+      if (userCustomerAssignments.length === 0) {
+        return res.status(403).json({ error: "No customer assigned to user" });
+      }
+
+      const customerId = userCustomerAssignments[0].customerId;
+      const account = await storage.getFacebookAdsAccount(customerId);
+
+      if (!account) {
+        return res.status(404).json({ error: "No Facebook Ads account found" });
+      }
+
+      const deleted = await storage.deleteFacebookAdsAccount(account.id);
+
+      if (deleted) {
+        res.json({ 
+          success: true, 
+          message: "Facebook Ads account disconnected successfully" 
+        });
+      } else {
+        res.status(500).json({ error: "Failed to disconnect Facebook Ads account" });
+      }
+
+    } catch (error) {
+      console.error("Facebook Ads disconnect error:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Failed to disconnect Facebook Ads account" 
       });
     }
   });
