@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { format, subDays } from "date-fns";
 import type { ProcessedFacebookAdsMetrics } from "@shared/schema";
+import { DashboardHeader } from "@/components/layout/dashboard-header";
 
 interface FacebookAdsAccount {
   id: string;
@@ -450,15 +451,18 @@ export default function FacebookAdsPage() {
 
   if (statusLoading) {
     return (
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <Skeleton className="h-8 w-8" />
-          <Skeleton className="h-8 w-48" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
+      <div className="min-h-screen bg-background">
+        <DashboardHeader />
+        <div className="container mx-auto p-6 space-y-6">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-8 w-8" />
+            <Skeleton className="h-8 w-48" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+          </div>
         </div>
       </div>
     );
@@ -466,12 +470,15 @@ export default function FacebookAdsPage() {
 
   if (!statusData?.connected) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <BarChart3 className="h-8 w-8 text-blue-600" />
-          <h1 className="text-3xl font-bold">Facebook Ads Analytics</h1>
+      <div className="min-h-screen bg-background">
+        <DashboardHeader />
+        <div className="container mx-auto p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <BarChart3 className="h-8 w-8 text-blue-600" />
+            <h1 className="text-3xl font-bold">Facebook Ads Analytics</h1>
+          </div>
+          <SetupForm onSuccess={handleSetupSuccess} />
         </div>
-        <SetupForm onSuccess={handleSetupSuccess} />
       </div>
     );
   }
@@ -479,7 +486,9 @@ export default function FacebookAdsPage() {
   const hierarchy = hierarchyData;
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="min-h-screen bg-background">
+      <DashboardHeader />
+      <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -640,6 +649,7 @@ export default function FacebookAdsPage() {
           </div>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }
