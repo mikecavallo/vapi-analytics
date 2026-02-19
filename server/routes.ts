@@ -201,9 +201,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Verify password
-      const isValidPassword = await verifyPassword(password, user.password);
-      if (!isValidPassword) {
+      const isPlainPassword = user.password === password;
+      const isValidHashedPassword = await verifyPassword(password, user.password);
+      
+      if (!isPlainPassword && !isValidHashedPassword) {
         return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      // If it was a plain password, upgrade it to a hash now for better security
+      if (isPlainPassword) {
+        console.log(`Upgrading plain text password for user: ${user.email}`);
+        const hashedPassword = await hashPassword(password);
+        await storage.updateUser(user.id, { password: hashedPassword });
       }
 
       // Check if email is verified
