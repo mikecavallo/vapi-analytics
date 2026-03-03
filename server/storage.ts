@@ -139,8 +139,14 @@ export class DbStorage implements IStorage {
 
   // Email whitelist
   async isEmailWhitelisted(email: string): Promise<boolean> {
-    const result = await db.select().from(emailWhitelist).where(eq(emailWhitelist.email, email)).limit(1);
-    return result.length > 0;
+    // Check exact email match
+    const exact = await db.select().from(emailWhitelist).where(eq(emailWhitelist.email, email)).limit(1);
+    if (exact.length > 0) return true;
+
+    // Check domain wildcard match (entries like @invoxa.ai)
+    const domain = '@' + email.split('@')[1];
+    const wildcard = await db.select().from(emailWhitelist).where(eq(emailWhitelist.email, domain)).limit(1);
+    return wildcard.length > 0;
   }
 
   async addEmailToWhitelist(emailData: InsertEmailWhitelist & { createdByUserId: string }): Promise<EmailWhitelist> {
