@@ -1,6 +1,6 @@
-import { 
-  type User, 
-  type InsertUser, 
+import {
+  type User,
+  type InsertUser,
   type Customer,
   type InsertCustomer,
   type EmailWhitelist,
@@ -12,8 +12,8 @@ import {
   type InsertFacebookAdsAccount,
   type FacebookAdsCampaign,
   type InsertFacebookAdsCampaign,
-  type VapiAnalyticsQuery, 
-  type VapiAnalyticsResponse, 
+  type VapiAnalyticsQuery,
+  type VapiAnalyticsResponse,
   type DashboardData,
   users,
   customers,
@@ -24,8 +24,7 @@ import {
   facebookAdsCampaigns
 } from "@shared/schema";
 import { randomUUID } from "crypto";
-import { drizzle } from "drizzle-orm/neon-http";
-import { neon } from "@neondatabase/serverless";
+import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 import { encrypt, decrypt } from './utils/encryption';
 
@@ -36,58 +35,57 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
-  
+
   // Email whitelist
   isEmailWhitelisted(email: string): Promise<boolean>;
   addEmailToWhitelist(email: InsertEmailWhitelist): Promise<EmailWhitelist>;
   removeEmailFromWhitelist(email: string): Promise<boolean>;
   getAllEmailWhitelist(): Promise<EmailWhitelist[]>;
-  
+
   // Admin methods
   getAllUsers(): Promise<User[]>;
-  
+
   // Customer management
   getCustomer(id: string): Promise<Customer | undefined>;
   getCustomerByName(name: string): Promise<Customer | undefined>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   updateCustomer(id: string, updates: Partial<Customer>): Promise<Customer | undefined>;
   getAllCustomers(): Promise<Customer[]>;
-  
+
   // User-customer assignments
   getUserCustomerAssignments(userId: string): Promise<UserCustomerAssignment[]>;
   getCustomerUsers(customerId: string): Promise<UserCustomerAssignment[]>;
   assignUserToCustomer(assignment: InsertUserCustomerAssignment & { assignedByUserId: string }): Promise<UserCustomerAssignment>;
   removeUserFromCustomer(userId: string, customerId: string): Promise<boolean>;
-  
+
   // Atomic operations
   createUserWithCustomerAndAssignment(userData: { username: string; email: string; password: string }): Promise<{ user: User; customer: Customer; assignment: UserCustomerAssignment }>;
   ensureUserHasCustomerAssignment(userId: string): Promise<{ customer: Customer; assignment: UserCustomerAssignment } | null>;
-  
+
   // Email verification tokens
   createEmailVerificationToken(userId: string, token: string, expiresAt: Date): Promise<EmailVerificationToken>;
   getEmailVerificationToken(token: string): Promise<EmailVerificationToken | undefined>;
   deleteEmailVerificationToken(token: string): Promise<boolean>;
-  
+
   // Analytics caching
   getCachedAnalytics(cacheKey: string): Promise<DashboardData | undefined>;
   setCachedAnalytics(cacheKey: string, data: DashboardData, ttl?: number): Promise<void>;
-  
+
   // Facebook Ads management
   getFacebookAdsAccount(customerId: string): Promise<FacebookAdsAccount | undefined>;
   getFacebookAdsAccountByAdAccountId(adAccountId: string): Promise<FacebookAdsAccount | undefined>;
   createFacebookAdsAccount(account: InsertFacebookAdsAccount): Promise<FacebookAdsAccount>;
   updateFacebookAdsAccount(id: string, updates: Partial<FacebookAdsAccount>): Promise<FacebookAdsAccount | undefined>;
   deleteFacebookAdsAccount(id: string): Promise<boolean>;
-  
+
   // Facebook Ads campaigns cache
   getFacebookAdsCampaigns(facebookAdsAccountId: string): Promise<FacebookAdsCampaign[]>;
   createOrUpdateFacebookAdsCampaign(campaign: InsertFacebookAdsCampaign): Promise<FacebookAdsCampaign>;
   deleteFacebookAdsCampaign(facebookAdsAccountId: string, campaignId: string): Promise<boolean>;
 }
 
-// Database connection setup
-const sql = neon(process.env.DATABASE_URL!);
-const db = drizzle(sql);
+// Database connected via shared module
+
 
 export class DbStorage implements IStorage {
   private analyticsCache: Map<string, { data: DashboardData; expires: number }>;
@@ -120,7 +118,7 @@ export class DbStorage implements IStorage {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    
+
     const result = await db.insert(users).values(userData).returning();
     return result[0];
   }
@@ -130,12 +128,12 @@ export class DbStorage implements IStorage {
       ...updates,
       updatedAt: new Date(),
     };
-    
+
     const result = await db.update(users)
       .set(updateData)
       .where(eq(users.id, id))
       .returning();
-    
+
     return result[0];
   }
 
@@ -183,12 +181,12 @@ export class DbStorage implements IStorage {
       ...updates,
       updatedAt: new Date(),
     };
-    
+
     const result = await db.update(customers)
       .set(updateData)
       .where(eq(customers.id, id))
       .returning();
-    
+
     return result[0];
   }
 
@@ -228,7 +226,7 @@ export class DbStorage implements IStorage {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      
+
       const userResult = await db.insert(users).values(userInsertData).returning();
       const user = userResult[0];
 
@@ -354,12 +352,12 @@ export class DbStorage implements IStorage {
     if (cached && cached.expires > Date.now()) {
       return cached.data;
     }
-    
+
     // Remove expired cache
     if (cached) {
       this.analyticsCache.delete(cacheKey);
     }
-    
+
     return undefined;
   }
 
@@ -386,7 +384,7 @@ export class DbStorage implements IStorage {
     const result = await db.select().from(facebookAdsAccounts)
       .where(and(eq(facebookAdsAccounts.customerId, customerId), eq(facebookAdsAccounts.isActive, true)))
       .limit(1);
-    
+
     if (result[0]) {
       // Decrypt the access token before returning
       try {
@@ -407,7 +405,7 @@ export class DbStorage implements IStorage {
     const result = await db.select().from(facebookAdsAccounts)
       .where(eq(facebookAdsAccounts.adAccountId, adAccountId))
       .limit(1);
-    
+
     if (result[0]) {
       // Decrypt the access token before returning
       try {
@@ -427,7 +425,7 @@ export class DbStorage implements IStorage {
   async createFacebookAdsAccount(account: InsertFacebookAdsAccount & { accessToken: string }): Promise<FacebookAdsAccount> {
     // Encrypt the access token before storing
     const encryptedToken = encrypt(account.accessToken);
-    
+
     const result = await db.insert(facebookAdsAccounts).values({
       ...account,
       encryptedAccessToken: encryptedToken,
@@ -436,7 +434,7 @@ export class DbStorage implements IStorage {
       createdAt: new Date(),
       updatedAt: new Date(),
     }).returning();
-    
+
     // Return with decrypted token for immediate use
     return {
       ...result[0],
@@ -449,19 +447,19 @@ export class DbStorage implements IStorage {
       ...updates,
       updatedAt: new Date(),
     };
-    
+
     // If access token is being updated, encrypt it
     if (updates.accessToken) {
       updateData.encryptedAccessToken = encrypt(updates.accessToken);
       updateData.lastValidatedAt = new Date();
       delete updateData.accessToken; // Remove plain text token from update
     }
-    
+
     const result = await db.update(facebookAdsAccounts)
       .set(updateData)
       .where(eq(facebookAdsAccounts.id, id))
       .returning();
-    
+
     if (result[0] && updates.accessToken) {
       // Return with decrypted token for immediate use
       return {
@@ -469,7 +467,7 @@ export class DbStorage implements IStorage {
         accessToken: updates.accessToken,
       } as any;
     }
-    
+
     return result[0] as any;
   }
 

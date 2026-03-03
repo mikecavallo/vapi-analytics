@@ -15,7 +15,8 @@ import MostSuccessfulAgent from "@/components/analytics/most-successful-agent";
 import DailyMetricsCharts from "@/components/analytics/daily-metrics-charts";
 import AIChatbot from "@/components/ai-chatbot";
 import { Button } from "@/components/ui/button";
-import { Download, ChartLine, User, Sun, Moon, Brain, Activity, Wand2, FileText, Settings, RefreshCw, Users } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Download, ChartLine, User, Sun, Moon, Brain, Activity, Wand2, FileText, Settings, RefreshCw, Users, Phone } from "lucide-react";
 import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -26,8 +27,8 @@ import { DashboardHeader } from "@/components/layout/dashboard-header";
 // Helper functions to check if data is meaningful
 const hasKpiData = (data?: DashboardData) => {
   return data?.kpis && (
-    data.kpis.totalCalls > 0 || 
-    data.kpis.avgDuration > 0 || 
+    data.kpis.totalCalls > 0 ||
+    data.kpis.avgDuration > 0 ||
     data.kpis.successRate > 0 ||
     data.kpis.totalCost > 0
   );
@@ -77,14 +78,15 @@ const hasConversationOutcomesData = (data?: DashboardData) => {
 };
 
 export default function Dashboard() {
-  const [timeRange, setTimeRange] = useState("all-time");
+  const [timeRange, setTimeRange] = useState("last-7-days");
+  const [provider, setProvider] = useState("vapi");
   const { toast } = useToast();
   const { theme, toggleTheme } = useTheme();
   const [location] = useLocation();
   const { user } = useAuth();
 
   const { data, isLoading, error, refetch } = useQuery<DashboardData>({
-    queryKey: ["/api/analytics/summary", `?timeRange=${timeRange}`],
+    queryKey: ["/api/analytics/summary", `?timeRange=${timeRange}&provider=${provider}`],
     enabled: true,
   });
 
@@ -143,10 +145,22 @@ export default function Dashboard() {
         {/* Key Metrics */}
         {(isLoading || hasKpiData(data)) && (
           <section className="mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-3xl font-bold text-foreground">Key Metrics</h2>
-              <TimeRangeSelector 
-                value={timeRange} 
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+              <div className="flex items-center gap-4">
+                <h2 className="text-3xl font-bold text-foreground">Key Metrics</h2>
+                <Tabs value={provider} onValueChange={setProvider} className="w-[200px]">
+                  <TabsList>
+                    <TabsTrigger value="vapi" className="flex items-center gap-2">
+                      <Activity className="w-4 h-4" /> Vapi
+                    </TabsTrigger>
+                    <TabsTrigger value="retell" className="flex items-center gap-2">
+                      <Phone className="w-4 h-4" /> Retell
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+              <TimeRangeSelector
+                value={timeRange}
                 onChange={setTimeRange}
                 data-testid="select-time-range"
               />
@@ -201,33 +215,33 @@ export default function Dashboard() {
           <section className="mb-8 grid grid-cols-1 gap-8">
             {/* Conversation Flow Analysis */}
             {(isLoading || hasConversationFlowData(data)) && (
-              <ConversationFlowAnalysis 
-                data={data?.conversationFlow || { stages: [], successPaths: [], dropOffPoints: [] }} 
-                isLoading={isLoading} 
+              <ConversationFlowAnalysis
+                data={data?.conversationFlow || { stages: [], successPaths: [], dropOffPoints: [] }}
+                isLoading={isLoading}
               />
             )}
-            
+
             {/* Duration Distribution */}
             {(isLoading || hasDurationDistributionData(data)) && (
-              <DurationDistribution 
-                data={data?.durationHistogram || { histogram: [], stats: { average: "0:00", median: "0:00", mostCommon: "0:00", longest: "0:00" } }} 
-                isLoading={isLoading} 
+              <DurationDistribution
+                data={data?.durationHistogram || { histogram: [], stats: { average: "0:00", median: "0:00", mostCommon: "0:00", longest: "0:00" } }}
+                isLoading={isLoading}
               />
             )}
-            
+
             {/* Peak Usage Heatmap */}
             {(isLoading || hasPeakUsageData(data)) && (
-              <PeakUsageHeatmap 
-                data={data?.peakUsageHeatmap || { heatmapData: [], insights: { peakHours: "", busiestDay: "", quietHours: "" } }} 
-                isLoading={isLoading} 
+              <PeakUsageHeatmap
+                data={data?.peakUsageHeatmap || { heatmapData: [], insights: { peakHours: "", busiestDay: "", quietHours: "" } }}
+                isLoading={isLoading}
               />
             )}
-            
+
             {/* Conversation Outcomes */}
             {(isLoading || hasConversationOutcomesData(data)) && (
-              <ConversationOutcomes 
-                data={data?.conversationOutcomes || { summary: { totalConversations: 0, successRate: 0, avgDuration: "0:00", avgSatisfaction: 0 }, outcomes: [] }} 
-                isLoading={isLoading} 
+              <ConversationOutcomes
+                data={data?.conversationOutcomes || { summary: { totalConversations: 0, successRate: 0, avgDuration: "0:00", avgSatisfaction: 0 }, outcomes: [] }}
+                isLoading={isLoading}
               />
             )}
           </section>

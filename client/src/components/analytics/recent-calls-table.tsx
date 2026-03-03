@@ -46,10 +46,10 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
     if (!data || !Array.isArray(data)) {
       return [];
     }
-    
+
     let filteredByTime = data;
     const now = new Date();
-    
+
     switch (timeFilter) {
       case 'week':
         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -66,12 +66,12 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
       default: // 'all'
         filteredByTime = data;
     }
-    
+
     return filteredByTime.filter(call =>
       call.id.toLowerCase().includes(searchQuery.toLowerCase())
     );
   };
-  
+
   const filteredData = getTimeFilteredData();
 
   const formatDuration = (seconds: number) => {
@@ -98,7 +98,7 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
   const getSuccessEvaluationBadge = (call: any) => {
     // Use actual successEvaluation from Vapi API if available
     let isSuccess = false;
-    
+
     if (call.successEvaluation !== null && call.successEvaluation !== undefined) {
       // Handle both string and boolean values from API
       if (typeof call.successEvaluation === 'string') {
@@ -110,18 +110,17 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
       // Fallback heuristics when successEvaluation is not provided
       const validEndReasons = ['customer-ended-call', 'assistant-ended-call', 'completed', 'assistant-forwarded-call'];
       const validStatuses = ['ended', 'completed'];
-      
-      isSuccess = validEndReasons.includes(call.endedReason) && 
-                 validStatuses.includes(call.status) && 
-                 call.duration >= 10;
+
+      isSuccess = validEndReasons.includes(call.endedReason) &&
+        validStatuses.includes(call.status) &&
+        call.duration >= 10;
     }
-    
+
     return (
-      <Badge className={`${
-        isSuccess 
-          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+      <Badge className={`${isSuccess
+          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
           : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-      } border-0`}>
+        } border-0`}>
         {isSuccess ? 'Pass' : 'Fail'}
       </Badge>
     );
@@ -130,11 +129,10 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
   const getTypeBadge = (type: string) => {
     const isInbound = type === 'inbound';
     return (
-      <Badge className={`${
-        isInbound 
-          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' 
+      <Badge className={`${isInbound
+          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
           : 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
-      } border-0`}>
+        } border-0`}>
         {isInbound ? 'Inbound' : 'Outbound'}
       </Badge>
     );
@@ -257,7 +255,7 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <button 
+                            <button
                               onClick={() => copyCallId(call.id)}
                               className="hover:bg-muted rounded px-1 py-0.5 transition-colors cursor-pointer text-left"
                               data-testid={`button-copy-callid-${call.id}`}
@@ -278,7 +276,7 @@ export default function RecentCallsTable({ data, isLoading }: RecentCallsTablePr
                     <TableCell>{getTypeBadge(call.type)}</TableCell>
                     <TableCell className="font-mono text-xs">{call.assistantPhoneNumber}</TableCell>
                     <TableCell className="font-mono text-xs">{call.customerPhoneNumber}</TableCell>
-                    <TableCell className="text-sm font-medium">{call.assistantName || call.assistantId || 'Unknown'}</TableCell>
+                    <TableCell className="text-sm font-medium">{call.assistantName || (call as any).assistantId || 'Unknown'}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {new Date(call.createdAt).toLocaleDateString('en-US', {
                         month: 'short',

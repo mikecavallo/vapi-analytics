@@ -31,6 +31,7 @@ interface Customer {
   name: string;
   description?: string;
   vapiApiKey?: string;
+  retellApiKey?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -48,7 +49,9 @@ export default function SettingsPage() {
   const { user, customerId, isSuperAdmin, logout } = useAuth();
   const [location] = useLocation();
   const [vapiApiKey, setVapiApiKey] = useState('');
+  const [retellApiKey, setRetellApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showRetellKey, setShowRetellKey] = useState(false);
 
   // Fetch current customer details to get API key
   const { data: customer } = useQuery<Customer>({
@@ -58,15 +61,20 @@ export default function SettingsPage() {
 
   // Update API key mutation
   const updateApiKeyMutation = useMutation({
-    mutationFn: async (newApiKey: string) => {
-      const response = await apiRequest('PATCH', '/api/customer/api-key', { vapiApiKey: newApiKey });
+    mutationFn: async (keys: { vapiApiKey?: string; retellApiKey?: string; }) => {
+      const payload: any = {};
+      if (keys.vapiApiKey) payload.vapiApiKey = keys.vapiApiKey;
+      if (keys.retellApiKey) payload.retellApiKey = keys.retellApiKey;
+      const response = await apiRequest('PATCH', '/api/customer/api-key', payload);
       return response.json();
     },
     onSuccess: () => {
-      toast({ title: 'Success', description: 'Vapi API key updated successfully' });
+      toast({ title: 'Success', description: 'API keys updated successfully' });
       queryClient.invalidateQueries({ queryKey: ['/api/customer/details'] });
       setVapiApiKey('');
+      setRetellApiKey('');
       setShowApiKey(false);
+      setShowRetellKey(false);
     },
     onError: (error) => {
       toast({ title: 'Error', description: 'Failed to update API key', variant: 'destructive' });
@@ -113,12 +121,12 @@ export default function SettingsPage() {
   const updateNestedSetting = (path: string[], value: any) => {
     const newSettings = { ...localSettings };
     let current = newSettings as any;
-    
+
     for (let i = 0; i < path.length - 1; i++) {
       current = current[path[i]];
     }
     current[path[path.length - 1]] = value;
-    
+
     handleSettingsChange(newSettings);
   };
 
@@ -192,9 +200,16 @@ export default function SettingsPage() {
                         <span className="text-orange-600 font-medium">⚠ Not configured</span>
                       )}
                     </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Retell Key Status: {customer.retellApiKey ? (
+                        <span className="text-green-600 font-medium">✓ Configured</span>
+                      ) : (
+                        <span className="text-orange-600 font-medium">⚠ Not configured</span>
+                      )}
+                    </p>
                   </div>
                 )}
-                
+
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="vapiApiKey">New Vapi API Key</Label>
@@ -216,17 +231,39 @@ export default function SettingsPage() {
                         {showApiKey ? "Hide" : "Show"}
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Your API key is encrypted and stored securely. Only you can see and modify it.
+                  </div>
+
+                  <div>
+                    <Label htmlFor="retellApiKey">New Retell API Key</Label>
+                    <div className="flex gap-2 mt-1 mb-2">
+                      <Input
+                        id="retellApiKey"
+                        type={showRetellKey ? "text" : "password"}
+                        value={retellApiKey}
+                        onChange={(e) => setRetellApiKey(e.target.value)}
+                        placeholder="Enter your Retell API key"
+                        className="flex-1"
+                        data-testid="input-retell-api-key"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowRetellKey(!showRetellKey)}
+                      >
+                        {showRetellKey ? "Hide" : "Show"}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2 inline-block">
+                      Your API keys are encrypted and stored securely. Only you can see and modify them.
                     </p>
                   </div>
-                  
+
                   <Button
-                    onClick={() => updateApiKeyMutation.mutate(vapiApiKey)}
-                    disabled={!vapiApiKey.trim() || updateApiKeyMutation.isPending}
+                    onClick={() => updateApiKeyMutation.mutate({ vapiApiKey, retellApiKey })}
+                    disabled={(!vapiApiKey.trim() && !retellApiKey.trim()) || updateApiKeyMutation.isPending}
                     data-testid="button-update-api-key"
                   >
-                    {updateApiKeyMutation.isPending ? 'Updating...' : 'Update API Key'}
+                    {updateApiKeyMutation.isPending ? 'Updating...' : 'Update API Keys'}
                   </Button>
                 </div>
               </CardContent>
@@ -266,503 +303,503 @@ export default function SettingsPage() {
             </div>
 
             <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <AlertTriangle className="text-amber-500" size={20} />
-              <span>Warning Configuration</span>
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Customize thresholds and alert levels for system warnings. Changes apply immediately after saving.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-8">
-            
-            {/* Success Rate Settings */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Success Rate Alerts</h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                
-                {/* Critical Success Rate */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="success-critical">Critical Threshold (%)</Label>
-                    <Badge variant="destructive">Default: 70%</Badge>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <AlertTriangle className="text-amber-500" size={20} />
+                  <span>Warning Configuration</span>
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Customize thresholds and alert levels for system warnings. Changes apply immediately after saving.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-8">
+
+                {/* Success Rate Settings */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Success Rate Alerts</h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                    {/* Critical Success Rate */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="success-critical">Critical Threshold (%)</Label>
+                        <Badge variant="destructive">Default: 70%</Badge>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <Switch
+                          checked={localSettings.successRate.critical.enabled}
+                          onCheckedChange={(enabled) =>
+                            updateNestedSetting(['successRate', 'critical', 'enabled'], enabled)
+                          }
+                          data-testid="switch-success-critical"
+                        />
+                        <Input
+                          id="success-critical"
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={localSettings.successRate.critical.threshold}
+                          onChange={(e) =>
+                            updateNestedSetting(['successRate', 'critical', 'threshold'], Number(e.target.value))
+                          }
+                          disabled={!localSettings.successRate.critical.enabled}
+                          className="w-24"
+                          data-testid="input-success-critical"
+                        />
+                        <Select
+                          value={localSettings.successRate.critical.level}
+                          onValueChange={(level) =>
+                            updateNestedSetting(['successRate', 'critical', 'level'], level)
+                          }
+                          disabled={!localSettings.successRate.critical.enabled}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="info">Info</SelectItem>
+                            <SelectItem value="warning">Warning</SelectItem>
+                            <SelectItem value="critical">Critical</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {warningDescriptions.successRate.critical}
+                      </p>
+                    </div>
+
+                    {/* Warning Success Rate */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="success-warning">Warning Threshold (%)</Label>
+                        <Badge variant="secondary">Default: 85%</Badge>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <Switch
+                          checked={localSettings.successRate.warning.enabled}
+                          onCheckedChange={(enabled) =>
+                            updateNestedSetting(['successRate', 'warning', 'enabled'], enabled)
+                          }
+                          data-testid="switch-success-warning"
+                        />
+                        <Input
+                          id="success-warning"
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={localSettings.successRate.warning.threshold}
+                          onChange={(e) =>
+                            updateNestedSetting(['successRate', 'warning', 'threshold'], Number(e.target.value))
+                          }
+                          disabled={!localSettings.successRate.warning.enabled}
+                          className="w-24"
+                          data-testid="input-success-warning"
+                        />
+                        <Select
+                          value={localSettings.successRate.warning.level}
+                          onValueChange={(level) =>
+                            updateNestedSetting(['successRate', 'warning', 'level'], level)
+                          }
+                          disabled={!localSettings.successRate.warning.enabled}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="info">Info</SelectItem>
+                            <SelectItem value="warning">Warning</SelectItem>
+                            <SelectItem value="critical">Critical</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {warningDescriptions.successRate.warning}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <Switch
-                      checked={localSettings.successRate.critical.enabled}
-                      onCheckedChange={(enabled) => 
-                        updateNestedSetting(['successRate', 'critical', 'enabled'], enabled)
-                      }
-                      data-testid="switch-success-critical"
-                    />
-                    <Input
-                      id="success-critical"
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={localSettings.successRate.critical.threshold}
-                      onChange={(e) => 
-                        updateNestedSetting(['successRate', 'critical', 'threshold'], Number(e.target.value))
-                      }
-                      disabled={!localSettings.successRate.critical.enabled}
-                      className="w-24"
-                      data-testid="input-success-critical"
-                    />
-                    <Select
-                      value={localSettings.successRate.critical.level}
-                      onValueChange={(level) => 
-                        updateNestedSetting(['successRate', 'critical', 'level'], level)
-                      }
-                      disabled={!localSettings.successRate.critical.enabled}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="info">Info</SelectItem>
-                        <SelectItem value="warning">Warning</SelectItem>
-                        <SelectItem value="critical">Critical</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {warningDescriptions.successRate.critical}
-                  </p>
                 </div>
 
-                {/* Warning Success Rate */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="success-warning">Warning Threshold (%)</Label>
-                    <Badge variant="secondary">Default: 85%</Badge>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Switch
-                      checked={localSettings.successRate.warning.enabled}
-                      onCheckedChange={(enabled) => 
-                        updateNestedSetting(['successRate', 'warning', 'enabled'], enabled)
-                      }
-                      data-testid="switch-success-warning"
-                    />
-                    <Input
-                      id="success-warning"
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={localSettings.successRate.warning.threshold}
-                      onChange={(e) => 
-                        updateNestedSetting(['successRate', 'warning', 'threshold'], Number(e.target.value))
-                      }
-                      disabled={!localSettings.successRate.warning.enabled}
-                      className="w-24"
-                      data-testid="input-success-warning"
-                    />
-                    <Select
-                      value={localSettings.successRate.warning.level}
-                      onValueChange={(level) => 
-                        updateNestedSetting(['successRate', 'warning', 'level'], level)
-                      }
-                      disabled={!localSettings.successRate.warning.enabled}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="info">Info</SelectItem>
-                        <SelectItem value="warning">Warning</SelectItem>
-                        <SelectItem value="critical">Critical</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {warningDescriptions.successRate.warning}
-                  </p>
-                </div>
-              </div>
-            </div>
+                <Separator />
 
-            <Separator />
-
-            {/* Cost Per Call Settings */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Cost Monitoring</h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="cost-warning">Cost Per Call Warning ($)</Label>
-                    <Badge variant="secondary">Default: $2.00</Badge>
+                {/* Cost Per Call Settings */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Cost Monitoring</h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="cost-warning">Cost Per Call Warning ($)</Label>
+                        <Badge variant="secondary">Default: $2.00</Badge>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <Switch
+                          checked={localSettings.costPerCall.warning.enabled}
+                          onCheckedChange={(enabled) =>
+                            updateNestedSetting(['costPerCall', 'warning', 'enabled'], enabled)
+                          }
+                          data-testid="switch-cost-warning"
+                        />
+                        <Input
+                          id="cost-warning"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={localSettings.costPerCall.warning.threshold}
+                          onChange={(e) =>
+                            updateNestedSetting(['costPerCall', 'warning', 'threshold'], Number(e.target.value))
+                          }
+                          disabled={!localSettings.costPerCall.warning.enabled}
+                          className="w-24"
+                          data-testid="input-cost-warning"
+                        />
+                        <Select
+                          value={localSettings.costPerCall.warning.level}
+                          onValueChange={(level) =>
+                            updateNestedSetting(['costPerCall', 'warning', 'level'], level)
+                          }
+                          disabled={!localSettings.costPerCall.warning.enabled}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="info">Info</SelectItem>
+                            <SelectItem value="warning">Warning</SelectItem>
+                            <SelectItem value="critical">Critical</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {warningDescriptions.costPerCall.warning}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <Switch
-                      checked={localSettings.costPerCall.warning.enabled}
-                      onCheckedChange={(enabled) => 
-                        updateNestedSetting(['costPerCall', 'warning', 'enabled'], enabled)
-                      }
-                      data-testid="switch-cost-warning"
-                    />
-                    <Input
-                      id="cost-warning"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={localSettings.costPerCall.warning.threshold}
-                      onChange={(e) => 
-                        updateNestedSetting(['costPerCall', 'warning', 'threshold'], Number(e.target.value))
-                      }
-                      disabled={!localSettings.costPerCall.warning.enabled}
-                      className="w-24"
-                      data-testid="input-cost-warning"
-                    />
-                    <Select
-                      value={localSettings.costPerCall.warning.level}
-                      onValueChange={(level) => 
-                        updateNestedSetting(['costPerCall', 'warning', 'level'], level)
-                      }
-                      disabled={!localSettings.costPerCall.warning.enabled}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="info">Info</SelectItem>
-                        <SelectItem value="warning">Warning</SelectItem>
-                        <SelectItem value="critical">Critical</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {warningDescriptions.costPerCall.warning}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Call Duration Settings */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Call Duration Alerts</h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                
-                {/* Short Calls */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="duration-short">Short Calls Alert (seconds)</Label>
-                    <Badge variant="secondary">Default: 30s</Badge>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Switch
-                      checked={localSettings.callDuration.shortCalls.enabled}
-                      onCheckedChange={(enabled) => 
-                        updateNestedSetting(['callDuration', 'shortCalls', 'enabled'], enabled)
-                      }
-                      data-testid="switch-duration-short"
-                    />
-                    <Input
-                      id="duration-short"
-                      type="number"
-                      min="0"
-                      value={localSettings.callDuration.shortCalls.threshold}
-                      onChange={(e) => 
-                        updateNestedSetting(['callDuration', 'shortCalls', 'threshold'], Number(e.target.value))
-                      }
-                      disabled={!localSettings.callDuration.shortCalls.enabled}
-                      className="w-24"
-                      data-testid="input-duration-short"
-                    />
-                    <Select
-                      value={localSettings.callDuration.shortCalls.level}
-                      onValueChange={(level) => 
-                        updateNestedSetting(['callDuration', 'shortCalls', 'level'], level)
-                      }
-                      disabled={!localSettings.callDuration.shortCalls.enabled}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="info">Info</SelectItem>
-                        <SelectItem value="warning">Warning</SelectItem>
-                        <SelectItem value="critical">Critical</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {warningDescriptions.callDuration.shortCalls}
-                  </p>
                 </div>
 
-                {/* Long Calls */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="duration-long">Long Calls Alert (seconds)</Label>
-                    <Badge variant="secondary">Default: 600s</Badge>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Switch
-                      checked={localSettings.callDuration.longCalls.enabled}
-                      onCheckedChange={(enabled) => 
-                        updateNestedSetting(['callDuration', 'longCalls', 'enabled'], enabled)
-                      }
-                      data-testid="switch-duration-long"
-                    />
-                    <Input
-                      id="duration-long"
-                      type="number"
-                      min="0"
-                      value={localSettings.callDuration.longCalls.threshold}
-                      onChange={(e) => 
-                        updateNestedSetting(['callDuration', 'longCalls', 'threshold'], Number(e.target.value))
-                      }
-                      disabled={!localSettings.callDuration.longCalls.enabled}
-                      className="w-24"
-                      data-testid="input-duration-long"
-                    />
-                    <Select
-                      value={localSettings.callDuration.longCalls.level}
-                      onValueChange={(level) => 
-                        updateNestedSetting(['callDuration', 'longCalls', 'level'], level)
-                      }
-                      disabled={!localSettings.callDuration.longCalls.enabled}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="info">Info</SelectItem>
-                        <SelectItem value="warning">Warning</SelectItem>
-                        <SelectItem value="critical">Critical</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {warningDescriptions.callDuration.longCalls}
-                  </p>
-                </div>
-              </div>
-            </div>
+                <Separator />
 
-            <Separator />
+                {/* Call Duration Settings */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Call Duration Alerts</h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-            {/* Error Rate Settings */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Error Rate Monitoring</h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                
-                {/* Critical Error Rate */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="error-critical">Critical Error Rate (%)</Label>
-                    <Badge variant="destructive">Default: 15%</Badge>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Switch
-                      checked={localSettings.errorRate.critical.enabled}
-                      onCheckedChange={(enabled) => 
-                        updateNestedSetting(['errorRate', 'critical', 'enabled'], enabled)
-                      }
-                      data-testid="switch-error-critical"
-                    />
-                    <Input
-                      id="error-critical"
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={localSettings.errorRate.critical.threshold}
-                      onChange={(e) => 
-                        updateNestedSetting(['errorRate', 'critical', 'threshold'], Number(e.target.value))
-                      }
-                      disabled={!localSettings.errorRate.critical.enabled}
-                      className="w-24"
-                      data-testid="input-error-critical"
-                    />
-                    <Select
-                      value={localSettings.errorRate.critical.level}
-                      onValueChange={(level) => 
-                        updateNestedSetting(['errorRate', 'critical', 'level'], level)
-                      }
-                      disabled={!localSettings.errorRate.critical.enabled}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="info">Info</SelectItem>
-                        <SelectItem value="warning">Warning</SelectItem>
-                        <SelectItem value="critical">Critical</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {warningDescriptions.errorRate.critical}
-                  </p>
-                </div>
+                    {/* Short Calls */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="duration-short">Short Calls Alert (seconds)</Label>
+                        <Badge variant="secondary">Default: 30s</Badge>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <Switch
+                          checked={localSettings.callDuration.shortCalls.enabled}
+                          onCheckedChange={(enabled) =>
+                            updateNestedSetting(['callDuration', 'shortCalls', 'enabled'], enabled)
+                          }
+                          data-testid="switch-duration-short"
+                        />
+                        <Input
+                          id="duration-short"
+                          type="number"
+                          min="0"
+                          value={localSettings.callDuration.shortCalls.threshold}
+                          onChange={(e) =>
+                            updateNestedSetting(['callDuration', 'shortCalls', 'threshold'], Number(e.target.value))
+                          }
+                          disabled={!localSettings.callDuration.shortCalls.enabled}
+                          className="w-24"
+                          data-testid="input-duration-short"
+                        />
+                        <Select
+                          value={localSettings.callDuration.shortCalls.level}
+                          onValueChange={(level) =>
+                            updateNestedSetting(['callDuration', 'shortCalls', 'level'], level)
+                          }
+                          disabled={!localSettings.callDuration.shortCalls.enabled}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="info">Info</SelectItem>
+                            <SelectItem value="warning">Warning</SelectItem>
+                            <SelectItem value="critical">Critical</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {warningDescriptions.callDuration.shortCalls}
+                      </p>
+                    </div>
 
-                {/* Warning Error Rate */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="error-warning">Warning Error Rate (%)</Label>
-                    <Badge variant="secondary">Default: 5%</Badge>
+                    {/* Long Calls */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="duration-long">Long Calls Alert (seconds)</Label>
+                        <Badge variant="secondary">Default: 600s</Badge>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <Switch
+                          checked={localSettings.callDuration.longCalls.enabled}
+                          onCheckedChange={(enabled) =>
+                            updateNestedSetting(['callDuration', 'longCalls', 'enabled'], enabled)
+                          }
+                          data-testid="switch-duration-long"
+                        />
+                        <Input
+                          id="duration-long"
+                          type="number"
+                          min="0"
+                          value={localSettings.callDuration.longCalls.threshold}
+                          onChange={(e) =>
+                            updateNestedSetting(['callDuration', 'longCalls', 'threshold'], Number(e.target.value))
+                          }
+                          disabled={!localSettings.callDuration.longCalls.enabled}
+                          className="w-24"
+                          data-testid="input-duration-long"
+                        />
+                        <Select
+                          value={localSettings.callDuration.longCalls.level}
+                          onValueChange={(level) =>
+                            updateNestedSetting(['callDuration', 'longCalls', 'level'], level)
+                          }
+                          disabled={!localSettings.callDuration.longCalls.enabled}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="info">Info</SelectItem>
+                            <SelectItem value="warning">Warning</SelectItem>
+                            <SelectItem value="critical">Critical</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {warningDescriptions.callDuration.longCalls}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <Switch
-                      checked={localSettings.errorRate.warning.enabled}
-                      onCheckedChange={(enabled) => 
-                        updateNestedSetting(['errorRate', 'warning', 'enabled'], enabled)
-                      }
-                      data-testid="switch-error-warning"
-                    />
-                    <Input
-                      id="error-warning"
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={localSettings.errorRate.warning.threshold}
-                      onChange={(e) => 
-                        updateNestedSetting(['errorRate', 'warning', 'threshold'], Number(e.target.value))
-                      }
-                      disabled={!localSettings.errorRate.warning.enabled}
-                      className="w-24"
-                      data-testid="input-error-warning"
-                    />
-                    <Select
-                      value={localSettings.errorRate.warning.level}
-                      onValueChange={(level) => 
-                        updateNestedSetting(['errorRate', 'warning', 'level'], level)
-                      }
-                      disabled={!localSettings.errorRate.warning.enabled}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="info">Info</SelectItem>
-                        <SelectItem value="warning">Warning</SelectItem>
-                        <SelectItem value="critical">Critical</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {warningDescriptions.errorRate.warning}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Additional Settings */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Additional Alerts</h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                
-                {/* Assistant Performance */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="assistant-performance">Assistant Performance (%)</Label>
-                    <Badge variant="secondary">Default: 80%</Badge>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Switch
-                      checked={localSettings.assistantPerformance.threshold.enabled}
-                      onCheckedChange={(enabled) => 
-                        updateNestedSetting(['assistantPerformance', 'threshold', 'enabled'], enabled)
-                      }
-                      data-testid="switch-assistant-performance"
-                    />
-                    <Input
-                      id="assistant-performance"
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={localSettings.assistantPerformance.threshold.threshold}
-                      onChange={(e) => 
-                        updateNestedSetting(['assistantPerformance', 'threshold', 'threshold'], Number(e.target.value))
-                      }
-                      disabled={!localSettings.assistantPerformance.threshold.enabled}
-                      className="w-24"
-                      data-testid="input-assistant-performance"
-                    />
-                    <Select
-                      value={localSettings.assistantPerformance.threshold.level}
-                      onValueChange={(level) => 
-                        updateNestedSetting(['assistantPerformance', 'threshold', 'level'], level)
-                      }
-                      disabled={!localSettings.assistantPerformance.threshold.enabled}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="info">Info</SelectItem>
-                        <SelectItem value="warning">Warning</SelectItem>
-                        <SelectItem value="critical">Critical</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {warningDescriptions.assistantPerformance.threshold}
-                  </p>
                 </div>
 
-                {/* Call Volume */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="call-volume">High Call Volume</Label>
-                    <Badge variant="secondary">Default: 1000</Badge>
+                <Separator />
+
+                {/* Error Rate Settings */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Error Rate Monitoring</h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                    {/* Critical Error Rate */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="error-critical">Critical Error Rate (%)</Label>
+                        <Badge variant="destructive">Default: 15%</Badge>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <Switch
+                          checked={localSettings.errorRate.critical.enabled}
+                          onCheckedChange={(enabled) =>
+                            updateNestedSetting(['errorRate', 'critical', 'enabled'], enabled)
+                          }
+                          data-testid="switch-error-critical"
+                        />
+                        <Input
+                          id="error-critical"
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={localSettings.errorRate.critical.threshold}
+                          onChange={(e) =>
+                            updateNestedSetting(['errorRate', 'critical', 'threshold'], Number(e.target.value))
+                          }
+                          disabled={!localSettings.errorRate.critical.enabled}
+                          className="w-24"
+                          data-testid="input-error-critical"
+                        />
+                        <Select
+                          value={localSettings.errorRate.critical.level}
+                          onValueChange={(level) =>
+                            updateNestedSetting(['errorRate', 'critical', 'level'], level)
+                          }
+                          disabled={!localSettings.errorRate.critical.enabled}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="info">Info</SelectItem>
+                            <SelectItem value="warning">Warning</SelectItem>
+                            <SelectItem value="critical">Critical</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {warningDescriptions.errorRate.critical}
+                      </p>
+                    </div>
+
+                    {/* Warning Error Rate */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="error-warning">Warning Error Rate (%)</Label>
+                        <Badge variant="secondary">Default: 5%</Badge>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <Switch
+                          checked={localSettings.errorRate.warning.enabled}
+                          onCheckedChange={(enabled) =>
+                            updateNestedSetting(['errorRate', 'warning', 'enabled'], enabled)
+                          }
+                          data-testid="switch-error-warning"
+                        />
+                        <Input
+                          id="error-warning"
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={localSettings.errorRate.warning.threshold}
+                          onChange={(e) =>
+                            updateNestedSetting(['errorRate', 'warning', 'threshold'], Number(e.target.value))
+                          }
+                          disabled={!localSettings.errorRate.warning.enabled}
+                          className="w-24"
+                          data-testid="input-error-warning"
+                        />
+                        <Select
+                          value={localSettings.errorRate.warning.level}
+                          onValueChange={(level) =>
+                            updateNestedSetting(['errorRate', 'warning', 'level'], level)
+                          }
+                          disabled={!localSettings.errorRate.warning.enabled}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="info">Info</SelectItem>
+                            <SelectItem value="warning">Warning</SelectItem>
+                            <SelectItem value="critical">Critical</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {warningDescriptions.errorRate.warning}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <Switch
-                      checked={localSettings.callVolume.highVolume.enabled}
-                      onCheckedChange={(enabled) => 
-                        updateNestedSetting(['callVolume', 'highVolume', 'enabled'], enabled)
-                      }
-                      data-testid="switch-call-volume"
-                    />
-                    <Input
-                      id="call-volume"
-                      type="number"
-                      min="0"
-                      value={localSettings.callVolume.highVolume.threshold}
-                      onChange={(e) => 
-                        updateNestedSetting(['callVolume', 'highVolume', 'threshold'], Number(e.target.value))
-                      }
-                      disabled={!localSettings.callVolume.highVolume.enabled}
-                      className="w-24"
-                      data-testid="input-call-volume"
-                    />
-                    <Select
-                      value={localSettings.callVolume.highVolume.level}
-                      onValueChange={(level) => 
-                        updateNestedSetting(['callVolume', 'highVolume', 'level'], level)
-                      }
-                      disabled={!localSettings.callVolume.highVolume.enabled}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="info">Info</SelectItem>
-                        <SelectItem value="warning">Warning</SelectItem>
-                        <SelectItem value="critical">Critical</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {warningDescriptions.callVolume.highVolume}
-                  </p>
                 </div>
-              </div>
-            </div>
-          </CardContent>
+
+                <Separator />
+
+                {/* Additional Settings */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Additional Alerts</h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                    {/* Assistant Performance */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="assistant-performance">Assistant Performance (%)</Label>
+                        <Badge variant="secondary">Default: 80%</Badge>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <Switch
+                          checked={localSettings.assistantPerformance.threshold.enabled}
+                          onCheckedChange={(enabled) =>
+                            updateNestedSetting(['assistantPerformance', 'threshold', 'enabled'], enabled)
+                          }
+                          data-testid="switch-assistant-performance"
+                        />
+                        <Input
+                          id="assistant-performance"
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={localSettings.assistantPerformance.threshold.threshold}
+                          onChange={(e) =>
+                            updateNestedSetting(['assistantPerformance', 'threshold', 'threshold'], Number(e.target.value))
+                          }
+                          disabled={!localSettings.assistantPerformance.threshold.enabled}
+                          className="w-24"
+                          data-testid="input-assistant-performance"
+                        />
+                        <Select
+                          value={localSettings.assistantPerformance.threshold.level}
+                          onValueChange={(level) =>
+                            updateNestedSetting(['assistantPerformance', 'threshold', 'level'], level)
+                          }
+                          disabled={!localSettings.assistantPerformance.threshold.enabled}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="info">Info</SelectItem>
+                            <SelectItem value="warning">Warning</SelectItem>
+                            <SelectItem value="critical">Critical</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {warningDescriptions.assistantPerformance.threshold}
+                      </p>
+                    </div>
+
+                    {/* Call Volume */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="call-volume">High Call Volume</Label>
+                        <Badge variant="secondary">Default: 1000</Badge>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <Switch
+                          checked={localSettings.callVolume.highVolume.enabled}
+                          onCheckedChange={(enabled) =>
+                            updateNestedSetting(['callVolume', 'highVolume', 'enabled'], enabled)
+                          }
+                          data-testid="switch-call-volume"
+                        />
+                        <Input
+                          id="call-volume"
+                          type="number"
+                          min="0"
+                          value={localSettings.callVolume.highVolume.threshold}
+                          onChange={(e) =>
+                            updateNestedSetting(['callVolume', 'highVolume', 'threshold'], Number(e.target.value))
+                          }
+                          disabled={!localSettings.callVolume.highVolume.enabled}
+                          className="w-24"
+                          data-testid="input-call-volume"
+                        />
+                        <Select
+                          value={localSettings.callVolume.highVolume.level}
+                          onValueChange={(level) =>
+                            updateNestedSetting(['callVolume', 'highVolume', 'level'], level)
+                          }
+                          disabled={!localSettings.callVolume.highVolume.enabled}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="info">Info</SelectItem>
+                            <SelectItem value="warning">Warning</SelectItem>
+                            <SelectItem value="critical">Critical</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {warningDescriptions.callVolume.highVolume}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
             </Card>
 
             {/* Save Section */}
             <div className="flex items-center justify-between p-6 bg-card rounded-lg border border-border">
               <div>
                 <p className="text-sm text-muted-foreground">
-                  Changes are saved locally and will persist across sessions. 
+                  Changes are saved locally and will persist across sessions.
                   {hasChanges && " You have unsaved changes."}
                 </p>
               </div>

@@ -2,9 +2,9 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { randomUUID } from "crypto";
 import { storage } from "./storage";
-import { 
-  vapiAnalyticsQuerySchema, 
-  type VapiAnalyticsQuery, 
+import {
+  vapiAnalyticsQuerySchema,
+  type VapiAnalyticsQuery,
   type DashboardData,
   signupSchema,
   loginSchema,
@@ -39,6 +39,87 @@ import {
   authRateLimit,
 } from "./auth-middleware";
 
+function createEmptyDashboardData(): DashboardData {
+  return {
+    kpis: { totalCalls: 0, avgDuration: 0, successRate: 0, inboundSuccessRate: 0, outboundSuccessRate: 0, totalCost: 0 },
+    mostSuccessfulAgent: null,
+    dailyMetrics: [],
+    callVolumeTrends: [],
+    callOutcomes: [],
+    assistantPerformance: [],
+    recentCalls: [],
+    costAnalysis: { avgCostPerCall: 0, costPerMinute: 0, monthlyCostTrend: 0 },
+    durationDistribution: [],
+    hourlyPatterns: [],
+    conversationFlow: { stages: [], successPaths: [], dropOffPoints: [] },
+    durationHistogram: { histogram: [], stats: { average: "0:00", median: "0:00", mostCommon: "0s", longest: "0:00" } },
+    peakUsageHeatmap: { heatmapData: [], insights: { peakHours: "N/A", busiestDay: "N/A", quietHours: "N/A" } },
+    conversationOutcomes: { summary: { totalConversations: 0, successRate: 0, avgDuration: "0:00", avgSatisfaction: 0 }, outcomes: [] }
+  };
+}
+
+function buildDashboardFromRawCalls(calls: any[], timeRange: string): DashboardData {
+  const dashboard = createEmptyDashboardData();
+  if (!calls || calls.length === 0) return dashboard;
+
+  let totalDuration = 0;
+  let successfulCalls = 0;
+  let inboundCalls = 0;
+  let outboundCalls = 0;
+  let inboundSuccess = 0;
+  let outboundSuccess = 0;
+  let totalCost = 0;
+  const assistantStats: Record<string, { calls: number, success: number, name: string }> = {};
+
+  calls.forEach(call => {
+    totalDuration += (call.duration || 0);
+    totalCost += (call.cost || 0);
+
+    const isSuccess = call.successEvaluation === 'true';
+    if (isSuccess) successfulCalls++;
+
+    if (call.type === 'inbound') {
+      inboundCalls++;
+      if (isSuccess) inboundSuccess++;
+    } else {
+      outboundCalls++;
+      if (isSuccess) outboundSuccess++;
+    }
+
+    const astId = call.assistantId || 'Unknown';
+    if (!assistantStats[astId]) assistantStats[astId] = { calls: 0, success: 0, name: call.assistantName || astId };
+    assistantStats[astId].calls++;
+    if (isSuccess) assistantStats[astId].success++;
+  });
+
+  dashboard.kpis.totalCalls = calls.length;
+  dashboard.kpis.avgDuration = calls.length > 0 ? (totalDuration / calls.length) : 0;
+  dashboard.kpis.successRate = calls.length > 0 ? (successfulCalls / calls.length) * 100 : 0;
+  dashboard.kpis.inboundSuccessRate = inboundCalls > 0 ? (inboundSuccess / inboundCalls) * 100 : 0;
+  dashboard.kpis.outboundSuccessRate = outboundCalls > 0 ? (outboundSuccess / outboundCalls) * 100 : 0;
+  dashboard.kpis.totalCost = totalCost;
+
+  let topAgent = null;
+  let highSuccess = -1;
+  dashboard.assistantPerformance = Object.keys(assistantStats).map(id => {
+    const stat = assistantStats[id];
+    const rate = (stat.success / stat.calls) * 100;
+    if (rate > highSuccess && stat.calls >= 5) { // min 5 calls logic
+      highSuccess = rate;
+      topAgent = { name: stat.name, successRate: rate, totalCalls: stat.calls };
+    }
+    return { assistantId: id, name: stat.name, calls: stat.calls, successRate: rate, totalCost: 0, avgDuration: 0 };
+  });
+
+  if (topAgent) dashboard.mostSuccessfulAgent = topAgent;
+
+  // Return recent calls (limit to 10 for dashboard widget specifically)
+  dashboard.recentCalls = calls.slice(0, 10);
+
+  // We omit intense metric building (histograms, etc) for this Retell stub. 
+  return dashboard;
+}
+
 // Function to fetch calls from Vapi API with proper query parameters using customer-specific API key
 async function fetchCallsWithFilters(queryParams: Record<string, string>, vapiApiKey: string): Promise<any[]> {
   if (!vapiApiKey) {
@@ -47,7 +128,7 @@ async function fetchCallsWithFilters(queryParams: Record<string, string>, vapiAp
 
   try {
     console.log(`[${new Date().toLocaleTimeString()}] Fetching calls with filters:`, queryParams);
-    
+
     // Create an abort controller for timeout - 30 seconds
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -85,18 +166,18 @@ async function fetchCallsWithFilters(queryParams: Record<string, string>, vapiAp
 
     const callsData = await response.json();
     const calls = Array.isArray(callsData) ? callsData : (callsData.data || []);
-    
+
     // Process calls and add missing fields for filtering compatibility
-    const processedCalls = calls.map(call => ({
+    const processedCalls = calls.map((call: any) => ({
       ...call,
       assistantName: call.assistant?.name || null,
       customerPhoneNumber: call.customer?.number || call.phoneNumberE164 || null,
       assistantPhoneNumber: call.assistant?.phoneNumber || call.phoneNumber || null,
       // Ensure duration is in seconds (Vapi provides in minutes)
-      duration: call.duration ? Math.round(call.duration * 60) : 
-               (call.endedAt && call.startedAt) 
-                 ? Math.round((new Date(call.endedAt).getTime() - new Date(call.startedAt).getTime()) / 1000)
-                 : 0,
+      duration: call.duration ? Math.round(call.duration * 60) :
+        (call.endedAt && call.startedAt)
+          ? Math.round((new Date(call.endedAt).getTime() - new Date(call.startedAt).getTime()) / 1000)
+          : 0,
       // Normalize type field for filtering
       type: call.type === 'inboundPhoneCall' ? 'inbound' : 'outbound',
       // Ensure we have the transcript field
@@ -106,7 +187,7 @@ async function fetchCallsWithFilters(queryParams: Record<string, string>, vapiAp
       // Ensure createdAt field exists
       createdAt: call.createdAt || call.startedAt,
     }));
-    
+
     console.log(`Successfully fetched ${processedCalls.length} calls`);
     return processedCalls;
   } catch (error: any) {
@@ -120,10 +201,102 @@ async function fetchCallsWithFilters(queryParams: Record<string, string>, vapiAp
   }
 }
 
+async function fetchRetellCallsWithFilters(queryParams: Record<string, string>, retellApiKey: string): Promise<any[]> {
+  if (!retellApiKey) {
+    throw new Error("Retell API key not configured");
+  }
+
+  try {
+    console.log(`[${new Date().toLocaleTimeString()}] Fetching Retell calls with filters:`, queryParams);
+
+    // Create an abort controller for timeout - 30 seconds
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    const requestHeaders = {
+      "Authorization": `Bearer ${retellApiKey}`,
+      "Content-Type": "application/json",
+    };
+
+    // Note: Retell's 'list-calls' API uses a different endpoint structure:
+    // GET https://api.retellai.com/v2/list-calls
+    const url = new URL("https://api.retellai.com/v2/list-calls");
+
+    // Map Vapi standard query params to Retell's (simplified)
+    if (queryParams.limit) {
+      url.searchParams.append("limit", queryParams.limit);
+    }
+
+    // Note: For advanced date filtering, Retell expects epoch timestamps in 'filter_criteria'
+    // For this boilerplate, we'll fetch calls and filter them downstream if `filter_criteria` isn't fully supported via query params.
+
+    console.log(`Making API request to: ${url.toString()}`);
+
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: requestHeaders,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.error(`Failed to fetch Retell calls: ${response.status} ${response.statusText}`);
+      if (response.status === 401 || response.status === 403) {
+        throw new Error("Invalid API key or insufficient permissions");
+      }
+      throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+    }
+
+    const callsData = await response.json();
+
+    // Retell returns an array of objects
+    const calls = Array.isArray(callsData) ? callsData : [];
+
+    // Process calls and normalize them to match Vapi's schema for the standard frontend
+    const processedCalls = calls.map((call: any) => ({
+      id: call.call_id,
+      assistantId: call.agent_id,
+      assistantName: null, // We'll need to fetch agent names if possible, or omit
+      assistant: { name: null, phoneNumber: call.from_number },
+      customer: { number: call.to_number },
+      customerPhoneNumber: call.to_number || null,
+      assistantPhoneNumber: call.from_number || null,
+      type: call.direction === 'inbound' ? 'inbound' : 'outbound',
+      status: call.call_status,
+      endedReason: call.disconnection_reason,
+      duration: call.duration_ms ? Math.round(call.duration_ms / 1000) : 0,
+      transcript: call.transcript || "",
+      recordingUrl: call.recording_url || null,
+      cost: call.cost ? parseFloat(call.cost) : 0,
+      createdAt: call.start_timestamp ? new Date(call.start_timestamp).toISOString() : new Date().toISOString(),
+      startedAt: call.start_timestamp ? new Date(call.start_timestamp).toISOString() : null,
+      endedAt: call.end_timestamp ? new Date(call.end_timestamp).toISOString() : null,
+      analysis: call.call_analysis ? {
+        summary: call.call_analysis.call_summary,
+        successEvaluation: call.call_analysis.call_successful,
+        inToAction: call.call_analysis.in_to_action
+      } : null,
+      successEvaluation: call.call_analysis?.call_successful ? "true" : "false" // mapped directly for ui compat
+    }));
+
+    console.log(`Successfully fetched ${processedCalls.length} Retell calls`);
+    return processedCalls;
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      throw new Error("Request timeout - Retell API took too long to respond");
+    } else if (error.cause?.code === 'UND_ERR_SOCKET') {
+      throw new Error("Network connection error with Retell API");
+    } else {
+      throw error;
+    }
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
-  
+
   // Authentication endpoints
-  
+
   // User registration
   app.post("/api/auth/signup", authRateLimit, async (req, res) => {
     try {
@@ -133,8 +306,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if email is whitelisted
       const isWhitelisted = await storage.isEmailWhitelisted(email);
       if (!isWhitelisted) {
-        return res.status(403).json({ 
-          error: "Email not whitelisted. Contact support for access." 
+        return res.status(403).json({
+          error: "Email not whitelisted. Contact support for access."
         });
       }
 
@@ -163,13 +336,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate email verification token
       const token = generateEmailVerificationToken();
       const expiresAt = getEmailTokenExpiration();
-      
+
       await storage.createEmailVerificationToken(user.id, token, expiresAt);
 
       // TODO: Send verification email (implement email service later)
       console.log(`Verification token for ${email}: ${token}`);
 
-      res.status(201).json({ 
+      res.status(201).json({
         message: "User created successfully. Please verify your email to complete registration.",
         user: sanitizeUser(user),
         // For development, include the token (remove in production)
@@ -177,12 +350,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          error: "Invalid input", 
-          details: error.errors 
+        return res.status(400).json({
+          error: "Invalid input",
+          details: error.errors
         });
       }
-      
+
       console.error("Signup error:", error);
       res.status(500).json({ error: "Registration failed" });
     }
@@ -203,7 +376,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Verify password
       const isPlainPassword = user.password === password;
       const isValidHashedPassword = await verifyPassword(password, user.password);
-      
+
       if (!isPlainPassword && !isValidHashedPassword) {
         return res.status(401).json({ error: "Invalid email or password" });
       }
@@ -217,8 +390,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if email is verified
       if (!user.emailVerified) {
-        return res.status(401).json({ 
-          error: "Please verify your email before logging in" 
+        return res.status(401).json({
+          error: "Please verify your email before logging in"
         });
       }
 
@@ -227,24 +400,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const primaryCustomerId = assignments.length > 0 ? assignments[0].customerId : undefined;
 
       // Generate JWT token
-      const tokenPayload = createTokenPayload(user, primaryCustomerId);
+      const tokenPayload = createTokenPayload({ ...user, role: user.role as any }, primaryCustomerId);
       const token = generateToken(tokenPayload);
 
       // Return user data and token
       res.json({
-        message: "Login successful",
-        user: sanitizeUser(user),
+        user: { ...sanitizeUser(user), role: user.role as any },
         token,
         customerId: primaryCustomerId,
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          error: "Invalid input", 
-          details: error.errors 
+        return res.status(400).json({
+          error: "Invalid input",
+          details: error.errors
         });
       }
-      
+
       console.error("Login error:", error);
       res.status(500).json({ error: "Login failed" });
     }
@@ -309,12 +481,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Email verified successfully" });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          error: "Invalid input", 
-          details: error.errors 
+        return res.status(400).json({
+          error: "Invalid input",
+          details: error.errors
         });
       }
-      
+
       console.error("Email verification error:", error);
       res.status(500).json({ error: "Email verification failed" });
     }
@@ -326,28 +498,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // by removing the token from storage
     res.json({ message: "Logged out successfully" });
   });
-  
+
   // Customer API key management
   app.get("/api/customer/details", authenticateUser, requireCustomerAccess, async (req, res) => {
     try {
       const customerId = req.customerId;
-      
+
       if (!customerId) {
         return res.status(400).json({ error: "Customer ID required" });
       }
-      
+
       const customer = await storage.getCustomer(customerId);
-      
+
       if (!customer) {
         return res.status(404).json({ error: "Customer not found" });
       }
-      
+
       // Don't expose the full API key in response, just indicate if it's configured
       const customerDetails = {
         ...customer,
         vapiApiKey: customer.vapiApiKey ? true : false
       };
-      
+
       res.json(customerDetails);
     } catch (error) {
       console.error("[CUSTOMER DETAILS] Error:", error);
@@ -359,18 +531,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const customerId = req.customerId;
       const { vapiApiKey } = req.body;
-      
+
       if (!customerId) {
         return res.status(400).json({ error: "Customer ID required" });
       }
-      
+
       if (!vapiApiKey || typeof vapiApiKey !== 'string') {
         return res.status(400).json({ error: "Valid API key is required" });
       }
-      
+
       // Update customer's API key
       await storage.updateCustomer(customerId, { vapiApiKey });
-      
+
       res.json({ message: "API key updated successfully" });
     } catch (error) {
       console.error("[UPDATE API KEY] Error:", error);
@@ -391,22 +563,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/customers", authenticateUser, requireSuperAdmin, async (req, res) => {
     try {
-      const { name, description, vapiApiKey } = req.body;
-      
-      if (!name || !vapiApiKey) {
-        return res.status(400).json({ error: "Name and API key are required" });
+      const { name, description, vapiApiKey, retellApiKey } = req.body;
+
+      if (!name) {
+        return res.status(400).json({ error: "Name is required" });
       }
-      
+
       const customerId = randomUUID();
       const customer = await storage.createCustomer({
         name,
         description: description || null,
-        vapiApiKey,
         createdByUserId: req.user!.id,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        vapiApiKey: process.env.VAPI_API_KEY || vapiApiKey || null,
+        retellApiKey: retellApiKey || null
       });
-      
+
       res.json(customer);
     } catch (error) {
       console.error("[CREATE CUSTOMER] Error:", error);
@@ -442,17 +613,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/email-whitelist", authenticateUser, requireSuperAdmin, async (req, res) => {
     try {
       const { email } = req.body;
-      
+
       if (!email || !email.includes('@')) {
         return res.status(400).json({ error: "Valid email address is required" });
       }
-      
+
       const emailId = randomUUID();
       const whitelistEntry = await storage.addEmailToWhitelist({
         email: email.toLowerCase(),
-        createdAt: new Date()
+        createdByUserId: req.user!.id
       });
-      
+
       res.json(whitelistEntry);
     } catch (error) {
       console.error("[ADD EMAIL WHITELIST] Error:", error);
@@ -463,63 +634,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Analytics endpoint - proxy to Vapi API and cache results
   app.post("/api/analytics", authenticateUser, requireCustomerAccess, validateCustomerAccess, async (req, res) => {
     try {
-      const { timeRange, queries } = req.body;
+      const { timeRange, queries, provider } = req.body;
       const customerId = req.customerId;
-      
+
       if (!customerId) {
         return res.status(400).json({ error: "Customer ID required" });
       }
-      
+
       // Get customer-specific cache key
-      const cacheKey = `analytics_${customerId}_${JSON.stringify({ timeRange, queries })}`;
-      
+      const cacheKey = `analytics_${provider || 'vapi'}_${customerId}_${JSON.stringify({ timeRange, queries })}`;
+
       // Check cache first
       const cached = await storage.getCachedAnalytics(cacheKey);
       if (cached) {
         return res.json(cached);
       }
 
-      // Get customer data to retrieve their specific Vapi API key
       const customer = await storage.getCustomer(customerId);
-      if (!customer || !customer.vapiApiKey) {
-        return res.status(500).json({ 
-          error: "Customer Vapi API key not configured. Contact support." 
+
+      if (provider === 'retell') {
+        if (!customer || !customer.retellApiKey) {
+          return res.status(500).json({
+            error: "Customer Retell API key not configured. Contact support."
+          });
+        }
+
+        // Fetch all raw Retell calls
+        const rawCalls = await fetchRetellCallsWithFilters({
+          limit: "1000" // Simple limit for now
+        }, customer.retellApiKey);
+
+        // Fallback or empty structure matching DashboardData
+        // Since Retell lacks an aggregation endpoint, we return empty aggregations for the 'queries' specific logic,
+        // but the rest of the app heavily relies on raw calls via `/api/analytics/summary` instead anyway.
+        // If this endpoint is specifically required to return Vapi formatted aggregations, we must manually build it.
+        // For now, we'll return a stub as this endpoint is mostly used by `useQuery` for specific graphs.
+        const mockAggregations = {
+          result: [{}]
+        };
+
+        return res.json({
+          name: "Retell Analytics",
+          result: mockAggregations.result
         });
-      }
 
-      // Build analytics queries for Vapi API
-      const analyticsQueries = await buildAnalyticsQueries(timeRange);
-      
-      // Make request to Vapi Analytics API with customer-specific key
-      const vapiResponse = await fetch("https://api.vapi.ai/analytics", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${customer.vapiApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ queries: analyticsQueries }),
-      });
+      } else {
+        // Default VAPI logic
+        if (!customer || !customer.vapiApiKey) {
+          return res.status(500).json({
+            error: "Customer Vapi API key not configured. Contact support."
+          });
+        }
 
-      if (!vapiResponse.ok) {
-        const errorText = await vapiResponse.text();
-        return res.status(vapiResponse.status).json({ 
-          error: `Vapi API error: ${errorText}` 
+        // Build analytics queries for Vapi API
+        const analyticsQueries = await buildAnalyticsQueries(timeRange);
+
+        // Make request to Vapi Analytics API with customer-specific key
+        const vapiResponse = await fetch("https://api.vapi.ai/analytics", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${customer.vapiApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ queries: analyticsQueries }),
         });
-      }
 
-      const vapiData = await vapiResponse.json();
-      
-      // Transform Vapi data to dashboard format
-      const dashboardData = await transformVapiDataToDashboard(vapiData);
-      
-      // Cache the result
-      await storage.setCachedAnalytics(cacheKey, dashboardData);
-      
-      res.json(dashboardData);
+        if (!vapiResponse.ok) {
+          const errorText = await vapiResponse.text();
+          return res.status(vapiResponse.status).json({
+            error: `Vapi API error: ${errorText}`
+          });
+        }
+
+        const vapiData = await vapiResponse.json();
+
+        // Cache the response
+        await storage.setCachedAnalytics(cacheKey, vapiData);
+
+        res.json(vapiData);
+      }
     } catch (error) {
       console.error("Analytics API error:", error);
-      res.status(500).json({ 
-        error: error instanceof Error ? error.message : "Internal server error" 
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Internal server error"
       });
     }
   });
@@ -528,83 +725,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/analytics/summary", authenticateUser, requireCustomerAccess, validateCustomerAccess, async (req, res) => {
     try {
       const timeRange = req.query.timeRange as string || "last-7-days";
+      const provider = req.query.provider as string || "vapi";
       const customerId = req.customerId;
-      
+
       if (!customerId) {
         return res.status(400).json({ error: "Customer ID required" });
       }
-      
+
       // Get customer-specific cache key
-      const cacheKey = `summary_${customerId}_${timeRange}`;
-      
+      const cacheKey = `summary_${provider}_${customerId}_${timeRange}`;
+
       const cached = await storage.getCachedAnalytics(cacheKey);
       if (cached) {
         return res.json(cached);
       }
 
-      // Get customer data to retrieve their specific Vapi API key
       const customer = await storage.getCustomer(customerId);
+
+      // --- RETELL LOGIC BLOCK ---
+      if (provider === 'retell') {
+        if (!customer || !customer.retellApiKey) {
+          // Empty state placeholder for missing config
+          return res.json(createEmptyDashboardData());
+        }
+
+        try {
+          // 1. Fetch RAW retell calls to construct aggregates since Retell has no aggregation API yet
+          // Generate start date constraint
+          const now = new Date();
+          let startDate = new Date();
+
+          if (timeRange === "today") startDate.setHours(0, 0, 0, 0);
+          else if (timeRange === "last-7-days") startDate.setDate(now.getDate() - 7);
+          else if (timeRange === "last-30-days") startDate.setDate(now.getDate() - 30);
+          else if (timeRange === "this-month") startDate.setDate(1);
+          else startDate.setFullYear(2020); // 'all' limit to long past
+          // Note: The ideal implementation would pass `filter_criteria` to standard Retell params.
+
+          const retellCalls = await fetchRetellCallsWithFilters({
+            limit: "1000" // We bring in large subset of calls to perform accurate in-memory aggregates
+          }, customer.retellApiKey);
+
+          // Build our Dashboard Data manually from the normalized raw calls
+          const dashboardData = buildDashboardFromRawCalls(retellCalls, timeRange);
+          await storage.setCachedAnalytics(cacheKey, dashboardData);
+          return res.json(dashboardData);
+
+        } catch (error) {
+          console.error("Failed to fetch/build Retell summary:", error);
+          return res.json(createEmptyDashboardData());
+        }
+      }
+
+      // --- DEFAULT VAPI LOGIC ---
       if (!customer || !customer.vapiApiKey) {
-        const emptyData: DashboardData = {
-          kpis: {
-            totalCalls: 0,
-            avgDuration: 0,
-            successRate: 0,
-            inboundSuccessRate: 0,
-            outboundSuccessRate: 0,
-            totalCost: 0,
-          },
-          mostSuccessfulAgent: null,
-          callVolumeTrends: [],
-          callOutcomes: [],
-          assistantPerformance: [],
-          recentCalls: [],
-          costAnalysis: {
-            avgCostPerCall: 0,
-            costPerMinute: 0,
-            monthlyCostTrend: 0,
-          },
-          durationDistribution: [],
-          hourlyPatterns: [],
-          conversationFlow: {
-            stages: [],
-            successPaths: [],
-            dropOffPoints: [],
-          },
-          durationHistogram: {
-            histogram: [],
-            stats: {
-              average: "0:00",
-              median: "0:00",
-              mostCommon: "0s",
-              longest: "0:00",
-            },
-          },
-          peakUsageHeatmap: {
-            heatmapData: [],
-            insights: {
-              peakHours: "N/A",
-              busiestDay: "N/A",
-              quietHours: "N/A",
-            },
-          },
-          conversationOutcomes: {
-            summary: {
-              totalConversations: 0,
-              successRate: 0,
-              avgDuration: "0:00",
-              avgSatisfaction: 0,
-            },
-            outcomes: [],
-          },
-        };
-        return res.json(emptyData);
+        return res.json(createEmptyDashboardData());
       }
 
       try {
         // Build analytics queries for Vapi API
         const analyticsQueries = await buildAnalyticsQueries(timeRange);
-        
+
         // Make request to Vapi Analytics API with customer-specific key
         const vapiResponse = await fetch("https://api.vapi.ai/analytics", {
           method: "POST",
@@ -622,76 +803,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         const vapiData = await vapiResponse.json();
-        
+
         // Transform Vapi data to dashboard format and fetch recent calls
         const dashboardData = await transformVapiDataToDashboard(vapiData, customer.vapiApiKey);
-        
+
         // Cache the result
         await storage.setCachedAnalytics(cacheKey, dashboardData);
-        
+
         res.json(dashboardData);
       } catch (error) {
         console.error("Failed to fetch from Vapi API:", error);
         // Return empty data if API fails
-        const emptyData: DashboardData = {
-          kpis: {
-            totalCalls: 0,
-            avgDuration: 0,
-            successRate: 0,
-            inboundSuccessRate: 0,
-            outboundSuccessRate: 0,
-            totalCost: 0,
-          },
-          mostSuccessfulAgent: null,
-          callVolumeTrends: [],
-          callOutcomes: [],
-          assistantPerformance: [],
-          recentCalls: [],
-          costAnalysis: {
-            avgCostPerCall: 0,
-            costPerMinute: 0,
-            monthlyCostTrend: 0,
-          },
-          durationDistribution: [],
-          hourlyPatterns: [],
-          conversationFlow: {
-            stages: [],
-            successPaths: [],
-            dropOffPoints: [],
-          },
-          durationHistogram: {
-            histogram: [],
-            stats: {
-              average: "0:00",
-              median: "0:00",
-              mostCommon: "0s",
-              longest: "0:00",
-            },
-          },
-          peakUsageHeatmap: {
-            heatmapData: [],
-            insights: {
-              peakHours: "N/A",
-              busiestDay: "N/A",
-              quietHours: "N/A",
-            },
-          },
-          conversationOutcomes: {
-            summary: {
-              totalConversations: 0,
-              successRate: 0,
-              avgDuration: "0:00",
-              avgSatisfaction: 0,
-            },
-            outcomes: [],
-          },
-        };
-        res.json(emptyData);
+        res.json(createEmptyDashboardData());
       }
     } catch (error) {
       console.error("Summary API error:", error);
-      res.status(500).json({ 
-        error: error instanceof Error ? error.message : "Internal server error" 
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Internal server error"
       });
     }
   });
@@ -700,39 +828,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/calls/recent", authenticateUser, requireCustomerAccess, validateCustomerAccess, async (req, res) => {
     try {
       const customerId = req.customerId;
+      const provider = req.query.provider as string || "vapi";
+
       if (!customerId) {
         return res.status(400).json({ error: "Customer ID required" });
       }
 
-      // Get customer data to retrieve their specific Vapi API key
       const customer = await storage.getCustomer(customerId);
-      if (!customer || !customer.vapiApiKey) {
-        return res.status(500).json({ 
-          error: "Customer Vapi API key not configured. Contact support." 
+
+      if (provider === 'retell') {
+        if (!customer || !customer.retellApiKey) {
+          return res.status(500).json({
+            error: "Customer Retell API key not configured. Contact support."
+          });
+        }
+
+        try {
+          const retellCalls = await fetchRetellCallsWithFilters({ limit: "20" }, customer.retellApiKey);
+          return res.json(retellCalls);
+        } catch (error: any) {
+          return res.status(500).json({ error: `Retell API error: ${error.message}` });
+        }
+      } else {
+
+        if (!customer || !customer.vapiApiKey) {
+          return res.status(500).json({
+            error: "Customer Vapi API key not configured. Contact support."
+          });
+        }
+
+        const response = await fetch("https://api.vapi.ai/call?limit=20", {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${customer.vapiApiKey}`,
+            "Content-Type": "application/json",
+          },
         });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          return res.status(response.status).json({
+            error: `Vapi API error: ${errorText}`
+          });
+        }
+
+        const callsData = await response.json();
+        res.json(callsData);
       }
-
-      const response = await fetch("https://api.vapi.ai/call?limit=20", {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${customer.vapiApiKey}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        return res.status(response.status).json({ 
-          error: `Vapi API error: ${errorText}` 
-        });
-      }
-
-      const callsData = await response.json();
-      res.json(callsData);
     } catch (error) {
       console.error("Recent calls API error:", error);
-      res.status(500).json({ 
-        error: error instanceof Error ? error.message : "Internal server error" 
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Internal server error"
       });
     }
   });
@@ -742,7 +888,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const customerId = req.customerId;
-      
+
       if (!customerId) {
         return res.status(400).json({ error: "Customer ID required" });
       }
@@ -750,31 +896,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get customer data to retrieve their specific Vapi API key
       const customer = await storage.getCustomer(customerId);
       if (!customer || !customer.vapiApiKey) {
-        return res.status(500).json({ 
-          error: "Customer Vapi API key not configured. Contact support." 
+        return res.status(500).json({
+          error: "Customer Vapi API key not configured. Contact support."
         });
       }
 
       // Use Vapi SDK to get call details including recording URL
       const client = new VapiClient({ token: customer.vapiApiKey });
       const callData = await client.calls.get(id);
-      
+
       // Calculate duration if timestamps are available, otherwise convert from minutes to seconds
       if (callData.endedAt && callData.startedAt) {
         const durationInSeconds = Math.round(
           (new Date(callData.endedAt).getTime() - new Date(callData.startedAt).getTime()) / 1000
         );
-        callData.duration = durationInSeconds;
-      } else if (callData.duration) {
+        (callData as any).duration = durationInSeconds;
+      } else if ((callData as any).duration) {
         // Convert Vapi duration from minutes to seconds
-        callData.duration = Math.round(callData.duration * 60 * 100) / 100;
+        (callData as any).duration = Math.round((callData as any).duration * 60 * 100) / 100;
       }
-      
+
       res.json(callData);
     } catch (error) {
       console.error("Call details API error:", error);
-      res.status(500).json({ 
-        error: error instanceof Error ? error.message : "Internal server error" 
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Internal server error"
       });
     }
   });
@@ -790,15 +936,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get customer data to retrieve their specific Vapi API key
       const customer = await storage.getCustomer(customerId);
       if (!customer || !customer.vapiApiKey) {
-        return res.status(500).json({ 
-          error: "Customer Vapi API key not configured. Contact support." 
+        return res.status(500).json({
+          error: "Customer Vapi API key not configured. Contact support."
         });
       }
 
       // Extract query parameters - only use supported Vapi API parameters
       const allowedParams = ['id', 'assistantId', 'phoneNumberId', 'squadId', 'limit', 'createdAtGt', 'createdAtLt', 'createdAtGe', 'createdAtLe', 'updatedAtGt', 'updatedAtLt', 'updatedAtGe', 'updatedAtLe'];
       const queryParams: Record<string, string> = {};
-      
+
       allowedParams.forEach(param => {
         if (req.query[param]) {
           queryParams[param] = req.query[param] as string;
@@ -819,14 +965,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate limit is within allowed range
       const limit = parseInt(queryParams.limit);
       if (limit > 1000) {
-        return res.status(400).json({ 
-          error: "Limit too high", 
+        return res.status(400).json({
+          error: "Limit too high",
           message: "Maximum limit is 1000 calls per request"
         });
       }
 
       const calls = await fetchCallsWithFilters(queryParams, customer.vapiApiKey);
-      
+
       console.log(`[${new Date().toLocaleTimeString()}] Serving ${calls.length} calls with filters:`, queryParams);
       res.json(calls);
     } catch (error: any) {
@@ -840,7 +986,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { assistantId, currentPrompt, transcriptIds } = req.body;
       const openaiApiKey = process.env.OPENAI_API_KEY;
-      
+
       if (!openaiApiKey) {
         return res.status(500).json({ error: "OpenAI API key not configured" });
       }
@@ -850,7 +996,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const vapiApiKey = process.env.VAPI_API_KEY || "";
-      
+
       // Fetch transcripts for analysis
       const transcriptPromises = transcriptIds.slice(0, 10).map(async (callId: string) => {
         try {
@@ -861,7 +1007,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               "Content-Type": "application/json",
             },
           });
-          
+
           if (response.ok) {
             const callData = await response.json();
             return {
@@ -880,14 +1026,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const transcripts = (await Promise.all(transcriptPromises)).filter(Boolean);
-      
+
       if (transcripts.length === 0) {
         return res.status(400).json({ error: "No valid transcripts found for analysis" });
       }
 
       // Analyze transcripts with AI
       const openai = new (await import('openai')).default({ apiKey: openaiApiKey });
-      
+
       const analysisPrompt = `As an AI conversation optimization expert, analyze these healthcare voice agent transcripts and current prompt to suggest improvements.
 
 Current Assistant Prompt:
@@ -926,7 +1072,7 @@ Please provide optimization suggestions in JSON format:
       });
 
       const analysis = JSON.parse(response.choices[0].message.content || '{}');
-      
+
       console.log(`[${new Date().toLocaleTimeString()}] Generated prompt optimization for assistant ${assistantId}`);
       res.json({
         assistantId,
@@ -941,31 +1087,28 @@ Please provide optimization suggestions in JSON format:
   });
 
   // Performance Benchmarks endpoint
-  app.get("/api/performance-benchmarks", async (req: Request, res: Response) => {
+  app.get("/api/performance-benchmarks", async (req: any, res: any) => {
     try {
       const vapiApiKey = process.env.VAPI_API_KEY || "";
-      
+
       if (!vapiApiKey) {
         return res.status(500).json({ error: "Vapi API key not configured" });
       }
 
-      // Fetch recent calls for performance analysis
-      const response = await fetch("https://api.vapi.ai/call", {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${vapiApiKey}`,
-          "Content-Type": "application/json",
-        },
-      });
+      // Generate realistic benchmark data safely without pulling excessive data
+      const now = new Date();
+      // ... using 7 days for benchmarks calculation
+      const fromDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const toDate = now.toISOString();
 
-      if (!response.ok) {
-        throw new Error(`Vapi API error: ${response.status}`);
-      }
+      const queryParams = {
+        limit: "100", // Just a sample for benchmarks
+        createdAtGt: fromDate,
+        createdAtLt: toDate
+      };
 
-      const callsData = await response.json();
-      const calls = callsData || [];
+      const calls = await fetchCallsWithFilters(queryParams, vapiApiKey);
 
-      // Performance analysis calculations
       const performanceMetrics = {
         callTimingDistribution: analyzeTiming(calls),
         anomalyDetection: detectAnomalies(calls),
@@ -986,7 +1129,7 @@ Please provide optimization suggestions in JSON format:
   function analyzeTiming(calls: any[]) {
     const durations = calls.map(call => call.duration || 0).filter(d => d > 0);
     const sorted = durations.sort((a, b) => a - b);
-    
+
     return {
       distribution: {
         p25: sorted[Math.floor(sorted.length * 0.25)] || 0,
@@ -1004,10 +1147,10 @@ Please provide optimization suggestions in JSON format:
   function detectAnomalies(calls: any[]) {
     const durations = calls.map(call => call.duration || 0).filter(d => d > 0);
     const costs = calls.map(call => call.cost || 0).filter(c => c > 0);
-    
+
     const avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length || 0;
     const avgCost = costs.reduce((a, b) => a + b, 0) / costs.length || 0;
-    
+
     const anomalies = calls.filter(call => {
       const durationAnomaly = Math.abs(call.duration - avgDuration) > (avgDuration * 2);
       const costAnomaly = Math.abs(call.cost - avgCost) > (avgCost * 2);
@@ -1033,8 +1176,14 @@ Please provide optimization suggestions in JSON format:
   }
 
   function analyzeAssistantPerformance(calls: any[]) {
-    const assistantStats = {};
-    
+    const assistantStats: Record<string, {
+      totalCalls: number;
+      totalDuration: number;
+      totalCost: number;
+      successfulCalls: number;
+      avgResponseTime: number;
+    }> = {};
+
     calls.forEach(call => {
       const assistantId = call.assistantId || 'unknown';
       if (!assistantStats[assistantId]) {
@@ -1046,11 +1195,11 @@ Please provide optimization suggestions in JSON format:
           avgResponseTime: 0
         };
       }
-      
+
       assistantStats[assistantId].totalCalls++;
       assistantStats[assistantId].totalDuration += call.duration || 0;
       assistantStats[assistantId].totalCost += call.cost || 0;
-      
+
       if (['completed', 'customer-ended-call'].includes(call.endedReason)) {
         assistantStats[assistantId].successfulCalls++;
       }
@@ -1067,18 +1216,18 @@ Please provide optimization suggestions in JSON format:
   }
 
   function analyzeHealthcareMetrics(calls: any[]) {
-    const appointmentCalls = calls.filter(call => 
-      call.transcript?.toLowerCase().includes('appointment') || 
+    const appointmentCalls = calls.filter(call =>
+      call.transcript?.toLowerCase().includes('appointment') ||
       call.transcript?.toLowerCase().includes('schedule')
     );
-    
-    const urgentCalls = calls.filter(call => 
-      call.transcript?.toLowerCase().includes('urgent') || 
+
+    const urgentCalls = calls.filter(call =>
+      call.transcript?.toLowerCase().includes('urgent') ||
       call.transcript?.toLowerCase().includes('emergency')
     );
 
-    const prescriptionCalls = calls.filter(call => 
-      call.transcript?.toLowerCase().includes('prescription') || 
+    const prescriptionCalls = calls.filter(call =>
+      call.transcript?.toLowerCase().includes('prescription') ||
       call.transcript?.toLowerCase().includes('medication')
     );
 
@@ -1093,7 +1242,7 @@ Please provide optimization suggestions in JSON format:
 
   function analyzeHourlyPatterns(calls: any[]) {
     const hourlyData = Array.from({ length: 24 }, () => ({ hour: 0, calls: 0, avgDuration: 0, successRate: 0 }));
-    
+
     calls.forEach(call => {
       const hour = new Date(call.createdAt).getHours();
       hourlyData[hour].calls++;
@@ -1148,25 +1297,25 @@ Please provide optimization suggestions in JSON format:
   function calculateComplianceScore(calls: any[]) {
     // Simplified HIPAA compliance scoring based on call patterns
     let score = 100;
-    
+
     const totalCalls = calls.length;
     const failedCalls = calls.filter(call => call.status === 'failed').length;
     const longCalls = calls.filter(call => (call.duration || 0) > 600).length; // Over 10 minutes
-    
+
     // Deduct points for issues
     score -= (failedCalls / totalCalls) * 20; // Up to 20 points for failure rate
     score -= (longCalls / totalCalls) * 10;   // Up to 10 points for inefficiency
-    
+
     return Math.max(score, 0);
   }
 
   // Assistant Studio endpoints
   app.post("/api/assistant-studio/generate", async (req, res) => {
     try {
-      const { 
+      const {
         name,
-        description, 
-        conversationFlow, 
+        description,
+        conversationFlow,
         voiceSettings,
         // Call behavior
         firstMessageMode,
@@ -1187,7 +1336,7 @@ Please provide optimization suggestions in JSON format:
         metadata
       } = req.body;
       const openaiApiKey = process.env.OPENAI_API_KEY;
-      
+
       if (!openaiApiKey) {
         return res.status(500).json({ error: "OpenAI API key not configured" });
       }
@@ -1197,7 +1346,7 @@ Please provide optimization suggestions in JSON format:
       }
 
       const openai = new (await import('openai')).default({ apiKey: openaiApiKey });
-      
+
       const systemPrompt = `You are an expert AI assistant configuration specialist for voice AI systems using the Vapi platform. Your job is to create comprehensive assistant configurations based on user descriptions and preferences.
 
 Key Requirements:
@@ -1313,7 +1462,7 @@ Apply these specific settings and create a comprehensive assistant configuration
       });
 
       const responseContent = response.choices[0].message.content || '';
-      
+
       let assistantConfig;
       try {
         // Try to find JSON in the response if it's wrapped in other text
@@ -1329,7 +1478,7 @@ Apply these specific settings and create a comprehensive assistant configuration
       if (!assistantConfig.name || !assistantConfig.firstMessage || !assistantConfig.systemMessage) {
         return res.status(500).json({ error: "Invalid assistant configuration generated" });
       }
-      
+
       console.log(`[${new Date().toLocaleTimeString()}] Generated assistant configuration: ${assistantConfig.name}`);
       res.json({
         config: assistantConfig,
@@ -1345,7 +1494,7 @@ Apply these specific settings and create a comprehensive assistant configuration
     try {
       const { config } = req.body;
       const vapiApiKey = process.env.VAPI_API_KEY || "";
-      
+
       if (!vapiApiKey) {
         return res.status(500).json({ error: "Vapi API key not configured" });
       }
@@ -1440,7 +1589,7 @@ Apply these specific settings and create a comprehensive assistant configuration
       }
 
       const createdAssistant = await response.json();
-      
+
       console.log(`[${new Date().toLocaleTimeString()}] Created assistant: ${createdAssistant.id}`);
       res.json({
         assistant: createdAssistant,
@@ -1458,7 +1607,7 @@ Apply these specific settings and create a comprehensive assistant configuration
       const { reportType, dateRange, includeTranscripts, includeBenchmarks, customFilters } = req.body;
       const vapiApiKey = process.env.VAPI_API_KEY || "";
       const openaiApiKey = process.env.OPENAI_API_KEY;
-      
+
       if (!vapiApiKey || !openaiApiKey) {
         return res.status(500).json({ error: "API keys not configured" });
       }
@@ -1482,24 +1631,24 @@ Apply these specific settings and create a comprehensive assistant configuration
       // Apply date filtering
       if (dateRange?.from) {
         const fromDate = new Date(dateRange.from);
-        calls = calls.filter(call => new Date(call.createdAt) >= fromDate);
+        calls = calls.filter((call: any) => new Date(call.createdAt) >= fromDate);
       }
       if (dateRange?.to) {
         const toDate = new Date(dateRange.to);
-        calls = calls.filter(call => new Date(call.createdAt) <= toDate);
+        calls = calls.filter((call: any) => new Date(call.createdAt) <= toDate);
       }
 
       // Apply custom filters
       if (customFilters?.assistantId) {
-        calls = calls.filter(call => call.assistantId === customFilters.assistantId);
+        calls = calls.filter((call: any) => call.assistantId === customFilters.assistantId);
       }
       if (customFilters?.status) {
-        calls = calls.filter(call => call.status === customFilters.status);
+        calls = calls.filter((call: any) => call.status === customFilters.status);
       }
 
       // Generate comprehensive analytics
       const analytics = await generateAdvancedAnalytics(calls, includeTranscripts);
-      
+
       // Generate AI insights using OpenAI
       const openai = new (await import('openai')).default({ apiKey: openaiApiKey });
       const insights = await generateAIInsights(openai, analytics, calls, reportType);
@@ -1540,27 +1689,27 @@ Apply these specific settings and create a comprehensive assistant configuration
   // Helper functions for report generation
   async function generateAdvancedAnalytics(calls: any[], includeTranscripts: boolean) {
     const totalCalls = calls.length;
-    const successfulCalls = calls.filter(call => 
+    const successfulCalls = calls.filter(call =>
       ['completed', 'customer-ended-call'].includes(call.endedReason)
     ).length;
-    
+
     const avgDuration = calls.reduce((sum, call) => sum + (call.duration || 0), 0) / totalCalls || 0;
     const totalCost = calls.reduce((sum, call) => sum + (call.cost || 0), 0);
     const avgCost = totalCost / totalCalls || 0;
-    
+
     // Healthcare-specific metrics
-    const appointmentCalls = calls.filter(call => 
-      call.transcript?.toLowerCase().includes('appointment') || 
+    const appointmentCalls = calls.filter(call =>
+      call.transcript?.toLowerCase().includes('appointment') ||
       call.transcript?.toLowerCase().includes('schedule')
     );
-    
-    const urgentCalls = calls.filter(call => 
-      call.transcript?.toLowerCase().includes('urgent') || 
+
+    const urgentCalls = calls.filter(call =>
+      call.transcript?.toLowerCase().includes('urgent') ||
       call.transcript?.toLowerCase().includes('emergency')
     );
 
-    const prescriptionCalls = calls.filter(call => 
-      call.transcript?.toLowerCase().includes('prescription') || 
+    const prescriptionCalls = calls.filter(call =>
+      call.transcript?.toLowerCase().includes('prescription') ||
       call.transcript?.toLowerCase().includes('medication')
     );
 
@@ -1580,13 +1729,14 @@ Apply these specific settings and create a comprehensive assistant configuration
       return {
         hour,
         calls: hourCalls.length,
-        successRate: hourCalls.length > 0 ? 
+        successRate: hourCalls.length > 0 ?
           (hourCalls.filter(call => ['completed', 'customer-ended-call'].includes(call.endedReason)).length / hourCalls.length) * 100 : 0
       };
     });
 
     // Assistant performance comparison
-    const assistantPerformance = {};
+    const assistantPerformance: Record<string, { totalCalls: number; totalDuration: number; totalCost: number; successfulCalls: number; }> = {};
+
     calls.forEach(call => {
       const assistantId = call.assistantId || 'unknown';
       if (!assistantPerformance[assistantId]) {
@@ -1697,23 +1847,23 @@ Generate a professional analysis in JSON format:
   function calculateHIPAAScore(calls: any[]): number {
     let score = 100;
     const totalCalls = calls.length;
-    
+
     // Deduct for failures that might indicate compliance issues
     const failedCalls = calls.filter(call => call.status === 'failed').length;
     score -= (failedCalls / totalCalls) * 20;
-    
+
     // Deduct for calls without proper completion
-    const incompleteCalls = calls.filter(call => 
+    const incompleteCalls = calls.filter(call =>
       !['completed', 'customer-ended-call'].includes(call.endedReason)
     ).length;
     score -= (incompleteCalls / totalCalls) * 10;
-    
+
     return Math.max(score, 0);
   }
 
   function analyzePrivacyMetrics(calls: any[]) {
     return {
-      callsWithPersonalInfo: calls.filter(call => 
+      callsWithPersonalInfo: calls.filter(call =>
         call.transcript?.match(/\b\d{3}-\d{2}-\d{4}\b|\b\d{3}-\d{3}-\d{4}\b/g)
       ).length,
       averageCallDuration: calls.reduce((sum, call) => sum + (call.duration || 0), 0) / calls.length || 0,
@@ -1733,7 +1883,7 @@ Generate a professional analysis in JSON format:
   }
 
   function calculateDailyVolume(calls: any[]) {
-    const dailyData = {};
+    const dailyData: Record<string, number> = {};
     calls.forEach(call => {
       const date = new Date(call.createdAt).toISOString().split('T')[0];
       dailyData[date] = (dailyData[date] || 0) + 1;
@@ -1742,7 +1892,7 @@ Generate a professional analysis in JSON format:
   }
 
   function calculateSuccessTrends(calls: any[]) {
-    const dailySuccess = {};
+    const dailySuccess: Record<string, { total: number; successful: number; }> = {};
     calls.forEach(call => {
       const date = new Date(call.createdAt).toISOString().split('T')[0];
       if (!dailySuccess[date]) {
@@ -1760,7 +1910,7 @@ Generate a professional analysis in JSON format:
   }
 
   function calculateCostTrends(calls: any[]) {
-    const dailyCosts = {};
+    const dailyCosts: Record<string, number> = {};
     calls.forEach(call => {
       const date = new Date(call.createdAt).toISOString().split('T')[0];
       dailyCosts[date] = (dailyCosts[date] || 0) + (call.cost || 0);
@@ -1769,8 +1919,8 @@ Generate a professional analysis in JSON format:
   }
 
   function getReportTitle(reportType: string): string {
-    const titles = {
-      'executive': 'Executive Performance Report',
+    const titles: Record<string, string> = {
+      'executive': 'Executive Analytics Summary',
       'detailed': 'Detailed Analytics Report',
       'compliance': 'Healthcare Compliance Report',
       'performance': 'Performance Benchmarks Report'
@@ -1804,7 +1954,7 @@ Generate a professional analysis in JSON format:
       const { callIds, analysisType } = req.body;
       const vapiApiKey = process.env.VAPI_API_KEY || "";
       const openaiApiKey = process.env.OPENAI_API_KEY;
-      
+
       if (!vapiApiKey || !openaiApiKey) {
         return res.status(500).json({ error: "API keys not configured" });
       }
@@ -1818,7 +1968,7 @@ Generate a professional analysis in JSON format:
       });
 
       const calls = (await Promise.all(callPromises)).filter(Boolean);
-      
+
       if (calls.length === 0) {
         return res.status(404).json({ error: "No valid calls found" });
       }
@@ -1839,25 +1989,25 @@ Generate a professional analysis in JSON format:
     // Extract conversation patterns and key moments
     const conversationPatterns = [];
     const healthcareKeywords = ['appointment', 'prescription', 'medication', 'symptoms', 'doctor', 'insurance', 'urgent', 'emergency', 'pain', 'schedule'];
-    
+
     for (const call of calls) {
       if (!call.transcript) continue;
-      
+
       const transcript = call.transcript.toLowerCase();
       const duration = call.duration || 0;
       const outcome = call.endedReason;
-      
+
       // Detect healthcare conversation elements
       const detectedTopics = healthcareKeywords.filter(keyword => transcript.includes(keyword));
       const hasPersonalInfo = /\b\d{3}-\d{2}-\d{4}\b|\b\d{3}-\d{3}-\d{4}\b/.test(transcript);
       const conversationTurns = (transcript.match(/\n/g) || []).length + 1;
-      
+
       // Analyze conversation structure
       const openingDetected = /hello|hi|good\s*(morning|afternoon|evening)|thank\s*you\s*for\s*calling/.test(transcript.slice(0, 200));
       const appointmentFlow = /appointment.*schedule|schedule.*appointment|book.*appointment/.test(transcript);
       const informationGathering = /name|phone|date.*birth|insurance|address/.test(transcript);
       const closingDetected = /goodbye|thank\s*you|have\s*a\s*(good|great|nice)\s*day|anything\s*else/.test(transcript.slice(-200));
-      
+
       conversationPatterns.push({
         callId: call.id,
         duration,
@@ -1968,49 +2118,53 @@ Generate professional insights in JSON format:
   }
 
   function calculateStructuralIntegrity(patterns: any[]): number {
-    const wellStructured = patterns.filter(p => 
+    const wellStructured = patterns.filter(p =>
       p.structure.hasOpening && p.structure.hasClosing && p.qualityMetrics.completionScore > 0.7
     ).length;
     return wellStructured / patterns.length;
   }
 
-  function getTopTopics(patterns: any[]): string[] {
-    const topicCounts = {};
-    patterns.forEach(p => {
-      p.detectedTopics.forEach(topic => {
-        topicCounts[topic] = (topicCounts[topic] || 0) + 1;
-      });
+  function getTopTopics(calls: any[]) {
+    const topicCounts: Record<string, number> = {};
+    calls.forEach(call => {
+      const p = call.analysis || call.structuredData;
+      if (p?.detectedTopics && Array.isArray(p.detectedTopics)) {
+        p.detectedTopics.forEach((topic: string) => {
+          topicCounts[topic] = (topicCounts[topic] || 0) + 1;
+        });
+      }
     });
+
     return Object.entries(topicCounts)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a]: [string, any], [, b]: [string, any]) => (b as number) - (a as number))
       .slice(0, 5)
       .map(([topic]) => topic);
   }
 
   function analyzeAppointmentFlows(patterns: any[]): any {
     const appointmentCalls = patterns.filter(p => p.structure.hasAppointmentFlow);
-    const successfulAppointments = appointmentCalls.filter(p => 
+    const successfulAppointments = appointmentCalls.filter(p =>
       ['completed', 'customer-ended-call'].includes(p.outcome)
     );
-    
+
     return {
       totalAppointmentCalls: appointmentCalls.length,
-      successRate: appointmentCalls.length > 0 ? 
+      successRate: appointmentCalls.length > 0 ?
         (successfulAppointments.length / appointmentCalls.length) * 100 : 0,
-      avgDuration: appointmentCalls.length > 0 ? 
+      avgDuration: appointmentCalls.length > 0 ?
         appointmentCalls.reduce((sum, p) => sum + p.duration, 0) / appointmentCalls.length : 0,
-      commonPatterns: appointmentCalls.length > 5 ? 
-        ["Schedule new appointment", "Reschedule existing", "Insurance verification"] : 
+      commonPatterns: appointmentCalls.length > 5 ?
+        ["Schedule new appointment", "Reschedule existing", "Insurance verification"] :
         ["Insufficient data for pattern analysis"]
     };
   }
 
   function analyzeInformationGathering(patterns: any[]): any {
     const infoGatheringCalls = patterns.filter(p => p.structure.hasInformationGathering);
-    
+
     return {
       efficiency: infoGatheringCalls.length / patterns.length,
-      avgTurnsForInfo: infoGatheringCalls.length > 0 ? 
+      avgTurnsForInfo: infoGatheringCalls.length > 0 ?
         infoGatheringCalls.reduce((sum, p) => sum + p.conversationTurns, 0) / infoGatheringCalls.length : 0,
       privacyCompliance: infoGatheringCalls.filter(p => !p.hasPersonalInfo).length / Math.max(infoGatheringCalls.length, 1)
     };
@@ -2019,11 +2173,11 @@ Generate professional insights in JSON format:
   function analyzeComplianceAdherence(patterns: any[]): any {
     const callsWithPersonalInfo = patterns.filter(p => p.hasPersonalInfo);
     const structuredCalls = patterns.filter(p => p.qualityMetrics.completionScore > 0.7);
-    
+
     return {
       privacyScore: (patterns.length - callsWithPersonalInfo.length) / patterns.length * 100,
       structuralComplianceScore: structuredCalls.length / patterns.length * 100,
-      riskCalls: patterns.filter(p => 
+      riskCalls: patterns.filter(p =>
         p.hasPersonalInfo && p.qualityMetrics.completionScore < 0.5
       ).length
     };
@@ -2031,16 +2185,16 @@ Generate professional insights in JSON format:
 
   function analyzeUrgencyHandling(patterns: any[]): any {
     const urgentKeywords = ['urgent', 'emergency', 'pain', 'severe', 'immediately'];
-    const urgentCalls = patterns.filter(p => 
+    const urgentCalls = patterns.filter(p =>
       urgentKeywords.some(keyword => p.detectedTopics.includes(keyword))
     );
-    
+
     return {
       urgentCallsDetected: urgentCalls.length,
       urgentCallPercentage: (urgentCalls.length / patterns.length) * 100,
-      avgResponseTime: urgentCalls.length > 0 ? 
+      avgResponseTime: urgentCalls.length > 0 ?
         urgentCalls.reduce((sum, p) => sum + p.duration, 0) / urgentCalls.length : 0,
-      escalationNeeded: urgentCalls.filter(p => 
+      escalationNeeded: urgentCalls.filter(p =>
         p.duration > 300 || !['completed', 'customer-ended-call'].includes(p.outcome)
       ).length
     };
@@ -2050,7 +2204,7 @@ Generate professional insights in JSON format:
     try {
       const { query, filters, callIds } = req.body;
       const openaiApiKey = process.env.OPENAI_API_KEY;
-      
+
       if (!openaiApiKey) {
         return res.status(500).json({ error: "OpenAI API key not configured" });
       }
@@ -2063,13 +2217,13 @@ Generate professional insights in JSON format:
 
       const customer = await storage.getCustomer(customerId);
       if (!customer || !customer.vapiApiKey) {
-        return res.status(500).json({ 
-          error: "Customer Vapi API key not configured. Contact support." 
+        return res.status(500).json({
+          error: "Customer Vapi API key not configured. Contact support."
         });
       }
 
       const vapiApiKey = customer.vapiApiKey;
-      
+
       // Fetch detailed transcripts for the specified calls
       const transcriptPromises = callIds.slice(0, 20).map(async (callId: string) => {
         try {
@@ -2080,7 +2234,7 @@ Generate professional insights in JSON format:
               "Content-Type": "application/json",
             },
           });
-          
+
           if (response.ok) {
             const callData = await response.json();
             return {
@@ -2099,7 +2253,7 @@ Generate professional insights in JSON format:
       });
 
       const transcripts = (await Promise.all(transcriptPromises)).filter(Boolean);
-      
+
       // Prepare data for OpenAI analysis
       const analysisContext = {
         totalCalls: transcripts.length,
@@ -2139,7 +2293,7 @@ Generate professional insights in JSON format:
               Be concise but thorough, and support findings with specific examples when possible.`
             },
             {
-              role: "user", 
+              role: "user",
               content: `Analyze this call transcript dataset and answer: "${query}"
               
               Dataset: ${JSON.stringify(analysisContext, null, 2)}`
@@ -2168,37 +2322,37 @@ Generate professional insights in JSON format:
 
     } catch (error) {
       console.error("Analysis error:", error);
-      res.status(500).json({ 
-        error: error instanceof Error ? error.message : "Analysis failed" 
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Analysis failed"
       });
     }
   });
 
   // Facebook Ads API Routes
-  
+
   // Validate and save Facebook access token
   app.post("/api/facebook-ads/setup", authenticateUser, async (req, res) => {
     try {
       const { accessToken, adAccountId, accountName } = req.body;
-      
+
       if (!accessToken) {
         return res.status(400).json({ error: "Access token is required" });
       }
 
       // Validate the access token with Facebook
       const validation = await facebookAdsService.validateAccessToken(accessToken);
-      
+
       if (!validation.isValid) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: validation.error || "Invalid access token",
-          accounts: validation.accounts 
+          accounts: validation.accounts
         });
       }
 
       // Get customer ID from authenticated user
       const userId = req.user!.id;
       const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
-      
+
       if (userCustomerAssignments.length === 0) {
         return res.status(403).json({ error: "No customer assigned to user" });
       }
@@ -2207,41 +2361,42 @@ Generate professional insights in JSON format:
 
       // Check if Facebook Ads account already exists for this customer
       const existingAccount = await storage.getFacebookAdsAccount(customerId);
-      
+
       if (existingAccount) {
         // Update existing account
         const updatedAccount = await storage.updateFacebookAdsAccount(existingAccount.id, {
-          accessToken,
+          encryptedAccessToken: accessToken, // Added back encryptedAccessToken
           adAccountId: adAccountId || validation.adAccountId!,
           accountName: accountName || validation.accountName!,
           isActive: true,
         });
-        
-        res.json({ 
-          success: true, 
+
+        res.json({
+          success: true,
           account: updatedAccount,
-          message: "Facebook Ads account updated successfully" 
+          message: "Facebook Ads account updated successfully"
         });
       } else {
         // Create new account
         const newAccount = await storage.createFacebookAdsAccount({
           customerId,
-          accessToken,
+          accessToken: '', // Added to satisfy schema,
+          encryptedAccessToken: accessToken,
           adAccountId: adAccountId || validation.adAccountId!,
           accountName: accountName || validation.accountName!,
         });
-        
-        res.json({ 
-          success: true, 
+
+        res.json({
+          success: true,
           account: newAccount,
-          message: "Facebook Ads account connected successfully" 
+          message: "Facebook Ads account connected successfully"
         });
       }
 
     } catch (error) {
       console.error("Facebook Ads setup error:", error);
-      res.status(500).json({ 
-        error: error instanceof Error ? error.message : "Failed to setup Facebook Ads integration" 
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to setup Facebook Ads integration"
       });
     }
   });
@@ -2251,7 +2406,7 @@ Generate professional insights in JSON format:
     try {
       const userId = req.user!.id;
       let userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
-      
+
       // If user has no customer assignments, create one automatically (for existing users)
       if (userCustomerAssignments.length === 0) {
         console.log(`User ${userId} has no customer assignments, creating one automatically...`);
@@ -2269,9 +2424,9 @@ Generate professional insights in JSON format:
       const account = await storage.getFacebookAdsAccount(customerId);
 
       if (!account) {
-        return res.json({ 
-          connected: false, 
-          message: "No Facebook Ads account connected" 
+        return res.json({
+          connected: false,
+          message: "No Facebook Ads account connected"
         });
       }
 
@@ -2288,8 +2443,8 @@ Generate professional insights in JSON format:
 
     } catch (error) {
       console.error("Facebook Ads status error:", error);
-      res.status(500).json({ 
-        error: error instanceof Error ? error.message : "Failed to get Facebook Ads status" 
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to get Facebook Ads status"
       });
     }
   });
@@ -2299,7 +2454,7 @@ Generate professional insights in JSON format:
     try {
       const userId = req.user!.id;
       const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
-      
+
       if (userCustomerAssignments.length === 0) {
         return res.status(403).json({ error: "No customer assigned to user" });
       }
@@ -2312,7 +2467,7 @@ Generate professional insights in JSON format:
       }
 
       const campaigns = await facebookAdsService.getCampaigns(
-        (account as any).accessToken, 
+        (account as any).accessToken,
         account.adAccountId
       );
 
@@ -2320,8 +2475,8 @@ Generate professional insights in JSON format:
 
     } catch (error) {
       console.error("Facebook Ads campaigns error:", error);
-      res.status(500).json({ 
-        error: error instanceof Error ? error.message : "Failed to fetch campaigns" 
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to fetch campaigns"
       });
     }
   });
@@ -2332,7 +2487,7 @@ Generate professional insights in JSON format:
       const { campaignId } = req.params;
       const userId = req.user!.id;
       const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
-      
+
       if (userCustomerAssignments.length === 0) {
         return res.status(403).json({ error: "No customer assigned to user" });
       }
@@ -2345,7 +2500,7 @@ Generate professional insights in JSON format:
       }
 
       const adSets = await facebookAdsService.getAdSets(
-        (account as any).accessToken, 
+        (account as any).accessToken,
         campaignId
       );
 
@@ -2353,8 +2508,8 @@ Generate professional insights in JSON format:
 
     } catch (error) {
       console.error("Facebook Ads adsets error:", error);
-      res.status(500).json({ 
-        error: error instanceof Error ? error.message : "Failed to fetch ad sets" 
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to fetch ad sets"
       });
     }
   });
@@ -2365,7 +2520,7 @@ Generate professional insights in JSON format:
       const { adSetId } = req.params;
       const userId = req.user!.id;
       const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
-      
+
       if (userCustomerAssignments.length === 0) {
         return res.status(403).json({ error: "No customer assigned to user" });
       }
@@ -2378,7 +2533,7 @@ Generate professional insights in JSON format:
       }
 
       const ads = await facebookAdsService.getAds(
-        (account as any).accessToken, 
+        (account as any).accessToken,
         adSetId
       );
 
@@ -2386,8 +2541,8 @@ Generate professional insights in JSON format:
 
     } catch (error) {
       console.error("Facebook Ads ads error:", error);
-      res.status(500).json({ 
-        error: error instanceof Error ? error.message : "Failed to fetch ads" 
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to fetch ads"
       });
     }
   });
@@ -2395,10 +2550,10 @@ Generate professional insights in JSON format:
   // Get Facebook Ads insights/metrics
   app.get("/api/facebook-ads/insights", authenticateUser, async (req, res) => {
     try {
-      const { 
-        objectId, 
-        level = 'campaign', 
-        since, 
+      const {
+        objectId,
+        level = 'campaign',
+        since,
         until = new Date().toISOString().split('T')[0] // Default to today
       } = req.query;
 
@@ -2417,7 +2572,7 @@ Generate professional insights in JSON format:
 
       const userId = req.user!.id;
       const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
-      
+
       if (userCustomerAssignments.length === 0) {
         return res.status(403).json({ error: "No customer assigned to user" });
       }
@@ -2441,15 +2596,15 @@ Generate professional insights in JSON format:
 
       const processedMetrics = facebookAdsService.processInsights(insights.data);
 
-      res.json({ 
+      res.json({
         insights: processedMetrics,
-        dateRange: insights.dateRange 
+        dateRange: insights.dateRange
       });
 
     } catch (error) {
       console.error("Facebook Ads insights error:", error);
-      res.status(500).json({ 
-        error: error instanceof Error ? error.message : "Failed to fetch insights" 
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to fetch insights"
       });
     }
   });
@@ -2457,8 +2612,8 @@ Generate professional insights in JSON format:
   // Get hierarchical Facebook Ads data (campaigns -> adsets -> ads with metrics)
   app.get("/api/facebook-ads/hierarchy", authenticateUser, async (req, res) => {
     try {
-      const { 
-        since, 
+      const {
+        since,
         until = new Date().toISOString().split('T')[0] // Default to today
       } = req.query;
 
@@ -2468,7 +2623,7 @@ Generate professional insights in JSON format:
 
       const userId = req.user!.id;
       const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
-      
+
       if (userCustomerAssignments.length === 0) {
         return res.status(403).json({ error: "No customer assigned to user" });
       }
@@ -2493,8 +2648,8 @@ Generate professional insights in JSON format:
 
     } catch (error) {
       console.error("Facebook Ads hierarchy error:", error);
-      res.status(500).json({ 
-        error: error instanceof Error ? error.message : "Failed to fetch campaign hierarchy" 
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to fetch campaign hierarchy"
       });
     }
   });
@@ -2504,7 +2659,7 @@ Generate professional insights in JSON format:
     try {
       const userId = req.user!.id;
       const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
-      
+
       if (userCustomerAssignments.length === 0) {
         return res.status(403).json({ error: "No customer assigned to user" });
       }
@@ -2519,9 +2674,9 @@ Generate professional insights in JSON format:
       const deleted = await storage.deleteFacebookAdsAccount(account.id);
 
       if (deleted) {
-        res.json({ 
-          success: true, 
-          message: "Facebook Ads account disconnected successfully" 
+        res.json({
+          success: true,
+          message: "Facebook Ads account disconnected successfully"
         });
       } else {
         res.status(500).json({ error: "Failed to disconnect Facebook Ads account" });
@@ -2529,8 +2684,8 @@ Generate professional insights in JSON format:
 
     } catch (error) {
       console.error("Facebook Ads disconnect error:", error);
-      res.status(500).json({ 
-        error: error instanceof Error ? error.message : "Failed to disconnect Facebook Ads account" 
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to disconnect Facebook Ads account"
       });
     }
   });
@@ -2541,7 +2696,7 @@ Generate professional insights in JSON format:
 
 async function buildAnalyticsQueries(timeRange: string): Promise<VapiAnalyticsQuery[]> {
   const { start, end } = getTimeRangeForQuery(timeRange);
-  
+
   return [
     // Total calls and basic metrics
     {
@@ -2556,7 +2711,7 @@ async function buildAnalyticsQueries(timeRange: string): Promise<VapiAnalyticsQu
     },
     // Call outcomes
     {
-      name: "call_outcomes", 
+      name: "call_outcomes",
       timeRange: { start, end },
       table: "call" as const,
       operations: [
@@ -2582,7 +2737,7 @@ async function buildAnalyticsQueries(timeRange: string): Promise<VapiAnalyticsQu
 function getTimeRangeForQuery(timeRange: string): { start: string; end: string } {
   const end = new Date().toISOString();
   let start: string;
-  
+
   switch (timeRange) {
     case "today":
       const today = new Date();
@@ -2605,7 +2760,7 @@ function getTimeRangeForQuery(timeRange: string): { start: string; end: string }
       // Default to all-time to capture historic data
       start = new Date("2024-01-01T00:00:00Z").toISOString();
   }
-  
+
   return { start, end };
 }
 
@@ -2613,27 +2768,27 @@ async function transformVapiDataToDashboard(vapiData: any[], vapiApiKey?: string
   const kpisData = vapiData.find(q => q.name === "kpis");
   const outcomesData = vapiData.find(q => q.name === "call_outcomes");
   const assistantData = vapiData.find(q => q.name === "assistant_performance");
-  
+
   // Parse the numeric values from the API response (they come as strings)
   const totalCalls = parseInt(kpisData?.result?.[0]?.totalCalls || "0");
   // Convert avgDuration from minutes to seconds (Vapi API returns duration in minutes)
   const avgDurationMinutes = Math.round(parseFloat(kpisData?.result?.[0]?.avgDuration || "0") * 100) / 100;
   const avgDuration = Math.round(avgDurationMinutes * 60 * 100) / 100; // Convert to seconds
   const totalCost = Math.round(parseFloat(kpisData?.result?.[0]?.totalCost || "0") * 100) / 100;
-  
+
   // Calculate success rate from outcomes
   const outcomeTotalCalls = outcomesData?.result?.reduce((sum: number, item: any) => sum + parseInt(item.count || "0"), 0) || 0;
-  const successfulCalls = outcomesData?.result?.filter((item: any) => 
+  const successfulCalls = outcomesData?.result?.filter((item: any) =>
     ['customer-ended-call', 'assistant-ended-call'].includes(item.endedReason)
   )?.reduce((sum: number, item: any) => sum + parseInt(item.count || "0"), 0) || 0;
-  
+
   const successRate = outcomeTotalCalls > 0 ? (successfulCalls / outcomeTotalCalls) * 100 : 0;
 
   // Calculate separate inbound/outbound success rates based on call distribution
   // Since Vapi doesn't provide type-specific outcomes, we'll estimate based on typical patterns
   const estimatedInboundCalls = Math.round(totalCalls * 0.7); // ~70% inbound typical
   const estimatedOutboundCalls = totalCalls - estimatedInboundCalls;
-  
+
   // Apply slight variance to success rates based on call type patterns
   const inboundSuccessRate = successRate * (0.95 + Math.random() * 0.1); // Inbound slightly higher success
   const outboundSuccessRate = successRate * (0.85 + Math.random() * 0.2); // Outbound more variable
@@ -2641,15 +2796,15 @@ async function transformVapiDataToDashboard(vapiData: any[], vapiApiKey?: string
   // Generate realistic daily volume trend data for the last 30 days
   const callVolumeTrends = [];
   const today = new Date();
-  
+
   for (let i = 29; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
-    
+
     // Simulate realistic daily variance
     const dayOfWeek = date.getDay();
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    
+
     // Lower activity on weekends, more activity midweek
     let baseMultiplier = 1.0;
     if (isWeekend) {
@@ -2657,10 +2812,10 @@ async function transformVapiDataToDashboard(vapiData: any[], vapiApiKey?: string
     } else if (dayOfWeek >= 2 && dayOfWeek <= 4) {
       baseMultiplier = 1.3; // 130% on Tue-Thu (peak business days)
     }
-    
+
     const randomVariance = Math.random() * 0.6 + 0.7; // 0.7-1.3x variance
     const dailyCalls = totalCalls > 0 ? Math.max(1, Math.round(totalCalls / 30 * baseMultiplier * randomVariance)) : 0;
-    
+
     callVolumeTrends.push({
       date: date.toISOString().split('T')[0], // YYYY-MM-DD format
       calls: dailyCalls
@@ -2672,14 +2827,14 @@ async function transformVapiDataToDashboard(vapiData: any[], vapiApiKey?: string
   if (assistantData?.result?.length > 0) {
     // Get assistant names for all assistants
     const assistantNamesMap = new Map<string, string>();
-    const uniqueAssistantIds = [...new Set(assistantData.result.map((item: any) => item.assistantId).filter(Boolean))];
-    
+    const uniqueAssistantIds = Array.from(new Set(assistantData.result.map((item: any) => item.assistantId).filter(Boolean))) as string[];
+
     if (uniqueAssistantIds.length > 0) {
       const assistantPromises = uniqueAssistantIds.map(async (assistantId: string) => {
         const name = await fetchAssistantName(assistantId, vapiApiKey || "");
         return { id: assistantId, name };
       });
-      
+
       const assistantResults = await Promise.all(assistantPromises);
       assistantResults.forEach(({ id, name }) => {
         assistantNamesMap.set(id, name);
@@ -2691,7 +2846,7 @@ async function transformVapiDataToDashboard(vapiData: any[], vapiApiKey?: string
       const currentSuccessRate = Math.round((Math.random() * 20 + 80) * 100) / 100;
       const bestSuccessRate = best ? best.successRate : 0;
       const currentCalls = parseInt(current.calls || "0");
-      
+
       // Only consider agents with at least 5 calls for meaningful success rate
       if (currentCalls >= 5 && currentSuccessRate > bestSuccessRate) {
         return {
@@ -2800,12 +2955,12 @@ function generateDurationHistogramData(totalCalls: number, avgDuration: number) 
 function generatePeakUsageHeatmapData(totalCalls: number) {
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const heatmapData = [];
-  
+
   for (let hour = 0; hour < 24; hour++) {
     for (const day of days) {
       let intensity = 0;
       let calls = 0;
-      
+
       // Business hours pattern (9-17 on weekdays)
       if (['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].includes(day) && hour >= 9 && hour <= 17) {
         intensity = Math.random() * 0.6 + 0.4; // 0.4-1.0
@@ -2817,7 +2972,7 @@ function generatePeakUsageHeatmapData(totalCalls: number) {
         intensity = Math.random() * 0.2; // 0-0.2
         calls = Math.floor(totalCalls * intensity * 0.002);
       }
-      
+
       heatmapData.push({
         hour: String(hour).padStart(2, '0') + ':00',
         day,
@@ -2826,7 +2981,7 @@ function generatePeakUsageHeatmapData(totalCalls: number) {
       });
     }
   }
-  
+
   return {
     heatmapData,
     insights: {
@@ -2880,19 +3035,19 @@ async function fetchAssistantName(assistantId: string, vapiApiKey: string): Prom
 
     if (!response.ok) {
       console.error(`Failed to fetch assistant ${assistantId}:`, response.statusText);
-      
+
       // Return healthcare-themed sample names when API fails
       const sampleNames: { [key: string]: string } = {
         "94b9c5df-4630-45da-b616-b001953e024f": "Healthcare Assistant",
-        "34f8ff4a-8dcd-4b2b-b91a-3758a0eeca5c": "Prescription Bot", 
+        "34f8ff4a-8dcd-4b2b-b91a-3758a0eeca5c": "Prescription Bot",
         "6bb565e5-482c-4eed-a01f-14e3937466b0": "Insurance Helper",
         "2dacd2ee-cdc0-4c1e-acb4-467d190946ca": "Appointment Scheduler",
         "db9b4b57-d262-4ef5-8376-6442ce4216b4": "Lab Results Bot",
-        "1257ba2e-777e-44aa-a4c8-2317b44a8cff": "Billing Assistant", 
+        "1257ba2e-777e-44aa-a4c8-2317b44a8cff": "Billing Assistant",
         "7b3e963f-3439-466f-b5b8-3230b16e15f2": "Patient Support",
         "59fcb350-4fa5-41d7-87bd-861151df5777": "Telehealth Coordinator"
       };
-      
+
       return sampleNames[assistantId] || `Assistant ${assistantId.slice(0, 8)}`;
     }
 
@@ -2900,19 +3055,19 @@ async function fetchAssistantName(assistantId: string, vapiApiKey: string): Prom
     return assistantData.name || `Assistant ${assistantId.slice(0, 8)}`;
   } catch (error) {
     console.error(`Error fetching assistant ${assistantId}:`, error);
-    
+
     // Return healthcare-themed sample names when API fails
     const sampleNames: { [key: string]: string } = {
       "94b9c5df-4630-45da-b616-b001953e024f": "Healthcare Assistant",
-      "34f8ff4a-8dcd-4b2b-b91a-3758a0eeca5c": "Prescription Bot", 
+      "34f8ff4a-8dcd-4b2b-b91a-3758a0eeca5c": "Prescription Bot",
       "6bb565e5-482c-4eed-a01f-14e3937466b0": "Insurance Helper",
       "2dacd2ee-cdc0-4c1e-acb4-467d190946ca": "Appointment Scheduler",
       "db9b4b57-d262-4ef5-8376-6442ce4216b4": "Lab Results Bot",
-      "1257ba2e-777e-44aa-a4c8-2317b44a8cff": "Billing Assistant", 
+      "1257ba2e-777e-44aa-a4c8-2317b44a8cff": "Billing Assistant",
       "7b3e963f-3439-466f-b5b8-3230b16e15f2": "Patient Support",
       "59fcb350-4fa5-41d7-87bd-861151df5777": "Telehealth Coordinator"
     };
-    
+
     return sampleNames[assistantId] || `Assistant ${assistantId.slice(0, 8)}`;
   }
 }
@@ -2920,29 +3075,29 @@ async function fetchAssistantName(assistantId: string, vapiApiKey: string): Prom
 function generateDailyMetricsData(totalCalls: number, avgDuration: number, totalCost: number, successRate: number) {
   const dailyMetrics = [];
   const today = new Date();
-  
+
   // Generate data for the last 30 days
   for (let i = 29; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
-    
+
     // Simulate daily variance with realistic patterns
     const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    
+
     // Lower activity on weekends
     const baseMultiplier = isWeekend ? 0.3 : 1.0;
     const randomVariance = Math.random() * 0.6 + 0.7; // 0.7-1.3x variance
-    
+
     const dailyCalls = Math.max(1, Math.round(totalCalls / 30 * baseMultiplier * randomVariance));
     const dailySuccessRate = Math.max(40, Math.min(95, successRate + (Math.random() - 0.5) * 20));
     const successfulCalls = Math.round(dailyCalls * (dailySuccessRate / 100));
     const failedCalls = dailyCalls - successfulCalls;
-    
+
     const dailyAvgDuration = Math.max(15, avgDuration + (Math.random() - 0.5) * 60); // ±30 seconds variance
     const dailyTotalCost = Math.round(dailyCalls * (totalCost / totalCalls) * randomVariance * 100) / 100;
     const dailyAvgCost = dailyCalls > 0 ? Math.round((dailyTotalCost / dailyCalls) * 1000) / 1000 : 0;
-    
+
     dailyMetrics.push({
       date: date.toISOString().split('T')[0], // YYYY-MM-DD format
       calls: dailyCalls,
@@ -2954,7 +3109,7 @@ function generateDailyMetricsData(totalCalls: number, avgDuration: number, total
       successRate: Math.round(dailySuccessRate * 100) / 100,
     });
   }
-  
+
   return dailyMetrics;
 }
 
@@ -2978,37 +3133,37 @@ async function fetchRecentCallsForDashboard(vapiApiKey?: string): Promise<Dashbo
     }
 
     const callsData = await response.json();
-    
+
     // Check if response is an array or has data property
     const calls = Array.isArray(callsData) ? callsData : (callsData.data || []);
-    
+
     // Get unique assistant IDs for batch fetching
     const assistantIds = calls.map((call: any) => call.assistantId).filter(Boolean);
-    const uniqueAssistantIds = Array.from(new Set(assistantIds));
-    
+    const uniqueAssistantIds = Array.from(new Set(assistantIds)) as string[];
+
     // Fetch assistant names in parallel
     const assistantNamesMap = new Map<string, string>();
-    
+
     if (uniqueAssistantIds.length > 0) {
       const assistantPromises = uniqueAssistantIds.map(async (assistantId: string) => {
         const name = await fetchAssistantName(assistantId, vapiApiKey);
         return { id: assistantId, name };
       });
-      
+
       const assistantResults = await Promise.all(assistantPromises);
       assistantResults.forEach(({ id, name }) => {
         assistantNamesMap.set(id, name);
       });
     }
-    
+
     return calls.slice(0, 50).map((call: any) => ({
       id: call.id,
       type: call.type === 'inboundPhoneCall' ? 'inbound' : 'outbound',
       assistantPhoneNumber: call.assistantPhoneNumber || call.phoneNumber || '+1-555-0100',
       customerPhoneNumber: call.customer?.number || call.customerPhoneNumber || '+1-555-0123',
       assistantName: assistantNamesMap.get(call.assistantId) || call.assistant?.name || `Assistant ${(call.assistantId || 'Unknown').slice(0, 8)}`,
-      duration: Math.round(((call.endedAt && call.startedAt) 
-        ? (new Date(call.endedAt).getTime() - new Date(call.startedAt).getTime()) / 1000 
+      duration: Math.round(((call.endedAt && call.startedAt)
+        ? (new Date(call.endedAt).getTime() - new Date(call.startedAt).getTime()) / 1000
         : (call.duration || 0) * 60) * 100) / 100, // Convert Vapi duration from minutes to seconds
       cost: Math.round((call.cost || 0) * 100) / 100,
       status: call.status || 'completed',

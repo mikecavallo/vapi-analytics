@@ -24,6 +24,7 @@ interface Customer {
   name: string;
   description?: string;
   vapiApiKey: string;
+  retellApiKey?: string;
   createdAt: string;
 }
 
@@ -49,6 +50,7 @@ export default function AgencyPage() {
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerDescription, setNewCustomerDescription] = useState('');
   const [newCustomerApiKey, setNewCustomerApiKey] = useState('');
+  const [newCustomerRetellKey, setNewCustomerRetellKey] = useState('');
   const [newWhitelistEmail, setNewWhitelistEmail] = useState('');
   const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
   const [isAddEmailOpen, setIsAddEmailOpen] = useState(false);
@@ -85,7 +87,7 @@ export default function AgencyPage() {
 
   // Create customer mutation
   const createCustomerMutation = useMutation({
-    mutationFn: async (data: { name: string; description: string; vapiApiKey: string }) => {
+    mutationFn: async (data: { name: string; description: string; vapiApiKey: string; retellApiKey: string }) => {
       const response = await apiRequest('POST', '/api/admin/customers', data);
       return response.json();
     },
@@ -96,6 +98,7 @@ export default function AgencyPage() {
       setNewCustomerName('');
       setNewCustomerDescription('');
       setNewCustomerApiKey('');
+      setNewCustomerRetellKey('');
     },
     onError: (error) => {
       toast({ title: 'Error', description: 'Failed to create customer', variant: 'destructive' });
@@ -134,275 +137,287 @@ export default function AgencyPage() {
           </p>
         </div>
 
-      <Tabs defaultValue="customers" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="customers" className="flex items-center gap-2">
-            <Building className="w-4 h-4" />
-            Customers
-          </TabsTrigger>
-          <TabsTrigger value="users" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Users
-          </TabsTrigger>
-          <TabsTrigger value="email-whitelist" className="flex items-center gap-2">
-            <Mail className="w-4 h-4" />
-            Email Whitelist
-          </TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="customers" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="customers" className="flex items-center gap-2">
+              <Building className="w-4 h-4" />
+              Customers
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Users
+            </TabsTrigger>
+            <TabsTrigger value="email-whitelist" className="flex items-center gap-2">
+              <Mail className="w-4 h-4" />
+              Email Whitelist
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="customers" className="space-y-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Customer Management</CardTitle>
-                <CardDescription>
-                  Manage customer accounts and their Vapi API configurations
-                </CardDescription>
-              </div>
-              <Dialog open={isCreateCustomerOpen} onOpenChange={setIsCreateCustomerOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Customer
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create New Customer</DialogTitle>
-                    <DialogDescription>
-                      Add a new customer account with their Vapi API key
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="customerName">Customer Name</Label>
-                      <Input
-                        id="customerName"
-                        value={newCustomerName}
-                        onChange={(e) => setNewCustomerName(e.target.value)}
-                        placeholder="Enter customer name"
-                        data-testid="input-customer-name"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="customerDescription">Description (Optional)</Label>
-                      <Input
-                        id="customerDescription"
-                        value={newCustomerDescription}
-                        onChange={(e) => setNewCustomerDescription(e.target.value)}
-                        placeholder="Brief description of the customer"
-                        data-testid="input-customer-description"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="vapiApiKey">Vapi API Key</Label>
-                      <Input
-                        id="vapiApiKey"
-                        type="password"
-                        value={newCustomerApiKey}
-                        onChange={(e) => setNewCustomerApiKey(e.target.value)}
-                        placeholder="Enter Vapi API key"
-                        data-testid="input-vapi-api-key"
-                      />
-                    </div>
-                    <Button
-                      onClick={() => createCustomerMutation.mutate({
-                        name: newCustomerName,
-                        description: newCustomerDescription,
-                        vapiApiKey: newCustomerApiKey
-                      })}
-                      disabled={!newCustomerName || !newCustomerApiKey || createCustomerMutation.isPending}
-                      className="w-full"
-                      data-testid="button-create-customer"
-                    >
-                      {createCustomerMutation.isPending ? 'Creating...' : 'Create Customer'}
+          <TabsContent value="customers" className="space-y-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Customer Management</CardTitle>
+                  <CardDescription>
+                    Manage customer accounts and their Vapi API configurations
+                  </CardDescription>
+                </div>
+                <Dialog open={isCreateCustomerOpen} onOpenChange={setIsCreateCustomerOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Customer
                     </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </CardHeader>
-            <CardContent>
-              {customersLoading ? (
-                <div className="text-center py-4">Loading customers...</div>
-              ) : customers && customers.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>API Key</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {customers.map((customer) => (
-                      <TableRow key={customer.id}>
-                        <TableCell className="font-medium">{customer.name}</TableCell>
-                        <TableCell>{customer.description || '-'}</TableCell>
-                        <TableCell>
-                          <span className="font-mono text-xs">
-                            {customer.vapiApiKey ? '••••••••' : 'Not set'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {new Date(customer.createdAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="outline" size="sm">
-                            Edit
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  No customers found. Create your first customer to get started.
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="users" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>User Management</CardTitle>
-              <CardDescription>
-                View and manage all registered users on the platform
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {usersLoading ? (
-                <div className="text-center py-4">Loading users...</div>
-              ) : users && users.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Username</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Registered</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.username}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                          <Badge variant={user.role === 'super_admin' ? 'default' : 'secondary'}>
-                            {user.role === 'super_admin' ? 'Super Admin' : 'Customer'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={user.emailVerified ? 'default' : 'destructive'}>
-                            {user.emailVerified ? 'Verified' : 'Unverified'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {new Date(user.createdAt).toLocaleDateString()}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  No users found.
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="email-whitelist" className="space-y-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Email Whitelist</CardTitle>
-                <CardDescription>
-                  Control who can register on the platform by managing the email whitelist
-                </CardDescription>
-              </div>
-              <Dialog open={isAddEmailOpen} onOpenChange={setIsAddEmailOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Email
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Email to Whitelist</DialogTitle>
-                    <DialogDescription>
-                      Allow this email address to register on the platform
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="whitelistEmail">Email Address</Label>
-                      <Input
-                        id="whitelistEmail"
-                        type="email"
-                        value={newWhitelistEmail}
-                        onChange={(e) => setNewWhitelistEmail(e.target.value)}
-                        placeholder="user@example.com"
-                        data-testid="input-whitelist-email"
-                      />
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create New Customer</DialogTitle>
+                      <DialogDescription>
+                        Add a new customer account with their Vapi API key
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="customerName">Customer Name</Label>
+                        <Input
+                          id="customerName"
+                          value={newCustomerName}
+                          onChange={(e) => setNewCustomerName(e.target.value)}
+                          placeholder="Enter customer name"
+                          data-testid="input-customer-name"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="customerDescription">Description (Optional)</Label>
+                        <Input
+                          id="customerDescription"
+                          value={newCustomerDescription}
+                          onChange={(e) => setNewCustomerDescription(e.target.value)}
+                          placeholder="Brief description of the customer"
+                          data-testid="input-customer-description"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="vapiApiKey">Vapi API Key</Label>
+                        <Input
+                          id="vapiApiKey"
+                          type="password"
+                          value={newCustomerApiKey}
+                          onChange={(e) => setNewCustomerApiKey(e.target.value)}
+                          placeholder="Enter Vapi API key"
+                          data-testid="input-vapi-api-key"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="retellApiKey">Retell API Key (Optional)</Label>
+                        <Input
+                          id="retellApiKey"
+                          type="password"
+                          value={newCustomerRetellKey}
+                          onChange={(e) => setNewCustomerRetellKey(e.target.value)}
+                          placeholder="Enter Retell API key"
+                          data-testid="input-retell-api-key"
+                        />
+                      </div>
+                      <Button
+                        onClick={() => createCustomerMutation.mutate({
+                          name: newCustomerName,
+                          description: newCustomerDescription,
+                          vapiApiKey: newCustomerApiKey,
+                          retellApiKey: newCustomerRetellKey
+                        })}
+                        disabled={!newCustomerName || (!newCustomerApiKey && !newCustomerRetellKey) || createCustomerMutation.isPending}
+                        className="w-full"
+                        data-testid="button-create-customer"
+                      >
+                        {createCustomerMutation.isPending ? 'Creating...' : 'Create Customer'}
+                      </Button>
                     </div>
-                    <Button
-                      onClick={() => addEmailMutation.mutate(newWhitelistEmail)}
-                      disabled={!newWhitelistEmail || addEmailMutation.isPending}
-                      className="w-full"
-                      data-testid="button-add-email"
-                    >
-                      {addEmailMutation.isPending ? 'Adding...' : 'Add to Whitelist'}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </CardHeader>
-            <CardContent>
-              {emailLoading ? (
-                <div className="text-center py-4">Loading email whitelist...</div>
-              ) : emailWhitelist && emailWhitelist.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Email Address</TableHead>
-                      <TableHead>Added</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {emailWhitelist.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.email}</TableCell>
-                        <TableCell>
-                          {new Date(item.createdAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="outline" size="sm">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                {customersLoading ? (
+                  <div className="text-center py-4">Loading customers...</div>
+                ) : customers && customers.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>API Key</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  No emails in whitelist. Add emails to allow user registration.
+                    </TableHeader>
+                    <TableBody>
+                      {customers.map((customer) => (
+                        <TableRow key={customer.id}>
+                          <TableCell className="font-medium">{customer.name}</TableCell>
+                          <TableCell>{customer.description || '-'}</TableCell>
+                          <TableCell>
+                            <span className="font-mono text-xs">
+                              {customer.vapiApiKey ? '••••••••' : 'Not set'}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {new Date(customer.createdAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <Button variant="outline" size="sm">
+                              Edit
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    No customers found. Create your first customer to get started.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="users" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>User Management</CardTitle>
+                <CardDescription>
+                  View and manage all registered users on the platform
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {usersLoading ? (
+                  <div className="text-center py-4">Loading users...</div>
+                ) : users && users.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Username</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Registered</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell className="font-medium">{user.username}</TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>
+                            <Badge variant={user.role === 'super_admin' ? 'default' : 'secondary'}>
+                              {user.role === 'super_admin' ? 'Super Admin' : 'Customer'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={user.emailVerified ? 'default' : 'destructive'}>
+                              {user.emailVerified ? 'Verified' : 'Unverified'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {new Date(user.createdAt).toLocaleDateString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    No users found.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="email-whitelist" className="space-y-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Email Whitelist</CardTitle>
+                  <CardDescription>
+                    Control who can register on the platform by managing the email whitelist
+                  </CardDescription>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                <Dialog open={isAddEmailOpen} onOpenChange={setIsAddEmailOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Email
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Email to Whitelist</DialogTitle>
+                      <DialogDescription>
+                        Allow this email address to register on the platform
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="whitelistEmail">Email Address</Label>
+                        <Input
+                          id="whitelistEmail"
+                          type="email"
+                          value={newWhitelistEmail}
+                          onChange={(e) => setNewWhitelistEmail(e.target.value)}
+                          placeholder="user@example.com"
+                          data-testid="input-whitelist-email"
+                        />
+                      </div>
+                      <Button
+                        onClick={() => addEmailMutation.mutate(newWhitelistEmail)}
+                        disabled={!newWhitelistEmail || addEmailMutation.isPending}
+                        className="w-full"
+                        data-testid="button-add-email"
+                      >
+                        {addEmailMutation.isPending ? 'Adding...' : 'Add to Whitelist'}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                {emailLoading ? (
+                  <div className="text-center py-4">Loading email whitelist...</div>
+                ) : emailWhitelist && emailWhitelist.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Email Address</TableHead>
+                        <TableHead>Added</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {emailWhitelist.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium">{item.email}</TableCell>
+                          <TableCell>
+                            {new Date(item.createdAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <Button variant="outline" size="sm">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    No emails in whitelist. Add emails to allow user registration.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

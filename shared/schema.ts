@@ -28,6 +28,7 @@ export const customers = pgTable("customers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   vapiApiKey: text("vapi_api_key"), // Optional - users can set this later
+  retellApiKey: text("retell_api_key"), // Optional - users can set this later
   description: text("description"),
   createdByUserId: varchar("created_by_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
@@ -307,16 +308,16 @@ export const assistantConfigSchema = z.object({
   description: z.string().optional(),
   firstMessage: z.string().min(1, "First message is required").max(500, "First message must be less than 500 characters"),
   systemMessage: z.string().min(1, "System message is required").max(2000, "System message must be less than 2000 characters"),
-  
+
   // First Message Configuration
   firstMessageMode: z.enum(['assistant-speaks-first', 'assistant-waits-for-user', 'assistant-speaks-first-with-model-generated-message']).default('assistant-speaks-first'),
   firstMessageInterruptionsEnabled: z.boolean().default(true),
-  
+
   // Call Behavior
   maxDurationSeconds: z.number().min(30).max(3600).default(600),
   backgroundSound: z.enum(['office', 'nature', 'cafe', 'none']).default('office'),
   modelOutputInMessagesEnabled: z.boolean().default(false),
-  
+
   // End Call Configuration
   voicemailMessage: z.string().max(500).optional(),
   endCallMessage: z.string().max(500).optional(),
@@ -327,7 +328,7 @@ export const assistantConfigSchema = z.object({
     enabled: z.boolean().default(false),
     machineDetectionTimeout: z.number().min(5).max(60).default(30),
   }).optional(),
-  
+
   // Model Configuration
   model: z.object({
     provider: z.enum(['openai', 'anthropic', 'perplexity-ai', 'together-ai', 'anyscale', 'openrouter', 'groq', 'deepinfra', 'custom-llm']).default('openai'),
@@ -340,7 +341,7 @@ export const assistantConfigSchema = z.object({
       model: z.string(),
     })).optional(),
   }),
-  
+
   // Voice Configuration
   voice: z.object({
     provider: z.enum(['11labs', 'playht', 'azure', 'rime-ai', 'deepgram', 'openai', 'lmnt', 'neets']).default('11labs'),
@@ -352,7 +353,7 @@ export const assistantConfigSchema = z.object({
     optimizeStreamingLatency: z.number().min(0).max(4).default(3).optional(),
     inputPreprocessingEnabled: z.boolean().default(true).optional(),
   }),
-  
+
   // Transcriber Configuration
   transcriber: z.object({
     provider: z.enum(['deepgram', 'assembly-ai', 'gladia', 'talkscriber']).default('deepgram'),
@@ -362,11 +363,11 @@ export const assistantConfigSchema = z.object({
     keywords: z.array(z.string()).default([]),
     endpointing: z.number().min(0).max(500).default(255).optional(),
   }),
-  
+
   // Message Types
   clientMessages: z.array(z.string()).optional(),
   serverMessages: z.array(z.string()).optional(),
-  
+
   // Analysis Configuration
   analysisPlan: z.object({
     summaryPrompt: z.string().max(1000).optional(),
@@ -374,7 +375,7 @@ export const assistantConfigSchema = z.object({
     successEvaluationPrompt: z.string().max(1000).optional(),
     successEvaluationRubric: z.enum(['NumericScale', 'DescriptiveScale', 'Checklist', 'Matrix', 'PercentageScale', 'LikertScale', 'Binary', 'Custom']).optional(),
   }).optional(),
-  
+
   // Advanced Plans
   startSpeakingPlan: z.object({
     waitSeconds: z.number().min(0).max(5).default(0.4),
@@ -385,23 +386,23 @@ export const assistantConfigSchema = z.object({
       onNumberSeconds: z.number().min(0).max(3).optional(),
     }).optional(),
   }).optional(),
-  
+
   stopSpeakingPlan: z.object({
     numWords: z.number().min(1).max(10).default(2),
     voiceSeconds: z.number().min(0).max(3).default(0.8),
     backoffSeconds: z.number().min(0).max(3).default(1.0),
   }).optional(),
-  
+
   monitorPlan: z.object({
     listenEnabled: z.boolean().default(false),
     controlEnabled: z.boolean().default(false),
   }).optional(),
-  
+
   backgroundSpeechDenoisingPlan: z.object({
     enabled: z.boolean().default(false),
     krispEnabled: z.boolean().default(false),
   }).optional(),
-  
+
   // Function Calling Tools
   tools: z.array(z.object({
     type: z.literal('function'),
@@ -415,14 +416,14 @@ export const assistantConfigSchema = z.object({
       secret: z.string().optional(),
     }).optional(),
   })).default([]),
-  
+
   // Knowledge Base
   knowledgeBase: z.object({
     provider: z.string().optional(),
     topK: z.number().min(1).max(50).default(5),
     fileIds: z.array(z.string()).default([]),
   }).optional(),
-  
+
   // Metadata
   metadata: z.record(z.any()).optional(),
 });
