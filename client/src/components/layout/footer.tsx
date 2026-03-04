@@ -40,12 +40,12 @@ export function Footer() {
               <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-about">
                 About
               </a>
-              <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-privacy">
+              <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-privacy">
                 Privacy Policy
-              </a>
-              <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-terms">
+              </Link>
+              <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-terms">
                 Terms of Service
-              </a>
+              </Link>
               <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-contact">
                 Contact
               </a>

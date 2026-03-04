@@ -498,58 +498,6 @@ export default function UseCasesPage() {
         </div>
       </section>
 
-      {/* Client Success Stories */}
-      <section className="py-16 bg-white dark:bg-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-              Real Client Success Stories
-            </h2>
-            <p className="text-lg text-gray-600 dark:text-gray-300">
-              See how businesses transform their operations with voice AI automation
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Law Firm Story */}
-            <Card className="border-0 shadow-lg">
-              <CardHeader>
-                <Badge className="w-fit mb-2">Law Firm</Badge>
-                <CardTitle>Streamlined Discovery Calls</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  A busy attorney was overwhelmed with discovery calls. We built an AI intake agent that gathers facts, summarizes situations, and routes urgent criminal cases for instant callback while handling minor questions automatically.
-                </p>
-                <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg">
-                  <p className="text-sm text-green-700 dark:text-green-300 font-medium">
-                    Result: Saves hours daily, never misses high-value cases, complete CRM integration with searchable transcripts
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* E-Commerce Story */}
-            <Card className="border-0 shadow-lg">
-              <CardHeader>
-                <Badge className="w-fit mb-2">E-Commerce</Badge>
-                <CardTitle>Superior Customer Service</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  An online shop needed better customer service. We delivered AI chat and SMS agents for order tracking, payment system integration for instant refund status, and sentiment analysis that flags upset customers for human callbacks.
-                </p>
-                <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg">
-                  <p className="text-sm text-green-700 dark:text-green-300 font-medium">
-                    Result: Faster service, fewer angry emails, more repeat buyers
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
       {/* CTA Section */}
       <section className="py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
