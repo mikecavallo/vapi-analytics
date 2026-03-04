@@ -1,6 +1,19 @@
-import { useState } from "react";
+import { useState, useMemo, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardData } from "@shared/schema";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import KpiCards from "@/components/analytics/kpi-cards";
 import CallVolumeTrends from "@/components/analytics/call-volume-trends";
 import CallOutcomes from "@/components/analytics/call-outcomes";
@@ -13,16 +26,18 @@ import ConversationOutcomes from "@/components/analytics/conversation-outcomes";
 import WarningsPanel from "@/components/analytics/warnings-panel";
 import MostSuccessfulAgent from "@/components/analytics/most-successful-agent";
 import DailyMetricsCharts from "@/components/analytics/daily-metrics-charts";
+import DraggableSection from "@/components/analytics/draggable-section";
 import AIChatbot from "@/components/ai-chatbot";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, ChartLine, User, Sun, Moon, Brain, Activity, Wand2, FileText, Settings, RefreshCw, Users, Phone } from "lucide-react";
+import { ChartLine, Activity, Settings, RefreshCw, Phone, RotateCcw } from "lucide-react";
 import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
+import { useDashboardLayout } from "@/hooks/use-dashboard-layout";
 
 // Helper functions to check if data is meaningful
 const hasKpiData = (data?: DashboardData) => {
@@ -80,16 +95,150 @@ const hasConversationOutcomesData = (data?: DashboardData) => {
 export default function Dashboard() {
   const [timeRange, setTimeRange] = useState("last-7-days");
   const [provider, setProvider] = useState("vapi");
+  const [customDateRange, setCustomDateRange] = useState<{ from: Date; to: Date } | null>(null);
   const { toast } = useToast();
   const { theme, toggleTheme } = useTheme();
   const [location] = useLocation();
   const { user } = useAuth();
+  const { sections, reorder, resetLayout } = useDashboardLayout();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor)
+  );
+
+  // Build query string with optional custom dates
+  const queryParams = (() => {
+    const params = `?timeRange=${timeRange}&provider=${provider}`;
+    if (timeRange === "custom-range" && customDateRange) {
+      return `${params}&startDate=${customDateRange.from.toISOString()}&endDate=${customDateRange.to.toISOString()}`;
+    }
+    return params;
+  })();
 
   const { data, isLoading, error, refetch } = useQuery<DashboardData>({
-    queryKey: ["/api/analytics/summary", `?timeRange=${timeRange}&provider=${provider}`],
-    enabled: true,
+    queryKey: ["/api/analytics/summary", queryParams],
+    enabled: timeRange !== "custom-range" || !!customDateRange,
   });
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      reorder(active.id as string, over.id as string);
+    }
+  };
+
+  // Build section content map — each section renders its content (or null if no data)
+  const sectionContent = useMemo((): Record<string, ReactNode | null> => {
+    return {
+      "kpi-cards": (isLoading || hasKpiData(data)) ? (
+        <section>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+            <div className="flex items-center gap-4">
+              <h2 className="text-3xl font-bold text-foreground">Key Metrics</h2>
+              <Tabs value={provider} onValueChange={setProvider} className="w-[200px]">
+                <TabsList>
+                  <TabsTrigger value="vapi" className="flex items-center gap-2">
+                    <Activity className="w-4 h-4" /> Vapi
+                  </TabsTrigger>
+                  <TabsTrigger value="retell" className="flex items-center gap-2">
+                    <Phone className="w-4 h-4" /> Retell
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+            <TimeRangeSelector
+              value={timeRange}
+              onChange={setTimeRange}
+              customDateRange={customDateRange}
+              onCustomDateChange={setCustomDateRange}
+            />
+          </div>
+          <KpiCards data={data} isLoading={isLoading} />
+        </section>
+      ) : null,
+
+      "warnings": (isLoading || hasKpiData(data)) ? (
+        <section>
+          <WarningsPanel data={data} isLoading={isLoading} />
+        </section>
+      ) : null,
+
+      "agent-volume": (isLoading || hasMostSuccessfulAgentData(data) || hasCallVolumeData(data)) ? (
+        <section>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {(isLoading || hasMostSuccessfulAgentData(data)) && (
+              <MostSuccessfulAgent data={data} isLoading={isLoading} />
+            )}
+            {(isLoading || hasCallVolumeData(data)) && (
+              <div className="lg:col-span-2">
+                <CallVolumeTrends data={data} isLoading={isLoading} />
+              </div>
+            )}
+          </div>
+        </section>
+      ) : null,
+
+      "outcomes-evaluation": (isLoading || hasCallOutcomesData(data) || hasDailyMetricsData(data)) ? (
+        <section>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {(isLoading || hasCallOutcomesData(data)) && (
+              <CallOutcomes data={data} isLoading={isLoading} />
+            )}
+            {(isLoading || hasDailyMetricsData(data)) && (
+              <DailyMetricsCharts data={{ dailyMetrics: data?.dailyMetrics || [] }} isLoading={isLoading} />
+            )}
+          </div>
+        </section>
+      ) : null,
+
+      "recent-calls": (isLoading || hasRecentCallsData(data)) ? (
+        <section>
+          <RecentCallsTable data={data?.recentCalls || []} isLoading={isLoading} />
+        </section>
+      ) : null,
+
+      "conversation-flow": (isLoading || hasConversationFlowData(data)) ? (
+        <section>
+          <ConversationFlowAnalysis
+            data={data?.conversationFlow || { stages: [], successPaths: [], dropOffPoints: [] }}
+            isLoading={isLoading}
+          />
+        </section>
+      ) : null,
+
+      "duration-distribution": (isLoading || hasDurationDistributionData(data)) ? (
+        <section>
+          <DurationDistribution
+            data={data?.durationHistogram || { histogram: [], stats: { average: "0:00", median: "0:00", mostCommon: "0:00", longest: "0:00" } }}
+            isLoading={isLoading}
+          />
+        </section>
+      ) : null,
+
+      "peak-usage": (isLoading || hasPeakUsageData(data)) ? (
+        <section>
+          <PeakUsageHeatmap
+            data={data?.peakUsageHeatmap || { heatmapData: [], insights: { peakHours: "", busiestDay: "", quietHours: "" } }}
+            isLoading={isLoading}
+          />
+        </section>
+      ) : null,
+
+      "conversation-outcomes": (isLoading || hasConversationOutcomesData(data)) ? (
+        <section>
+          <ConversationOutcomes
+            data={data?.conversationOutcomes || { summary: { totalConversations: 0, successRate: 0, avgDuration: "0:00", avgSatisfaction: 0 }, outcomes: [] }}
+            isLoading={isLoading}
+          />
+        </section>
+      ) : null,
+    };
+  }, [data, isLoading, provider, timeRange, customDateRange]);
+
+  // Filter to only visible sections that have content
+  const visibleSections = sections.filter(s => s.visible && sectionContent[s.id] !== null);
+  const hasAnyData = visibleSections.length > 0;
 
   if (error) {
     return (
@@ -115,8 +264,8 @@ export default function Dashboard() {
       <DashboardHeader />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Show message when no data is available */}
-        {!isLoading && !hasKpiData(data) && !hasCallVolumeData(data) && !hasCallOutcomesData(data) && !hasMostSuccessfulAgentData(data) && !hasDailyMetricsData(data) && !hasRecentCallsData(data) && (
+        {/* Empty state when no data */}
+        {!isLoading && !hasAnyData && (
           <div className="text-center py-12 bg-card rounded-lg border border-border">
             <div className="max-w-md mx-auto">
               <div className="text-muted-foreground mb-4">
@@ -141,110 +290,42 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-        {/* Key Performance Indicators - Main dashboard metrics with time range selector */}
-        {/* Key Metrics */}
-        {(isLoading || hasKpiData(data)) && (
-          <section className="mb-8">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-              <div className="flex items-center gap-4">
-                <h2 className="text-3xl font-bold text-foreground">Key Metrics</h2>
-                <Tabs value={provider} onValueChange={setProvider} className="w-[200px]">
-                  <TabsList>
-                    <TabsTrigger value="vapi" className="flex items-center gap-2">
-                      <Activity className="w-4 h-4" /> Vapi
-                    </TabsTrigger>
-                    <TabsTrigger value="retell" className="flex items-center gap-2">
-                      <Phone className="w-4 h-4" /> Retell
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
+
+        {/* Draggable dashboard sections */}
+        {hasAnyData && (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={visibleSections.map(s => s.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-8">
+                {visibleSections.map((section) => (
+                  <DraggableSection key={section.id} id={section.id}>
+                    {sectionContent[section.id]}
+                  </DraggableSection>
+                ))}
               </div>
-              <TimeRangeSelector
-                value={timeRange}
-                onChange={setTimeRange}
-                data-testid="select-time-range"
-              />
-            </div>
-            <KpiCards data={data} isLoading={isLoading} />
-          </section>
+            </SortableContext>
+          </DndContext>
         )}
 
-        {/* System Status - Warnings and alerts displayed in full-width section */}
-        {/* System Alerts & Warnings */}
-        {(isLoading || hasKpiData(data)) && (
-          <section className="mb-8">
-            <WarningsPanel data={data} isLoading={isLoading} />
-          </section>
-        )}
-
-        {/* Core Analytics Overview - 3-column layout showing key performance data */}
-        {/* Analytics Row: Most Successful Agent, Call Volume, Call Outcomes */}
-        {(isLoading || hasMostSuccessfulAgentData(data) || hasCallVolumeData(data) || hasCallOutcomesData(data)) && (
-          <section className="mb-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {(isLoading || hasMostSuccessfulAgentData(data)) && (
-                <MostSuccessfulAgent data={data} isLoading={isLoading} />
-              )}
-              {(isLoading || hasCallVolumeData(data)) && (
-                <CallVolumeTrends data={data} isLoading={isLoading} />
-              )}
-              {(isLoading || hasCallOutcomesData(data)) && (
-                <CallOutcomes data={data} isLoading={isLoading} />
-              )}
-            </div>
-          </section>
-        )}
-
-
-        {/* Daily Metrics Charts */}
-        {(isLoading || hasDailyMetricsData(data)) && (
-          <section className="mb-8">
-            <DailyMetricsCharts data={{ dailyMetrics: data?.dailyMetrics || [] }} isLoading={isLoading} />
-          </section>
-        )}
-
-        {/* Recent Calls Table */}
-        {(isLoading || hasRecentCallsData(data)) && (
-          <section className="mb-8">
-            <RecentCallsTable data={data?.recentCalls || []} isLoading={isLoading} />
-          </section>
-        )}
-
-        {/* Advanced Analytics Grid */}
-        {(isLoading || hasConversationFlowData(data) || hasDurationDistributionData(data) || hasPeakUsageData(data) || hasConversationOutcomesData(data)) && (
-          <section className="mb-8 grid grid-cols-1 gap-8">
-            {/* Conversation Flow Analysis */}
-            {(isLoading || hasConversationFlowData(data)) && (
-              <ConversationFlowAnalysis
-                data={data?.conversationFlow || { stages: [], successPaths: [], dropOffPoints: [] }}
-                isLoading={isLoading}
-              />
-            )}
-
-            {/* Duration Distribution */}
-            {(isLoading || hasDurationDistributionData(data)) && (
-              <DurationDistribution
-                data={data?.durationHistogram || { histogram: [], stats: { average: "0:00", median: "0:00", mostCommon: "0:00", longest: "0:00" } }}
-                isLoading={isLoading}
-              />
-            )}
-
-            {/* Peak Usage Heatmap */}
-            {(isLoading || hasPeakUsageData(data)) && (
-              <PeakUsageHeatmap
-                data={data?.peakUsageHeatmap || { heatmapData: [], insights: { peakHours: "", busiestDay: "", quietHours: "" } }}
-                isLoading={isLoading}
-              />
-            )}
-
-            {/* Conversation Outcomes */}
-            {(isLoading || hasConversationOutcomesData(data)) && (
-              <ConversationOutcomes
-                data={data?.conversationOutcomes || { summary: { totalConversations: 0, successRate: 0, avgDuration: "0:00", avgSatisfaction: 0 }, outcomes: [] }}
-                isLoading={isLoading}
-              />
-            )}
-          </section>
+        {/* Reset layout button */}
+        {hasAnyData && (
+          <div className="flex justify-center mt-6">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={resetLayout}
+              className="text-muted-foreground hover:text-foreground gap-2"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Reset Layout
+            </Button>
+          </div>
         )}
       </main>
 

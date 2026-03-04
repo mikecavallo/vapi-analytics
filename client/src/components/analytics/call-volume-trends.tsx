@@ -54,7 +54,7 @@ export default function CallVolumeTrends({ data, isLoading }: CallVolumeTrendsPr
           <CardTitle>Call Volume Trends</CardTitle>
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-80 w-full" />
         </CardContent>
       </Card>
     );
@@ -66,7 +66,7 @@ export default function CallVolumeTrends({ data, isLoading }: CallVolumeTrendsPr
         <CardTitle>Call Volume Trends</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-64 w-full">
+        <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={filteredVolumeData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(214.3, 31.8%, 91.4%)" />
