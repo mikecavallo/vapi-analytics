@@ -237,6 +237,17 @@ export function authRateLimit(req: Request, res: Response, next: NextFunction) {
  */
 const apiRateLimitCounters = new Map<string, RateLimitCounter>();
 
+// Evict stale rate limit entries every 30 minutes to prevent unbounded memory growth
+setInterval(() => {
+  const now = Date.now();
+  const windowSize = 15 * 60 * 1000;
+  apiRateLimitCounters.forEach((counter, key) => {
+    if (now - counter.windowStart > windowSize) {
+      apiRateLimitCounters.delete(key);
+    }
+  });
+}, 30 * 60 * 1000);
+
 export function apiRateLimit(req: Request, res: Response, next: NextFunction) {
   const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
   const key = `api:${clientIP}`;
