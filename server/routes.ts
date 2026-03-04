@@ -45,7 +45,8 @@ function auditLog(action: string, userId: string | undefined, details: Record<st
 }
 
 const MAX_PROMPT_LENGTH = 5000;
-const MAX_TRANSCRIPT_LENGTH = 2000;
+const MAX_ANALYSIS_CALLS_FLOW = 50;
+const MAX_ERROR_BODY_LOG_LENGTH = 500;
 
 function createEmptyDashboardData(): DashboardData {
   return {
@@ -332,12 +333,15 @@ async function fetchCallsWithFilters(queryParams: Record<string, string>, vapiAp
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      const errorBody = await response.text();
-      console.error(`Failed to fetch calls: ${response.status} ${response.statusText}`, errorBody);
+      const rawErrorBody = await response.text();
+      const errorBody = rawErrorBody.length > MAX_ERROR_BODY_LOG_LENGTH
+        ? `${rawErrorBody.slice(0, MAX_ERROR_BODY_LOG_LENGTH)}…[truncated]`
+        : rawErrorBody;
+      console.error(`Failed to fetch calls: ${response.status} ${response.statusText}`, { errorBody });
       if (response.status === 401 || response.status === 403) {
         throw new Error("Invalid API key or insufficient permissions");
       }
-      throw new Error(`API call failed: ${response.status} ${response.statusText} - ${errorBody}`);
+      throw new Error(`API call failed: ${response.status} ${response.statusText}${errorBody ? ` - ${errorBody}` : ""}`);
     }
 
     const callsData = await response.json();
@@ -440,12 +444,15 @@ async function fetchRetellCallsWithFilters(queryParams: Record<string, string>, 
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      const errorBody = await response.text();
-      console.error(`Failed to fetch Retell calls: ${response.status} ${response.statusText}`, errorBody);
+      const rawErrorBody = await response.text();
+      const errorBody = rawErrorBody.length > MAX_ERROR_BODY_LOG_LENGTH
+        ? `${rawErrorBody.slice(0, MAX_ERROR_BODY_LOG_LENGTH)}…[truncated]`
+        : rawErrorBody;
+      console.error(`Failed to fetch calls: ${response.status} ${response.statusText}`, { errorBody });
       if (response.status === 401 || response.status === 403) {
         throw new Error("Invalid API key or insufficient permissions");
       }
-      throw new Error(`API call failed: ${response.status} ${response.statusText} - ${errorBody}`);
+      throw new Error(`API call failed: ${response.status} ${response.statusText}${errorBody ? ` - ${errorBody}` : ""}`);
     }
 
     const callsData = await response.json();
@@ -2218,6 +2225,10 @@ Generate a professional analysis in JSON format:
         return res.status(400).json({ error: "callIds array is required" });
       }
 
+      if (callIds.length > MAX_ANALYSIS_CALLS_FLOW) {
+        return res.status(400).json({ error: `callIds exceeds maximum allowed length of ${MAX_ANALYSIS_CALLS_FLOW}` });
+      }
+
       if (analysisType && typeof analysisType === 'string' && analysisType.length > MAX_PROMPT_LENGTH) {
         return res.status(400).json({ error: `analysisType exceeds maximum length of ${MAX_PROMPT_LENGTH} characters` });
       }
@@ -2977,7 +2988,7 @@ Generate professional insights in JSON format:
 
   // One-time startup check: warn if any users have plain text passwords (not bcrypt-hashed)
   storage.getAllUsers().then((allUsers) => {
-    const plainTextUsers = allUsers.filter(u => u.password && !u.password.startsWith('$2b$'));
+    const plainTextUsers = allUsers.filter(u => u.password && !/^\$2[aby]\$/.test(u.password));
     if (plainTextUsers.length > 0) {
       console.warn(`[SECURITY WARNING] ${plainTextUsers.length} user(s) have passwords that are not bcrypt-hashed. ` +
         `Affected emails: ${plainTextUsers.map(u => u.email).join(', ')}. ` +
