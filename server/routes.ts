@@ -313,11 +313,12 @@ async function fetchCallsWithFilters(queryParams: Record<string, string>, vapiAp
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      console.error(`Failed to fetch calls: ${response.status} ${response.statusText}`);
+      const errorBody = await response.text();
+      console.error(`Failed to fetch calls: ${response.status} ${response.statusText}`, errorBody);
       if (response.status === 401 || response.status === 403) {
         throw new Error("Invalid API key or insufficient permissions");
       }
-      throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+      throw new Error(`API call failed: ${response.status} ${response.statusText} - ${errorBody}`);
     }
 
     const callsData = await response.json();
@@ -374,23 +375,38 @@ async function fetchRetellCallsWithFilters(queryParams: Record<string, string>, 
       "Content-Type": "application/json",
     };
 
-    // Note: Retell's 'list-calls' API uses a different endpoint structure:
-    // GET https://api.retellai.com/v2/list-calls
-    const url = new URL("https://api.retellai.com/v2/list-calls");
+    // Retell's list-calls API is POST with JSON body
+    const url = "https://api.retellai.com/v2/list-calls";
 
-    // Map Vapi standard query params to Retell's (simplified)
+    // Build request body with filter_criteria
+    const body: any = {};
     if (queryParams.limit) {
-      url.searchParams.append("limit", queryParams.limit);
+      body.limit = parseInt(queryParams.limit);
     }
 
-    // Note: For advanced date filtering, Retell expects epoch timestamps in 'filter_criteria'
-    // For this boilerplate, we'll fetch calls and filter them downstream if `filter_criteria` isn't fully supported via query params.
+    // Retell uses a flat object for filter_criteria with threshold-based date filters
+    const filterCriteria: any = {};
+    const fromDate = queryParams.createdAtGt || queryParams.createdAtGe;
+    const toDate = queryParams.createdAtLt || queryParams.createdAtLe;
+    if (fromDate || toDate) {
+      const timestampFilter: any = {};
+      if (fromDate) timestampFilter.lower_threshold = new Date(fromDate).getTime();
+      if (toDate) timestampFilter.upper_threshold = new Date(toDate).getTime();
+      filterCriteria.start_timestamp = timestampFilter;
+    }
+    if (queryParams.assistantId) {
+      filterCriteria.agent_id = [queryParams.assistantId];
+    }
+    if (Object.keys(filterCriteria).length > 0) {
+      body.filter_criteria = filterCriteria;
+    }
 
-    console.log(`Making API request to: ${url.toString()}`);
+    console.log(`Making Retell API request to: ${url}`, JSON.stringify(body));
 
-    const response = await fetch(url.toString(), {
-      method: "GET",
+    const response = await fetch(url, {
+      method: "POST",
       headers: requestHeaders,
+      body: JSON.stringify(body),
       signal: controller.signal,
     });
 
@@ -1101,15 +1117,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Customer ID required" });
       }
 
-      // Get customer data to retrieve their specific Vapi API key
-      const customer = await storage.getCustomer(customerId);
-      if (!customer || !customer.vapiApiKey) {
-        return res.status(500).json({
-          error: "Customer Vapi API key not configured. Contact support."
-        });
-      }
+      const provider = (req.query.provider as string) || 'vapi';
 
-      // Extract query parameters - only use supported Vapi API parameters
+      // Get customer data to retrieve their API key
+      const customer = await storage.getCustomer(customerId);
+
+      // Extract query parameters - only use supported API parameters
       const allowedParams = ['id', 'assistantId', 'phoneNumberId', 'squadId', 'limit', 'createdAtGt', 'createdAtLt', 'createdAtGe', 'createdAtLe', 'updatedAtGt', 'updatedAtLt', 'updatedAtGe', 'updatedAtLe'];
       const queryParams: Record<string, string> = {};
 
@@ -1118,12 +1131,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           queryParams[param] = req.query[param] as string;
         }
       });
-
-      // Map squadId to phoneNumberId for Vapi API compatibility
-      if (req.query.squadId) {
-        queryParams['phoneNumberId'] = req.query.squadId as string;
-        delete queryParams['squadId']; // Remove squadId since Vapi API expects phoneNumberId
-      }
 
       // Ensure a reasonable default limit if not provided
       if (!queryParams.limit) {
@@ -1139,7 +1146,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const calls = await fetchCallsWithFilters(queryParams, customer.vapiApiKey);
+      let calls: any[];
+
+      if (provider === 'retell') {
+        if (!customer || !customer.retellApiKey) {
+          return res.status(500).json({
+            error: "Retell API key not configured. Go to Settings to add it."
+          });
+        }
+        calls = await fetchRetellCallsWithFilters(queryParams, customer.retellApiKey);
+      } else {
+        if (!customer || !customer.vapiApiKey) {
+          return res.status(500).json({
+            error: "Vapi API key not configured. Go to Settings to add it."
+          });
+        }
+        // Map squadId to phoneNumberId for Vapi API compatibility
+        if (req.query.squadId) {
+          queryParams['phoneNumberId'] = req.query.squadId as string;
+          delete queryParams['squadId'];
+        }
+        calls = await fetchCallsWithFilters(queryParams, customer.vapiApiKey);
+      }
 
       console.log(`[${new Date().toLocaleTimeString()}] Serving ${calls.length} calls with filters:`, queryParams);
       res.json(calls);
