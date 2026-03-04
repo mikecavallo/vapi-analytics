@@ -2412,18 +2412,19 @@ Generate professional insights in JSON format:
 
       let transcripts: any[];
 
+      const MAX_ANALYSIS_CALLS = 50;
+
       if (providedCalls && Array.isArray(providedCalls) && providedCalls.length > 0) {
         // Use call data sent directly from the client (works for both Vapi and Retell)
-        transcripts = providedCalls.slice(0, 50);
-        console.log(`Using ${transcripts.length} pre-loaded calls for analysis`);
-      } else {
+        transcripts = providedCalls.slice(0, MAX_ANALYSIS_CALLS);
+      } else if (callIds && Array.isArray(callIds) && callIds.length > 0) {
         // Fallback: fetch from Vapi for backwards compatibility
         const customer = await storage.getCustomer(customerId);
         if (!customer || !customer.vapiApiKey) {
           return res.status(500).json({ error: "API key not configured. Contact support." });
         }
 
-        const transcriptPromises = callIds.slice(0, 20).map(async (callId: string) => {
+        const transcriptPromises = callIds.slice(0, MAX_ANALYSIS_CALLS).map(async (callId: string) => {
           try {
             const response = await fetch(`https://api.vapi.ai/call/${callId}`, {
               method: "GET",
@@ -2451,6 +2452,8 @@ Generate professional insights in JSON format:
         });
 
         transcripts = (await Promise.all(transcriptPromises)).filter(Boolean);
+      } else {
+        return res.status(400).json({ error: "No call data or call IDs provided" });
       }
 
       // Prepare data for OpenAI analysis
