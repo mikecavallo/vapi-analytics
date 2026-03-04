@@ -196,13 +196,13 @@ export default function LandingPage() {
             <div className="space-y-4">
               <div className="inline-flex items-center space-x-2 bg-cyan-500/20 rounded-full px-4 py-2 border border-cyan-300/30">
                 <Sparkles className="w-4 h-4 text-cyan-300" />
-                <span className="text-sm text-cyan-100">Transform Your Customer Experience</span>
+                <span className="text-sm text-cyan-100">AI-Powered Growth for Forward-Thinking Companies</span>
               </div>
               
               <div className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
                 <div className="block">
-                  <SplitText 
-                    text="Voice AI That" 
+                  <SplitText
+                    text="Exponential Growth"
                     className="inline"
                     animationType="fadeInUp"
                     delay={0.5}
@@ -210,8 +210,8 @@ export default function LandingPage() {
                   />
                 </div>
                 <div className="block">
-                  <SplitText 
-                    text="Answers, Qualifies," 
+                  <SplitText
+                    text="Doesn't Require More People."
                     className="inline"
                     animationType="fadeInUp"
                     delay={0.8}
@@ -219,8 +219,8 @@ export default function LandingPage() {
                   />
                 </div>
                 <div className="block whitespace-nowrap">
-                  <SplitText 
-                    text="and Books 24/7"
+                  <SplitText
+                    text="It Requires Smarter Systems."
                     className="inline text-cyan-300 font-bold"
                     animationType="fadeInUp"
                     delay={1.2}
@@ -228,10 +228,10 @@ export default function LandingPage() {
                   />
                 </div>
               </div>
-              
+
               <p className="text-xl md:text-2xl text-cyan-100 max-w-2xl">
-                <ShinyText 
-                  text="Deploy white-glove call automation with real-time analytics to turn conversations into revenue."
+                <ShinyText
+                  text="We build custom AI platforms and automations that cut operating costs, increase output, and compound returns — for companies serious about scaling."
                   shimmerDuration={3}
                   shimmerDelay={2}
                   shimmerColor="rgba(191, 219, 254, 0.8)"
