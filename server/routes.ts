@@ -2398,67 +2398,73 @@ Generate professional insights in JSON format:
 
   app.post("/api/bulk-analysis/analyze", authenticateUser, requireCustomerAccess, validateCustomerAccess, async (req, res) => {
     try {
-      const { query, filters, callIds } = req.body;
+      const { query, filters, callIds, calls: providedCalls } = req.body;
       const openaiApiKey = process.env.OPENAI_API_KEY;
 
       if (!openaiApiKey) {
         return res.status(500).json({ error: "OpenAI API key not configured" });
       }
 
-      // Get customer data to retrieve their specific Vapi API key
       const customerId = req.customerId;
       if (!customerId) {
         return res.status(400).json({ error: "Customer ID required" });
       }
 
-      const customer = await storage.getCustomer(customerId);
-      if (!customer || !customer.vapiApiKey) {
-        return res.status(500).json({
-          error: "Customer Vapi API key not configured. Contact support."
-        });
-      }
+      let transcripts: any[];
 
-      const vapiApiKey = customer.vapiApiKey;
+      const MAX_ANALYSIS_CALLS = 50;
 
-      // Fetch detailed transcripts for the specified calls
-      const transcriptPromises = callIds.slice(0, 20).map(async (callId: string) => {
-        try {
-          const response = await fetch(`https://api.vapi.ai/call/${callId}`, {
-            method: "GET",
-            headers: {
-              "Authorization": `Bearer ${vapiApiKey}`,
-              "Content-Type": "application/json",
-            },
-          });
-
-          if (response.ok) {
-            const callData = await response.json();
-            return {
-              id: callId,
-              transcript: callData.transcript || "",
-              duration: callData.duration || 0,
-              cost: callData.cost || 0,
-              endedReason: callData.endedReason,
-              status: callData.status
-            };
-          }
-        } catch (error) {
-          console.error(`Failed to fetch call ${callId}:`, error);
+      if (providedCalls && Array.isArray(providedCalls) && providedCalls.length > 0) {
+        // Use call data sent directly from the client (works for both Vapi and Retell)
+        transcripts = providedCalls.slice(0, MAX_ANALYSIS_CALLS);
+      } else if (callIds && Array.isArray(callIds) && callIds.length > 0) {
+        // Fallback: fetch from Vapi for backwards compatibility
+        const customer = await storage.getCustomer(customerId);
+        if (!customer || !customer.vapiApiKey) {
+          return res.status(500).json({ error: "API key not configured. Contact support." });
         }
-        return null;
-      });
 
-      const transcripts = (await Promise.all(transcriptPromises)).filter(Boolean);
+        const transcriptPromises = callIds.slice(0, MAX_ANALYSIS_CALLS).map(async (callId: string) => {
+          try {
+            const response = await fetch(`https://api.vapi.ai/call/${callId}`, {
+              method: "GET",
+              headers: {
+                "Authorization": `Bearer ${customer.vapiApiKey}`,
+                "Content-Type": "application/json",
+              },
+            });
+
+            if (response.ok) {
+              const callData = await response.json();
+              return {
+                id: callId,
+                transcript: callData.transcript || "",
+                duration: callData.duration || 0,
+                cost: callData.cost || 0,
+                endedReason: callData.endedReason,
+                status: callData.status
+              };
+            }
+          } catch (error) {
+            console.error(`Failed to fetch call ${callId}:`, error);
+          }
+          return null;
+        });
+
+        transcripts = (await Promise.all(transcriptPromises)).filter(Boolean);
+      } else {
+        return res.status(400).json({ error: "No call data or call IDs provided" });
+      }
 
       // Prepare data for OpenAI analysis
       const analysisContext = {
         totalCalls: transcripts.length,
-        transcripts: transcripts.map(t => ({
-          id: t!.id,
-          text: t!.transcript.substring(0, 2000), // Limit transcript length
-          duration: t!.duration,
-          cost: t!.cost,
-          outcome: t!.endedReason
+        transcripts: transcripts.map((t: any) => ({
+          id: t.id,
+          text: (t.transcript || "").substring(0, 2000),
+          duration: t.duration || 0,
+          cost: t.cost || 0,
+          outcome: t.endedReason || t.status
         })),
         filters: filters
       };
