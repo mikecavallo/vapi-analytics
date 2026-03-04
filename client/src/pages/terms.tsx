@@ -1,38 +1,27 @@
-import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { FileText } from "lucide-react";
+import { PublicNavbar } from '@/components/layout/public-navbar';
 
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
-      {/* Navigation */}
-      <nav className="border-b bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Link href="/">
-                <div className="flex items-center space-x-2 cursor-pointer">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-700 to-cyan-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">I</span>
-                  </div>
-                  <span className="text-xl font-bold text-gray-900 dark:text-white">Invoxa.ai</span>
-                </div>
-              </Link>
-            </div>
-            <Link href="/">
-              <Button variant="ghost" className="flex items-center gap-2">
-                <ArrowLeft className="w-4 h-4" />
-                Back to Home
-              </Button>
-            </Link>
-          </div>
+      <PublicNavbar />
+
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-cyan-900 text-white py-20">
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-0 right-1/3 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 left-1/3 w-96 h-96 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
         </div>
-      </nav>
+        <div className="container mx-auto px-4 relative z-10 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-cyan-500/20 rounded-2xl border border-cyan-300/30 mb-6">
+            <FileText className="w-8 h-8 text-cyan-300" />
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Terms &amp; Conditions</h1>
+          <p className="text-cyan-200 text-lg">Last updated: March 2025</p>
+        </div>
+      </section>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Terms &amp; Conditions</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-10">Last updated: March 2025</p>
-
         <div className="prose prose-gray dark:prose-invert max-w-none space-y-8 text-gray-700 dark:text-gray-300">
 
           <section>

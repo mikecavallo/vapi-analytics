@@ -5,10 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { BarChart3, Users, Zap, Shield, ArrowRight, CheckCircle, Star, Globe, Headphones, Mic, Settings, PieChart, TrendingUp, Brain, Sparkles, Phone, PhoneCall, Activity, MessageCircle, Cog, Database, Hand, Quote } from 'lucide-react';
 import { motion } from 'framer-motion';
-import logoTransparent from "@assets/logo_transparent_1757609077252.png";
 import { PlasmaBackground } from '@/components/PlasmaBackground';
 import { SplitText } from '@/components/SplitText';
 import { ShinyText } from '@/components/ShinyText';
+import { PublicNavbar } from '@/components/layout/public-navbar';
 
 interface Beam {
   x: number;
@@ -133,46 +133,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       {/* Navigation */}
-      <nav className="border-b border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-3">
-              <img src={logoTransparent} alt="Invoxa.ai" className="h-8" />
-            </div>
-            
-            <div className="hidden md:flex items-center space-x-8">
-              <Link href="/solutions">
-                <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Solutions</span>
-              </Link>
-              <Link href="/use-cases">
-                <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Use Cases</span>
-              </Link>
-              <Link href="/platform">
-                <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Platform</span>
-              </Link>
-              <Link href="/why-invoxa">
-                <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Why Invoxa</span>
-              </Link>
-              <Link href="/resources">
-                <span className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">Resources</span>
-              </Link>
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              <Link href="/login">
-                <Button variant="ghost" className="text-cyan-600 dark:text-cyan-300 hover:text-cyan-700 hover:bg-cyan-50 dark:hover:bg-cyan-900/20">
-                  Sign In
-                </Button>
-              </Link>
-              <Link href="/book-demo">
-                <Button className="bg-gradient-to-r from-blue-700 to-cyan-600 hover:from-blue-800 hover:to-cyan-700 text-white px-6 shadow-lg shadow-cyan-500/25">
-                  Book Demo
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <PublicNavbar />
 
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-cyan-900 text-white min-h-[90vh] flex items-center">
