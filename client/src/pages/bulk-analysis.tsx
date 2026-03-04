@@ -177,7 +177,19 @@ export default function BulkAnalysis() {
   // Analysis mutation
   const performAnalysisMutation = useMutation({
     mutationFn: async ({ callIds, analysisType }: { callIds: string[], analysisType: string }) => {
-      const response = await apiRequest('POST', '/api/bulk-analysis/analyze', { callIds, analysisType });
+      // Send call data directly so the server doesn't need to re-fetch from provider
+      const selectedCalls = callsData.filter(c => callIds.includes(c.id)).map(c => ({
+        id: c.id,
+        transcript: c.transcript || "",
+        duration: c.duration || 0,
+        cost: c.cost || 0,
+        endedReason: c.endedReason || c.status,
+        status: c.status,
+        type: c.type,
+        assistantId: c.assistantId,
+        createdAt: c.createdAt,
+      }));
+      const response = await apiRequest('POST', '/api/bulk-analysis/analyze', { callIds, analysisType, provider, calls: selectedCalls });
       return response.json();
     },
     onSuccess: (data, variables) => {
