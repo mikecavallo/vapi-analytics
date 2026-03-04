@@ -467,6 +467,8 @@ export const facebookAdsAccounts = pgTable("facebook_ads_accounts", {
   customerId: varchar("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }),
   adAccountId: text("ad_account_id").notNull(),
   encryptedAccessToken: text("encrypted_access_token").notNull(), // Encrypted access token
+  encryptedAppId: text("encrypted_app_id"), // Encrypted Facebook App ID
+  encryptedAppSecret: text("encrypted_app_secret"), // Encrypted Facebook App Secret
   accountName: text("account_name"),
   tokenIssuedAt: timestamp("token_issued_at"), // When the token was issued
   tokenExpiresAt: timestamp("token_expires_at"), // When the token expires (if known)

@@ -392,15 +392,22 @@ export class DbStorage implements IStorage {
       .limit(1);
 
     if (result[0]) {
-      // Decrypt the access token before returning
+      // Decrypt the access token and optional credentials before returning
       try {
         const decryptedToken = decrypt(result[0].encryptedAccessToken);
-        return {
+        const decrypted: any = {
           ...result[0],
-          accessToken: decryptedToken, // Add decrypted token to response
-        } as any; // Type assertion needed due to schema mismatch
+          accessToken: decryptedToken,
+        };
+        if (result[0].encryptedAppId) {
+          decrypted.appId = decrypt(result[0].encryptedAppId);
+        }
+        if (result[0].encryptedAppSecret) {
+          decrypted.appSecret = decrypt(result[0].encryptedAppSecret);
+        }
+        return decrypted as FacebookAdsAccount;
       } catch (error) {
-        console.error('Failed to decrypt access token for account:', result[0].id);
+        console.error('Failed to decrypt credentials for account:', result[0].id);
         return undefined;
       }
     }
@@ -413,52 +420,77 @@ export class DbStorage implements IStorage {
       .limit(1);
 
     if (result[0]) {
-      // Decrypt the access token before returning
       try {
         const decryptedToken = decrypt(result[0].encryptedAccessToken);
-        return {
+        const decrypted: any = {
           ...result[0],
-          accessToken: decryptedToken, // Add decrypted token to response
-        } as any; // Type assertion needed due to schema mismatch
+          accessToken: decryptedToken,
+        };
+        if (result[0].encryptedAppId) {
+          decrypted.appId = decrypt(result[0].encryptedAppId);
+        }
+        if (result[0].encryptedAppSecret) {
+          decrypted.appSecret = decrypt(result[0].encryptedAppSecret);
+        }
+        return decrypted as FacebookAdsAccount;
       } catch (error) {
-        console.error('Failed to decrypt access token for account:', result[0].id);
+        console.error('Failed to decrypt credentials for account:', result[0].id);
         return undefined;
       }
     }
     return undefined;
   }
 
-  async createFacebookAdsAccount(account: InsertFacebookAdsAccount & { accessToken: string }): Promise<FacebookAdsAccount> {
-    // Encrypt the access token before storing
+  async createFacebookAdsAccount(account: InsertFacebookAdsAccount & { accessToken: string; appId?: string; appSecret?: string }): Promise<FacebookAdsAccount> {
+    // Encrypt credentials before storing
     const encryptedToken = encrypt(account.accessToken);
-
-    const result = await db.insert(facebookAdsAccounts).values({
+    const values: any = {
       ...account,
       encryptedAccessToken: encryptedToken,
       tokenIssuedAt: new Date(),
       lastValidatedAt: new Date(),
       createdAt: new Date(),
       updatedAt: new Date(),
-    }).returning();
+    };
+    if (account.appId) {
+      values.encryptedAppId = encrypt(account.appId);
+    }
+    if (account.appSecret) {
+      values.encryptedAppSecret = encrypt(account.appSecret);
+    }
+    // Remove plain text fields before insert
+    delete values.accessToken;
+    delete values.appId;
+    delete values.appSecret;
 
-    // Return with decrypted token for immediate use
-    return {
-      ...result[0],
-      accessToken: account.accessToken,
-    } as any;
+    const result = await db.insert(facebookAdsAccounts).values(values).returning();
+
+    // Return with decrypted credentials for immediate use
+    const returned: any = { ...result[0], accessToken: account.accessToken };
+    if (account.appId) returned.appId = account.appId;
+    if (account.appSecret) returned.appSecret = account.appSecret;
+    return returned as FacebookAdsAccount;
   }
 
-  async updateFacebookAdsAccount(id: string, updates: Partial<FacebookAdsAccount & { accessToken?: string }>): Promise<FacebookAdsAccount | undefined> {
+  async updateFacebookAdsAccount(id: string, updates: Partial<FacebookAdsAccount & { accessToken?: string; appId?: string; appSecret?: string }>): Promise<FacebookAdsAccount | undefined> {
     const updateData: any = {
       ...updates,
       updatedAt: new Date(),
     };
 
-    // If access token is being updated, encrypt it
+    // Encrypt credentials if being updated
     if (updates.accessToken) {
       updateData.encryptedAccessToken = encrypt(updates.accessToken);
       updateData.lastValidatedAt = new Date();
-      delete updateData.accessToken; // Remove plain text token from update
+      delete updateData.accessToken;
+    }
+    if (updates.appId) {
+      updateData.encryptedAppId = encrypt(updates.appId);
+      delete updateData.appId;
+    }
+    if (updates.appSecret) {
+      updateData.encryptedAppSecret = encrypt(updates.appSecret);
+      delete updateData.appSecret;
     }
 
     const result = await db.update(facebookAdsAccounts)
@@ -466,12 +498,12 @@ export class DbStorage implements IStorage {
       .where(eq(facebookAdsAccounts.id, id))
       .returning();
 
-    if (result[0] && updates.accessToken) {
-      // Return with decrypted token for immediate use
-      return {
-        ...result[0],
-        accessToken: updates.accessToken,
-      } as any;
+    if (result[0]) {
+      const returned: any = { ...result[0] };
+      if (updates.accessToken) returned.accessToken = updates.accessToken;
+      if (updates.appId) returned.appId = updates.appId;
+      if (updates.appSecret) returned.appSecret = updates.appSecret;
+      return returned as FacebookAdsAccount;
     }
 
     return result[0] as any;
