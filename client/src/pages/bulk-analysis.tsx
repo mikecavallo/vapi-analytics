@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -81,6 +82,7 @@ export default function BulkAnalysis() {
   const [assistantIdFilter, setAssistantIdFilter] = useState('');
   const [squadIdFilter, setSquadIdFilter] = useState('');
   const [selectedDateRange, setSelectedDateRange] = useState<DateRange | undefined>(undefined);
+  const [provider, setProvider] = useState<'vapi' | 'retell'>('vapi');
   const [conversationHistory, setConversationHistory] = useState<AnalysisMessage[]>([]);
   const [analysisQuery, setAnalysisQuery] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -123,6 +125,7 @@ export default function BulkAnalysis() {
     try {
       // Build query parameters
       const queryParams = new URLSearchParams();
+      queryParams.append('provider', provider);
       if (callIdFilter.trim()) queryParams.append('id', callIdFilter.trim());
       if (assistantIdFilter.trim()) queryParams.append('assistantId', assistantIdFilter.trim());
       if (squadIdFilter.trim()) queryParams.append('squadId', squadIdFilter.trim());
@@ -141,11 +144,29 @@ export default function BulkAnalysis() {
         title: "Data loaded successfully",
         description: `Found ${Array.isArray(data) ? data.length : 0} matching calls.`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching filtered calls:', error);
+      let description = "There was an error loading your call data. Please try again.";
+      try {
+        const msg = error?.message || '';
+        // Server returns JSON with nested Vapi error message
+        const jsonMatch = msg.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          // Could be nested: {error: "API call failed: 400 - {\"message\":\"...\"}"}
+          const inner = parsed.error || parsed.message || '';
+          const innerJson = inner.match(/\{[\s\S]*\}/);
+          if (innerJson) {
+            const innerParsed = JSON.parse(innerJson[0]);
+            if (innerParsed.message) description = innerParsed.message;
+          } else if (parsed.message) {
+            description = parsed.message;
+          }
+        }
+      } catch {}
       toast({
         title: "Error loading data",
-        description: "There was an error loading your call data. Please try again.",
+        description,
         variant: "destructive",
       });
     } finally {
@@ -290,6 +311,20 @@ export default function BulkAnalysis() {
               </p>
             </div>
 
+            {/* Provider selector */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Provider</Label>
+              <Tabs value={provider} onValueChange={(v) => { setProvider(v as 'vapi' | 'retell'); setCallsData([]); }}>
+                <TabsList className="w-full">
+                  <TabsTrigger value="vapi" className="flex-1 flex items-center gap-2">
+                    <Activity className="w-4 h-4" /> Vapi
+                  </TabsTrigger>
+                  <TabsTrigger value="retell" className="flex-1 flex items-center gap-2">
+                    <Phone className="w-4 h-4" /> Retell
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
 
             {/* Assistant ID Filter */}
             <div className="space-y-2">
