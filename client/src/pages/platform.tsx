@@ -258,63 +258,6 @@ export default function PlatformPage() {
         </div>
       </section>
 
-      {/* Dashboard Preview Section */}
-      <section className="py-16 bg-white dark:bg-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-              See Your Business Impact at a Glance
-            </h2>
-            <p className="text-lg text-gray-600 dark:text-gray-300">
-              Get the insights that matter most to your business growth
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* KPI Cards */}
-            <Card className="border-0 shadow-lg text-center">
-              <CardContent className="p-6">
-                <div className="text-3xl font-bold text-blue-600 mb-2">94.2%</div>
-                <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Call Success Rate</div>
-                <div className="text-xs text-green-600 flex items-center justify-center">
-                  <span className="mr-1">↗</span> +5.2% this month
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg text-center">
-              <CardContent className="p-6">
-                <div className="text-3xl font-bold text-green-600 mb-2">$47K</div>
-                <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Cost Savings</div>
-                <div className="text-xs text-green-600 flex items-center justify-center">
-                  <span className="mr-1">↗</span> +12% vs. human agents
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg text-center">
-              <CardContent className="p-6">
-                <div className="text-3xl font-bold text-purple-600 mb-2">2,847</div>
-                <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Calls Handled</div>
-                <div className="text-xs text-green-600 flex items-center justify-center">
-                  <span className="mr-1">↗</span> 247 today
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg text-center">
-              <CardContent className="p-6">
-                <div className="text-3xl font-bold text-orange-600 mb-2">1.8s</div>
-                <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Avg Response Time</div>
-                <div className="text-xs text-green-600 flex items-center justify-center">
-                  <span className="mr-1">↗</span> 40% faster than target
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
       {/* CTA Section */}
       <section className="py-20 bg-white dark:bg-gray-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
