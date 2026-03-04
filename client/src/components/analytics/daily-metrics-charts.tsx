@@ -154,19 +154,19 @@ export default function DailyMetricsCharts({ data, isLoading }: DailyMetricsChar
                 />
                 <Tooltip content={<SuccessTooltip />} />
                 <Legend />
-                <Bar 
-                  dataKey="successfulCalls" 
-                  name="Successful"
+                <Bar
+                  dataKey="failedCalls"
+                  name="Failed"
                   stackId="calls"
-                  fill="#22c55e" 
+                  fill="#ef4444"
                   radius={[0, 0, 2, 2]}
                   minPointSize={2}
                 />
-                <Bar 
-                  dataKey="failedCalls" 
-                  name="Failed"
+                <Bar
+                  dataKey="successfulCalls"
+                  name="Successful"
                   stackId="calls"
-                  fill="#ef4444" 
+                  fill="#22c55e"
                   radius={[2, 2, 0, 0]}
                   minPointSize={2}
                 />
