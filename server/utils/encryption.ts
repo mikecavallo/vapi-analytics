@@ -1,19 +1,20 @@
 import { createCipheriv, createDecipheriv, randomBytes, createHash, scryptSync } from 'crypto';
 
-const ENCRYPTION_KEY_SOURCE = process.env.ENCRYPTION_KEY || 'default-key-change-in-production';
+const ENCRYPTION_KEY_SOURCE = process.env.ENCRYPTION_KEY || (() => {
+  if (process.env.NODE_ENV === 'production') throw new Error('ENCRYPTION_KEY environment variable is required in production');
+  return 'dev-only-encryption-key-not-for-production';
+})();
 const ALGORITHM = 'aes-256-cbc';
 
-// Derive a proper key from the source using scrypt
-const deriveKey = (keySource: string): Buffer => {
-  return scryptSync(keySource, 'salt', 32); // 32 bytes for AES-256
-};
+// Derive and cache the encryption key at module load time (scryptSync is expensive)
+const DERIVED_KEY: Buffer = scryptSync(ENCRYPTION_KEY_SOURCE, 'salt', 32); // 32 bytes for AES-256
 
 /**
  * Encrypts a string value using AES-256-CBC encryption
  */
 export function encrypt(text: string): string {
   try {
-    const key = deriveKey(ENCRYPTION_KEY_SOURCE);
+    const key = DERIVED_KEY;
     const iv = randomBytes(16);
     const cipher = createCipheriv(ALGORITHM, key, iv);
     let encrypted = cipher.update(text, 'utf8', 'hex');
@@ -31,7 +32,7 @@ export function encrypt(text: string): string {
 export function decrypt(encryptedText: string): string {
   try {
     const [ivHex, encrypted] = encryptedText.split(':');
-    const key = deriveKey(ENCRYPTION_KEY_SOURCE);
+    const key = DERIVED_KEY;
     const iv = Buffer.from(ivHex, 'hex');
     const decipher = createDecipheriv(ALGORITHM, key, iv);
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');

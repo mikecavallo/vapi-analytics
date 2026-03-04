@@ -11,6 +11,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   emailVerified: boolean("email_verified").notNull().default(false),
   role: text("role").notNull().default("customer"), // 'customer' | 'super_admin'
+  loggedOutAt: timestamp("logged_out_at"), // Tracks last logout time for JWT invalidation
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
 });
@@ -508,6 +509,14 @@ export const insertFacebookAdsCampaignSchema = createInsertSchema(facebookAdsCam
 // Facebook Ads types
 export type InsertFacebookAdsAccount = z.infer<typeof insertFacebookAdsAccountSchema>;
 export type FacebookAdsAccount = typeof facebookAdsAccounts.$inferSelect;
+
+// Extended type returned by storage after decrypting credentials
+export type DecryptedFacebookAdsAccount = FacebookAdsAccount & {
+  accessToken: string;
+  appId?: string;
+  appSecret?: string;
+};
+
 export type InsertFacebookAdsCampaign = z.infer<typeof insertFacebookAdsCampaignSchema>;
 export type FacebookAdsCampaign = typeof facebookAdsCampaigns.$inferSelect;
 

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 export interface DashboardSection {
   id: string;
@@ -45,6 +45,12 @@ function saveLayout(sections: DashboardSection[]) {
 export function useDashboardLayout() {
   const [sections, setSections] = useState<DashboardSection[]>(loadLayout);
 
+  // Sync layout changes to localStorage via useEffect instead of inside state updaters
+  // Side effects (like writing to localStorage) should not occur inside setState callbacks
+  useEffect(() => {
+    saveLayout(sections);
+  }, [sections]);
+
   const reorder = useCallback((activeId: string, overId: string) => {
     setSections((prev) => {
       const oldIndex = prev.findIndex((s) => s.id === activeId);
@@ -54,7 +60,6 @@ export function useDashboardLayout() {
       const updated = [...prev];
       const [removed] = updated.splice(oldIndex, 1);
       updated.splice(newIndex, 0, removed);
-      saveLayout(updated);
       return updated;
     });
   }, []);
@@ -64,14 +69,12 @@ export function useDashboardLayout() {
       const updated = prev.map((s) =>
         s.id === id ? { ...s, visible: !s.visible } : s
       );
-      saveLayout(updated);
       return updated;
     });
   }, []);
 
   const resetLayout = useCallback(() => {
     setSections(DEFAULT_SECTIONS);
-    localStorage.removeItem(STORAGE_KEY);
   }, []);
 
   return { sections, reorder, toggleVisibility, resetLayout };
