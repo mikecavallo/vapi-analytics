@@ -9,6 +9,7 @@ import {
   type InsertUserCustomerAssignment,
   type EmailVerificationToken,
   type FacebookAdsAccount,
+  type DecryptedFacebookAdsAccount,
   type InsertFacebookAdsAccount,
   type FacebookAdsCampaign,
   type InsertFacebookAdsCampaign,
@@ -72,8 +73,8 @@ export interface IStorage {
   setCachedAnalytics(cacheKey: string, data: DashboardData, ttl?: number): Promise<void>;
 
   // Facebook Ads management
-  getFacebookAdsAccount(customerId: string): Promise<FacebookAdsAccount | undefined>;
-  getFacebookAdsAccountByAdAccountId(adAccountId: string): Promise<FacebookAdsAccount | undefined>;
+  getFacebookAdsAccount(customerId: string): Promise<DecryptedFacebookAdsAccount | undefined>;
+  getFacebookAdsAccountByAdAccountId(adAccountId: string): Promise<DecryptedFacebookAdsAccount | undefined>;
   createFacebookAdsAccount(account: InsertFacebookAdsAccount): Promise<FacebookAdsAccount>;
   updateFacebookAdsAccount(id: string, updates: Partial<FacebookAdsAccount>): Promise<FacebookAdsAccount | undefined>;
   deleteFacebookAdsAccount(id: string): Promise<boolean>;
@@ -386,7 +387,7 @@ export class DbStorage implements IStorage {
   }
 
   // Facebook Ads management with secure token handling
-  async getFacebookAdsAccount(customerId: string): Promise<FacebookAdsAccount | undefined> {
+  async getFacebookAdsAccount(customerId: string): Promise<DecryptedFacebookAdsAccount | undefined> {
     const result = await db.select().from(facebookAdsAccounts)
       .where(and(eq(facebookAdsAccounts.customerId, customerId), eq(facebookAdsAccounts.isActive, true)))
       .limit(1);
@@ -395,7 +396,7 @@ export class DbStorage implements IStorage {
       // Decrypt the access token and optional credentials before returning
       try {
         const decryptedToken = decrypt(result[0].encryptedAccessToken);
-        const decrypted: any = {
+        const decrypted: DecryptedFacebookAdsAccount = {
           ...result[0],
           accessToken: decryptedToken,
         };
@@ -405,7 +406,7 @@ export class DbStorage implements IStorage {
         if (result[0].encryptedAppSecret) {
           decrypted.appSecret = decrypt(result[0].encryptedAppSecret);
         }
-        return decrypted as FacebookAdsAccount;
+        return decrypted;
       } catch (error) {
         console.error('Failed to decrypt credentials for account:', result[0].id);
         return undefined;
@@ -414,7 +415,7 @@ export class DbStorage implements IStorage {
     return undefined;
   }
 
-  async getFacebookAdsAccountByAdAccountId(adAccountId: string): Promise<FacebookAdsAccount | undefined> {
+  async getFacebookAdsAccountByAdAccountId(adAccountId: string): Promise<DecryptedFacebookAdsAccount | undefined> {
     const result = await db.select().from(facebookAdsAccounts)
       .where(eq(facebookAdsAccounts.adAccountId, adAccountId))
       .limit(1);
@@ -422,7 +423,7 @@ export class DbStorage implements IStorage {
     if (result[0]) {
       try {
         const decryptedToken = decrypt(result[0].encryptedAccessToken);
-        const decrypted: any = {
+        const decrypted: DecryptedFacebookAdsAccount = {
           ...result[0],
           accessToken: decryptedToken,
         };
@@ -432,7 +433,7 @@ export class DbStorage implements IStorage {
         if (result[0].encryptedAppSecret) {
           decrypted.appSecret = decrypt(result[0].encryptedAppSecret);
         }
-        return decrypted as FacebookAdsAccount;
+        return decrypted;
       } catch (error) {
         console.error('Failed to decrypt credentials for account:', result[0].id);
         return undefined;

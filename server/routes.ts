@@ -37,7 +37,15 @@ import {
   requireCustomerAccess,
   validateCustomerAccess,
   authRateLimit,
+  apiRateLimit,
 } from "./auth-middleware";
+
+function auditLog(action: string, userId: string | undefined, details: Record<string, any> = {}) {
+  console.log(JSON.stringify({ type: 'AUDIT', timestamp: new Date().toISOString(), action, userId, ...details }));
+}
+
+const MAX_PROMPT_LENGTH = 5000;
+const MAX_TRANSCRIPT_LENGTH = 2000;
 
 function createEmptyDashboardData(): DashboardData {
   return {
@@ -276,10 +284,21 @@ function buildDashboardFromRawCalls(calls: any[], timeRange: string): DashboardD
   return dashboard;
 }
 
+// Maximum number of calls that can be fetched in a single request
+const MAX_FETCH_LIMIT = 1000;
+
 // Function to fetch calls from Vapi API with proper query parameters using customer-specific API key
 async function fetchCallsWithFilters(queryParams: Record<string, string>, vapiApiKey: string): Promise<any[]> {
   if (!vapiApiKey) {
     throw new Error("Vapi API key not configured");
+  }
+
+  // Enforce maximum limit
+  if (queryParams.limit) {
+    const requestedLimit = parseInt(queryParams.limit);
+    if (isNaN(requestedLimit) || requestedLimit > MAX_FETCH_LIMIT) {
+      queryParams.limit = String(MAX_FETCH_LIMIT);
+    }
   }
 
   try {
@@ -363,6 +382,14 @@ async function fetchRetellCallsWithFilters(queryParams: Record<string, string>, 
     throw new Error("Retell API key not configured");
   }
 
+  // Enforce maximum limit
+  if (queryParams.limit) {
+    const requestedLimit = parseInt(queryParams.limit);
+    if (isNaN(requestedLimit) || requestedLimit > MAX_FETCH_LIMIT) {
+      queryParams.limit = String(MAX_FETCH_LIMIT);
+    }
+  }
+
   try {
     console.log(`[${new Date().toLocaleTimeString()}] Fetching Retell calls with filters:`, queryParams);
 
@@ -413,11 +440,12 @@ async function fetchRetellCallsWithFilters(queryParams: Record<string, string>, 
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      console.error(`Failed to fetch Retell calls: ${response.status} ${response.statusText}`);
+      const errorBody = await response.text();
+      console.error(`Failed to fetch Retell calls: ${response.status} ${response.statusText}`, errorBody);
       if (response.status === 401 || response.status === 403) {
         throw new Error("Invalid API key or insufficient permissions");
       }
-      throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+      throw new Error(`API call failed: ${response.status} ${response.statusText} - ${errorBody}`);
     }
 
     const callsData = await response.json();
@@ -467,6 +495,13 @@ async function fetchRetellCallsWithFilters(queryParams: Record<string, string>, 
 
 export async function registerRoutes(app: Express): Promise<Server> {
 
+  // Apply general API rate limiting to protected endpoint groups
+  app.use('/api/analytics', apiRateLimit);
+  app.use('/api/bulk-analysis', apiRateLimit);
+  app.use('/api/voicescope', apiRateLimit);
+  app.use('/api/assistant-studio', apiRateLimit);
+  app.use('/api/conversation-flow', apiRateLimit);
+
   // Authentication endpoints
 
   // User registration
@@ -511,14 +546,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.createEmailVerificationToken(user.id, token, expiresAt);
 
-      // TODO: Send verification email (implement email service later)
-      console.log(`Verification token for ${email}: ${token}`);
-
+      // TODO: Implement email service (SendGrid/SES) for production
       res.status(201).json({
         message: "User created successfully. Please verify your email to complete registration.",
         user: sanitizeUser(user),
-        // For development, include the token (remove in production)
-        ...(process.env.NODE_ENV === "development" && { verificationToken: token })
+        // In non-production environments, include the token in the response for testing
+        ...(process.env.NODE_ENV !== "production" && { verificationToken: token })
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -542,6 +575,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Find user by email
       const user = await storage.getUserByEmail(email);
       if (!user) {
+        auditLog('LOGIN_FAILURE', undefined, { email, reason: 'user_not_found' });
         return res.status(401).json({ error: "Invalid email or password" });
       }
 
@@ -550,6 +584,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isValidHashedPassword = await verifyPassword(password, user.password);
 
       if (!isPlainPassword && !isValidHashedPassword) {
+        auditLog('LOGIN_FAILURE', user.id, { email, reason: 'invalid_password' });
         return res.status(401).json({ error: "Invalid email or password" });
       }
 
@@ -572,12 +607,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const primaryCustomerId = assignments.length > 0 ? assignments[0].customerId : undefined;
 
       // Generate JWT token
-      const tokenPayload = createTokenPayload({ ...user, role: user.role as any }, primaryCustomerId);
+      const tokenPayload = createTokenPayload({ ...user, role: user.role as UserRole }, primaryCustomerId);
       const token = generateToken(tokenPayload);
+
+      auditLog('LOGIN_SUCCESS', user.id, { email });
 
       // Return user data and token
       res.json({
-        user: { ...sanitizeUser(user), role: user.role as any },
+        user: { ...sanitizeUser(user), role: user.role as UserRole },
         token,
         customerId: primaryCustomerId,
       });
@@ -664,11 +701,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User logout (client-side token invalidation)
-  app.post("/api/auth/logout", (req, res) => {
-    // Since we're using stateless JWT tokens, logout is handled client-side
-    // by removing the token from storage
-    res.json({ message: "Logged out successfully" });
+  // User logout (server-side token invalidation via loggedOutAt timestamp)
+  app.post("/api/auth/logout", authenticateUser, async (req, res) => {
+    try {
+      // Set loggedOutAt timestamp so any JWTs issued before this time are rejected
+      await storage.updateUser(req.user!.id, { loggedOutAt: new Date() });
+      res.json({ message: "Logged out successfully" });
+    } catch (error) {
+      console.error("Logout error:", error);
+      res.status(500).json({ error: "Logout failed" });
+    }
   });
 
   // Customer API key management
@@ -723,6 +765,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (hasRetell) updateData.retellApiKey = retellApiKey;
 
       await storage.updateCustomer(customerId, updateData);
+
+      auditLog('API_KEY_UPDATE', req.user?.id, { customerId, keysUpdated: Object.keys(updateData) });
 
       res.json({ message: "API key(s) updated successfully" });
     } catch (error) {
@@ -1089,18 +1133,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const client = new VapiClient({ token: customer.vapiApiKey });
       const callData = await client.calls.get(id);
 
-      // Calculate duration if timestamps are available, otherwise convert from minutes to seconds
+      // Calculate duration in seconds and return enriched response
+      const rawCallData = callData as Record<string, unknown>;
+      let duration: number | undefined;
       if (callData.endedAt && callData.startedAt) {
-        const durationInSeconds = Math.round(
+        duration = Math.round(
           (new Date(callData.endedAt).getTime() - new Date(callData.startedAt).getTime()) / 1000
         );
-        (callData as any).duration = durationInSeconds;
-      } else if ((callData as any).duration) {
+      } else if (typeof rawCallData.duration === 'number') {
         // Convert Vapi duration from minutes to seconds
-        (callData as any).duration = Math.round((callData as any).duration * 60 * 100) / 100;
+        duration = Math.round(rawCallData.duration * 60 * 100) / 100;
       }
 
-      res.json(callData);
+      res.json({ ...callData, duration });
     } catch (error) {
       console.error("Call details API error:", error);
       res.status(500).json({
@@ -1178,7 +1223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI Prompt Optimization endpoint
-  app.post("/api/voicescope/optimize-prompt", async (req, res) => {
+  app.post("/api/voicescope/optimize-prompt", authenticateUser, async (req, res) => {
     try {
       const { assistantId, currentPrompt, transcriptIds } = req.body;
       const openaiApiKey = process.env.OPENAI_API_KEY;
@@ -1189,6 +1234,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!assistantId || !currentPrompt || !transcriptIds?.length) {
         return res.status(400).json({ error: "Missing required fields: assistantId, currentPrompt, or transcriptIds" });
+      }
+
+      if (typeof currentPrompt === 'string' && currentPrompt.length > MAX_PROMPT_LENGTH) {
+        return res.status(400).json({ error: `Prompt exceeds maximum length of ${MAX_PROMPT_LENGTH} characters` });
       }
 
       const vapiApiKey = process.env.VAPI_API_KEY || "";
@@ -1283,7 +1332,7 @@ Please provide optimization suggestions in JSON format:
   });
 
   // Performance Benchmarks endpoint
-  app.get("/api/performance-benchmarks", async (req: any, res: any) => {
+  app.get("/api/performance-benchmarks", authenticateUser, async (req: any, res: any) => {
     try {
       const vapiApiKey = process.env.VAPI_API_KEY || "";
 
@@ -1506,7 +1555,7 @@ Please provide optimization suggestions in JSON format:
   }
 
   // Assistant Studio endpoints
-  app.post("/api/assistant-studio/generate", async (req, res) => {
+  app.post("/api/assistant-studio/generate", authenticateUser, async (req, res) => {
     try {
       const {
         name,
@@ -1539,6 +1588,14 @@ Please provide optimization suggestions in JSON format:
 
       if (!name || !description) {
         return res.status(400).json({ error: "Assistant name and description are required" });
+      }
+
+      if (typeof description === 'string' && description.length > MAX_PROMPT_LENGTH) {
+        return res.status(400).json({ error: `Description exceeds maximum length of ${MAX_PROMPT_LENGTH} characters` });
+      }
+
+      if (conversationFlow && typeof conversationFlow === 'string' && conversationFlow.length > MAX_PROMPT_LENGTH) {
+        return res.status(400).json({ error: `Conversation flow exceeds maximum length of ${MAX_PROMPT_LENGTH} characters` });
       }
 
       const openai = new (await import('openai')).default({ apiKey: openaiApiKey });
@@ -1686,7 +1743,7 @@ Apply these specific settings and create a comprehensive assistant configuration
     }
   });
 
-  app.post("/api/assistant-studio/create", async (req, res) => {
+  app.post("/api/assistant-studio/create", authenticateUser, async (req, res) => {
     try {
       const { config } = req.body;
       const vapiApiKey = process.env.VAPI_API_KEY || "";
@@ -1786,6 +1843,8 @@ Apply these specific settings and create a comprehensive assistant configuration
 
       const createdAssistant = await response.json();
 
+      auditLog('ASSISTANT_CREATED', req.user?.id, { assistantId: createdAssistant.id, assistantName: config.name });
+
       console.log(`[${new Date().toLocaleTimeString()}] Created assistant: ${createdAssistant.id}`);
       res.json({
         assistant: createdAssistant,
@@ -1798,7 +1857,7 @@ Apply these specific settings and create a comprehensive assistant configuration
   });
 
   // Advanced Report Generation endpoint
-  app.post("/api/voicescope/generate-report", async (req, res) => {
+  app.post("/api/voicescope/generate-report", authenticateUser, async (req, res) => {
     try {
       const { reportType, dateRange, includeTranscripts, includeBenchmarks, customFilters } = req.body;
       const vapiApiKey = process.env.VAPI_API_KEY || "";
@@ -2145,7 +2204,7 @@ Generate a professional analysis in JSON format:
   }
 
   // Conversation Flow Analysis endpoint
-  app.post("/api/conversation-flow/analyze", async (req, res) => {
+  app.post("/api/conversation-flow/analyze", authenticateUser, async (req, res) => {
     try {
       const { callIds, analysisType } = req.body;
       const vapiApiKey = process.env.VAPI_API_KEY || "";
@@ -2153,6 +2212,14 @@ Generate a professional analysis in JSON format:
 
       if (!vapiApiKey || !openaiApiKey) {
         return res.status(500).json({ error: "API keys not configured" });
+      }
+
+      if (!callIds || !Array.isArray(callIds) || callIds.length === 0) {
+        return res.status(400).json({ error: "callIds array is required" });
+      }
+
+      if (analysisType && typeof analysisType === 'string' && analysisType.length > MAX_PROMPT_LENGTH) {
+        return res.status(400).json({ error: `analysisType exceeds maximum length of ${MAX_PROMPT_LENGTH} characters` });
       }
 
       // Fetch call details for conversation flow analysis
@@ -2409,6 +2476,12 @@ Generate professional insights in JSON format:
       if (!customerId) {
         return res.status(400).json({ error: "Customer ID required" });
       }
+
+      if (query && typeof query === 'string' && query.length > MAX_PROMPT_LENGTH) {
+        return res.status(400).json({ error: `Query exceeds maximum length of ${MAX_PROMPT_LENGTH} characters` });
+      }
+
+      auditLog('BULK_ANALYSIS_REQUEST', req.user?.id, { customerId, callCount: callIds?.length || providedCalls?.length || 0, query: query?.substring(0, 100) });
 
       let transcripts: any[];
 
@@ -2673,9 +2746,9 @@ Generate professional insights in JSON format:
       }
 
       const campaigns = await facebookAdsService.getCampaigns(
-        (account as any).accessToken,
+        account.accessToken,
         account.adAccountId,
-        (account as any).appSecret
+        account.appSecret
       );
 
       res.json({ campaigns });
@@ -2707,9 +2780,9 @@ Generate professional insights in JSON format:
       }
 
       const adSets = await facebookAdsService.getAdSets(
-        (account as any).accessToken,
+        account.accessToken,
         campaignId,
-        (account as any).appSecret
+        account.appSecret
       );
 
       res.json({ adSets });
@@ -2741,9 +2814,9 @@ Generate professional insights in JSON format:
       }
 
       const ads = await facebookAdsService.getAds(
-        (account as any).accessToken,
+        account.accessToken,
         adSetId,
-        (account as any).appSecret
+        account.appSecret
       );
 
       res.json({ ads });
@@ -2794,7 +2867,7 @@ Generate professional insights in JSON format:
       }
 
       const insights = await facebookAdsService.getInsights(
-        (account as any).accessToken,
+        account.accessToken,
         objectId as string,
         level as 'campaign' | 'adset' | 'ad',
         {
@@ -2802,7 +2875,7 @@ Generate professional insights in JSON format:
           until: until as string,
         },
         undefined,
-        (account as any).appSecret
+        account.appSecret
       );
 
       const processedMetrics = facebookAdsService.processInsights(insights.data);
@@ -2847,13 +2920,13 @@ Generate professional insights in JSON format:
       }
 
       const hierarchy = await facebookAdsService.getCampaignHierarchy(
-        (account as any).accessToken,
+        account.accessToken,
         account.adAccountId,
         {
           since: since as string,
           until: until as string,
         },
-        (account as any).appSecret
+        account.appSecret
       );
 
       res.json(hierarchy);
@@ -2900,6 +2973,18 @@ Generate professional insights in JSON format:
         error: error instanceof Error ? error.message : "Failed to disconnect Facebook Ads account"
       });
     }
+  });
+
+  // One-time startup check: warn if any users have plain text passwords (not bcrypt-hashed)
+  storage.getAllUsers().then((allUsers) => {
+    const plainTextUsers = allUsers.filter(u => u.password && !u.password.startsWith('$2b$'));
+    if (plainTextUsers.length > 0) {
+      console.warn(`[SECURITY WARNING] ${plainTextUsers.length} user(s) have passwords that are not bcrypt-hashed. ` +
+        `Affected emails: ${plainTextUsers.map(u => u.email).join(', ')}. ` +
+        `These passwords should be re-hashed immediately.`);
+    }
+  }).catch((err) => {
+    console.error("Failed to run plain text password check:", err);
   });
 
   const httpServer = createServer(app);

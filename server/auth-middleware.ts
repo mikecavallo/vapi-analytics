@@ -41,6 +41,16 @@ export async function authenticateUser(req: Request, res: Response, next: NextFu
       return res.status(401).json({ error: "User not found" });
     }
 
+    // Check if the token was issued before the user's last logout
+    // JWT iat is in seconds, loggedOutAt is a Date
+    if (user.loggedOutAt) {
+      const tokenIssuedAt = (payload as any).iat; // JWT standard claim (seconds since epoch)
+      const loggedOutAtSeconds = Math.floor(user.loggedOutAt.getTime() / 1000);
+      if (tokenIssuedAt && tokenIssuedAt <= loggedOutAtSeconds) {
+        return res.status(401).json({ error: "Token has been invalidated. Please log in again." });
+      }
+    }
+
     // Check if user's email is still verified
     if (!user.emailVerified) {
       return res.status(401).json({ error: "Email verification required" });
@@ -212,11 +222,46 @@ export function authRateLimit(req: Request, res: Response, next: NextFunction) {
   rateLimitCounters.set(key, counter);
   
   if (counter.count > maxAttempts) {
-    return res.status(429).json({ 
+    return res.status(429).json({
       error: "Too many attempts. Please try again later.",
       retryAfter: Math.ceil((windowSize - (now - counter.windowStart)) / 1000)
     });
   }
-  
+
+  next();
+}
+
+/**
+ * Rate limiting middleware for protected API endpoints
+ * More permissive than auth rate limiting: 100 requests per 15 minutes per IP
+ */
+const apiRateLimitCounters = new Map<string, RateLimitCounter>();
+
+export function apiRateLimit(req: Request, res: Response, next: NextFunction) {
+  const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
+  const key = `api:${clientIP}`;
+
+  const now = Date.now();
+  const windowSize = 15 * 60 * 1000; // 15 minutes
+  const maxRequests = 100;
+
+  const counter: RateLimitCounter = apiRateLimitCounters.get(key) || { count: 0, windowStart: now };
+
+  // Reset counter if window has expired
+  if (now - counter.windowStart > windowSize) {
+    counter.count = 0;
+    counter.windowStart = now;
+  }
+
+  counter.count++;
+  apiRateLimitCounters.set(key, counter);
+
+  if (counter.count > maxRequests) {
+    return res.status(429).json({
+      error: "Too many API requests. Please try again later.",
+      retryAfter: Math.ceil((windowSize - (now - counter.windowStart)) / 1000)
+    });
+  }
+
   next();
 }
