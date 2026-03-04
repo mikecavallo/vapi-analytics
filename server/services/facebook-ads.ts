@@ -40,13 +40,13 @@ export class FacebookAdsService {
   /**
    * Creates a secure URL with access token and app secret proof
    */
-  private createSecureUrl(endpoint: string, accessToken: string, params: Record<string, string> = {}): string {
+  private createSecureUrl(endpoint: string, accessToken: string, params: Record<string, string> = {}, appSecret?: string): string {
     const urlParams = new URLSearchParams({
       access_token: accessToken,
-      appsecret_proof: generateAppSecretProof(accessToken),
+      appsecret_proof: generateAppSecretProof(accessToken, appSecret),
       ...params,
     });
-    
+
     return `${this.baseUrl}${endpoint}?${urlParams.toString()}`;
   }
 
@@ -105,9 +105,9 @@ export class FacebookAdsService {
   /**
    * Validates a Facebook access token and returns ad account info
    */
-  async validateAccessToken(accessToken: string): Promise<{ 
-    isValid: boolean; 
-    adAccountId?: string; 
+  async validateAccessToken(accessToken: string, appSecret?: string): Promise<{
+    isValid: boolean;
+    adAccountId?: string;
     accountName?: string;
     error?: string;
     accounts?: Array<{ id: string; name: string; status: number }>;
@@ -115,15 +115,15 @@ export class FacebookAdsService {
     try {
       // Basic format validation
       if (!validateAccessTokenFormat(accessToken)) {
-        return { 
-          isValid: false, 
-          error: 'Invalid access token format' 
+        return {
+          isValid: false,
+          error: 'Invalid access token format'
         };
       }
 
       const url = this.createSecureUrl('/me/adaccounts', accessToken, {
         fields: 'id,name,account_status,account_id,business'
-      });
+      }, appSecret);
       
       const response = await fetch(url);
       const data: PaginatedResponse<any> = await this.handleApiResponse(response);
@@ -171,7 +171,7 @@ export class FacebookAdsService {
   /**
    * Fetch campaigns for an ad account with pagination
    */
-  async getCampaigns(accessToken: string, adAccountId: string): Promise<any[]> {
+  async getCampaigns(accessToken: string, adAccountId: string, appSecret?: string): Promise<any[]> {
     try {
       const params = {
         fields: 'id,name,status,objective,created_time,updated_time',
@@ -179,7 +179,7 @@ export class FacebookAdsService {
         limit: '100', // Increase limit to reduce API calls
       };
 
-      const initialUrl = this.createSecureUrl(`/${adAccountId}/campaigns`, accessToken, params);
+      const initialUrl = this.createSecureUrl(`/${adAccountId}/campaigns`, accessToken, params, appSecret);
       const campaigns = await this.fetchAllPages(initialUrl, accessToken);
 
       // Validate the campaigns data structure
@@ -197,7 +197,7 @@ export class FacebookAdsService {
   /**
    * Fetch ad sets for a campaign with pagination
    */
-  async getAdSets(accessToken: string, campaignId: string): Promise<any[]> {
+  async getAdSets(accessToken: string, campaignId: string, appSecret?: string): Promise<any[]> {
     try {
       const params = {
         fields: 'id,name,status,campaign_id,created_time,updated_time',
@@ -205,7 +205,7 @@ export class FacebookAdsService {
         limit: '100',
       };
 
-      const initialUrl = this.createSecureUrl(`/${campaignId}/adsets`, accessToken, params);
+      const initialUrl = this.createSecureUrl(`/${campaignId}/adsets`, accessToken, params, appSecret);
       const adSets = await this.fetchAllPages(initialUrl, accessToken);
 
       // Validate the ad sets data structure
@@ -223,7 +223,7 @@ export class FacebookAdsService {
   /**
    * Fetch ads for an ad set with pagination
    */
-  async getAds(accessToken: string, adSetId: string): Promise<any[]> {
+  async getAds(accessToken: string, adSetId: string, appSecret?: string): Promise<any[]> {
     try {
       const params = {
         fields: 'id,name,status,adset_id,campaign_id,created_time,updated_time',
@@ -231,7 +231,7 @@ export class FacebookAdsService {
         limit: '100',
       };
 
-      const initialUrl = this.createSecureUrl(`/${adSetId}/ads`, accessToken, params);
+      const initialUrl = this.createSecureUrl(`/${adSetId}/ads`, accessToken, params, appSecret);
       const ads = await this.fetchAllPages(initialUrl, accessToken);
 
       // Validate the ads data structure
@@ -250,11 +250,12 @@ export class FacebookAdsService {
    * Fetch insights (metrics) for campaigns, ad sets, or ads with proper validation
    */
   async getInsights(
-    accessToken: string, 
-    objectId: string, 
+    accessToken: string,
+    objectId: string,
     level: 'campaign' | 'adset' | 'ad',
     dateRange: { since: string; until: string },
-    breakdown?: string[]
+    breakdown?: string[],
+    appSecret?: string
   ): Promise<FacebookAdsMetrics> {
     try {
       const fields = [
@@ -301,7 +302,7 @@ export class FacebookAdsService {
         params.breakdowns = breakdown.join(',');
       }
 
-      const initialUrl = this.createSecureUrl(`/${objectId}/insights`, accessToken, params);
+      const initialUrl = this.createSecureUrl(`/${objectId}/insights`, accessToken, params, appSecret);
       const insights = await this.fetchAllPages(initialUrl, accessToken);
 
       // Validate and transform the response using Zod
@@ -435,9 +436,10 @@ export class FacebookAdsService {
    * Get hierarchical campaign structure with metrics
    */
   async getCampaignHierarchy(
-    accessToken: string, 
-    adAccountId: string, 
-    dateRange: { since: string; until: string }
+    accessToken: string,
+    adAccountId: string,
+    dateRange: { since: string; until: string },
+    appSecret?: string
   ): Promise<{
     campaigns: ProcessedFacebookAdsMetrics[];
     adSets: ProcessedFacebookAdsMetrics[];
@@ -446,9 +448,9 @@ export class FacebookAdsService {
     try {
       // Fetch all insights at account level with different breakdowns
       const [campaignInsights, adSetInsights, adInsights] = await Promise.all([
-        this.getInsights(accessToken, adAccountId, 'campaign', dateRange),
-        this.getInsights(accessToken, adAccountId, 'adset', dateRange),
-        this.getInsights(accessToken, adAccountId, 'ad', dateRange),
+        this.getInsights(accessToken, adAccountId, 'campaign', dateRange, undefined, appSecret),
+        this.getInsights(accessToken, adAccountId, 'adset', dateRange, undefined, appSecret),
+        this.getInsights(accessToken, adAccountId, 'ad', dateRange, undefined, appSecret),
       ]);
 
       return {

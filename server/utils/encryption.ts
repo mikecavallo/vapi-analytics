@@ -46,11 +46,15 @@ export function decrypt(encryptedText: string): string {
 /**
  * Generates app secret proof for Facebook API requests
  * This adds extra security to API calls with access tokens
+ * Uses per-customer appSecret if provided, otherwise falls back to env var
  */
-export function generateAppSecretProof(accessToken: string): string {
-  const appSecret = process.env.FACEBOOK_APP_SECRET!;
+export function generateAppSecretProof(accessToken: string, appSecret?: string): string {
+  const secret = appSecret || process.env.FACEBOOK_APP_SECRET;
+  if (!secret) {
+    throw new Error('Facebook App Secret is required. Provide it per-customer or set FACEBOOK_APP_SECRET env var.');
+  }
   return createHash('sha256')
-    .update(accessToken + appSecret)
+    .update(accessToken + secret)
     .digest('hex');
 }
 
