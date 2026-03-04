@@ -146,12 +146,14 @@ const MetricsCard = ({
 
 const SetupForm = ({ onSuccess }: { onSuccess: () => void }) => {
   const [accessToken, setAccessToken] = useState("");
+  const [appId, setAppId] = useState("");
+  const [appSecret, setAppSecret] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const setupMutation = useMutation({
-    mutationFn: async (data: { accessToken: string }) => {
+    mutationFn: async (data: { accessToken: string; appId?: string; appSecret?: string }) => {
       const response = await apiRequest("POST", "/api/facebook-ads/setup", data);
       return response.json();
     },
@@ -185,7 +187,11 @@ const SetupForm = ({ onSuccess }: { onSuccess: () => void }) => {
 
     setIsSubmitting(true);
     try {
-      await setupMutation.mutateAsync({ accessToken: accessToken.trim() });
+      await setupMutation.mutateAsync({
+        accessToken: accessToken.trim(),
+        appId: appId.trim() || undefined,
+        appSecret: appSecret.trim() || undefined,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -202,12 +208,39 @@ const SetupForm = ({ onSuccess }: { onSuccess: () => void }) => {
       <CardContent>
         <Alert className="mb-6">
           <AlertDescription>
-            To connect your Facebook Ads account, you'll need a Facebook access token with ads_read permissions. 
-            You can generate one from the Facebook Graph API Explorer or your app's developer console.
+            To connect your Facebook Ads account, enter your App ID, App Secret, and Access Token.
+            You can find these in your Facebook App's Settings &gt; Basic in the Meta Developer Console.
+            The Access Token should have <code>ads_read</code> permissions.
           </AlertDescription>
         </Alert>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="appId">Facebook App ID</Label>
+            <Input
+              id="appId"
+              type="text"
+              placeholder="Enter your Facebook App ID..."
+              value={appId}
+              onChange={(e) => setAppId(e.target.value)}
+              data-testid="input-app-id"
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="appSecret">Facebook App Secret</Label>
+            <Input
+              id="appSecret"
+              type="password"
+              placeholder="Enter your Facebook App Secret..."
+              value={appSecret}
+              onChange={(e) => setAppSecret(e.target.value)}
+              data-testid="input-app-secret"
+              className="mt-1"
+            />
+          </div>
+
           <div>
             <Label htmlFor="accessToken">Facebook Access Token</Label>
             <Input
@@ -220,7 +253,7 @@ const SetupForm = ({ onSuccess }: { onSuccess: () => void }) => {
               className="mt-1"
             />
           </div>
-          
+
           <Button
             type="submit"
             disabled={isSubmitting || !accessToken.trim()}

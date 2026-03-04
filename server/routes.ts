@@ -2330,17 +2330,17 @@ Generate professional insights in JSON format:
 
   // Facebook Ads API Routes
 
-  // Validate and save Facebook access token
+  // Validate and save Facebook credentials (access token, app ID, app secret)
   app.post("/api/facebook-ads/setup", authenticateUser, async (req, res) => {
     try {
-      const { accessToken, adAccountId, accountName } = req.body;
+      const { accessToken, appId, appSecret, adAccountId, accountName } = req.body;
 
       if (!accessToken) {
         return res.status(400).json({ error: "Access token is required" });
       }
 
-      // Validate the access token with Facebook
-      const validation = await facebookAdsService.validateAccessToken(accessToken);
+      // Validate the access token with Facebook (pass appSecret for appsecret_proof)
+      const validation = await facebookAdsService.validateAccessToken(accessToken, appSecret);
 
       if (!validation.isValid) {
         return res.status(400).json({
@@ -2365,7 +2365,9 @@ Generate professional insights in JSON format:
       if (existingAccount) {
         // Update existing account
         const updatedAccount = await storage.updateFacebookAdsAccount(existingAccount.id, {
-          encryptedAccessToken: accessToken, // Added back encryptedAccessToken
+          accessToken,
+          appId: appId || undefined,
+          appSecret: appSecret || undefined,
           adAccountId: adAccountId || validation.adAccountId!,
           accountName: accountName || validation.accountName!,
           isActive: true,
@@ -2380,8 +2382,10 @@ Generate professional insights in JSON format:
         // Create new account
         const newAccount = await storage.createFacebookAdsAccount({
           customerId,
-          accessToken: '', // Added to satisfy schema,
-          encryptedAccessToken: accessToken,
+          accessToken,
+          appId: appId || undefined,
+          appSecret: appSecret || undefined,
+          encryptedAccessToken: '', // Will be set by storage layer
           adAccountId: adAccountId || validation.adAccountId!,
           accountName: accountName || validation.accountName!,
         });
@@ -2468,7 +2472,8 @@ Generate professional insights in JSON format:
 
       const campaigns = await facebookAdsService.getCampaigns(
         (account as any).accessToken,
-        account.adAccountId
+        account.adAccountId,
+        (account as any).appSecret
       );
 
       res.json({ campaigns });
@@ -2501,7 +2506,8 @@ Generate professional insights in JSON format:
 
       const adSets = await facebookAdsService.getAdSets(
         (account as any).accessToken,
-        campaignId
+        campaignId,
+        (account as any).appSecret
       );
 
       res.json({ adSets });
@@ -2534,7 +2540,8 @@ Generate professional insights in JSON format:
 
       const ads = await facebookAdsService.getAds(
         (account as any).accessToken,
-        adSetId
+        adSetId,
+        (account as any).appSecret
       );
 
       res.json({ ads });
@@ -2591,7 +2598,9 @@ Generate professional insights in JSON format:
         {
           since: since as string,
           until: until as string,
-        }
+        },
+        undefined,
+        (account as any).appSecret
       );
 
       const processedMetrics = facebookAdsService.processInsights(insights.data);
@@ -2641,7 +2650,8 @@ Generate professional insights in JSON format:
         {
           since: since as string,
           until: until as string,
-        }
+        },
+        (account as any).appSecret
       );
 
       res.json(hierarchy);
