@@ -26,6 +26,7 @@ import ConversationOutcomes from "@/components/analytics/conversation-outcomes";
 import WarningsPanel from "@/components/analytics/warnings-panel";
 import MostSuccessfulAgent from "@/components/analytics/most-successful-agent";
 import DailyMetricsCharts from "@/components/analytics/daily-metrics-charts";
+import SummaryCards from "@/components/analytics/summary-cards";
 import DraggableSection from "@/components/analytics/draggable-section";
 import AIChatbot from "@/components/ai-chatbot";
 import { Button } from "@/components/ui/button";
@@ -128,116 +129,88 @@ export default function Dashboard() {
     }
   };
 
-  // Build section content map — each section renders its content (or null if no data)
-  const sectionContent = useMemo((): Record<string, ReactNode | null> => {
+  // Build section content map — always render all sections
+  const sectionContent = useMemo((): Record<string, ReactNode> => {
     return {
-      "kpi-cards": (isLoading || hasKpiData(data)) ? (
+      "kpi-cards": (
         <section>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-            <div className="flex items-center gap-4">
-              <h2 className="text-3xl font-bold text-foreground">Key Metrics</h2>
-              <Tabs value={provider} onValueChange={setProvider} className="w-[200px]">
-                <TabsList>
-                  <TabsTrigger value="vapi" className="flex items-center gap-2">
-                    <Activity className="w-4 h-4" /> Vapi
-                  </TabsTrigger>
-                  <TabsTrigger value="retell" className="flex items-center gap-2">
-                    <Phone className="w-4 h-4" /> Retell
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-            <TimeRangeSelector
-              value={timeRange}
-              onChange={setTimeRange}
-              customDateRange={customDateRange}
-              onCustomDateChange={setCustomDateRange}
-            />
-          </div>
+          <h2 className="text-3xl font-bold text-foreground mb-6">Key Metrics</h2>
           <KpiCards data={data} isLoading={isLoading} />
         </section>
-      ) : null,
+      ),
 
-      "warnings": (isLoading || hasKpiData(data)) ? (
+      "warnings": (
         <section>
           <WarningsPanel data={data} isLoading={isLoading} />
         </section>
-      ) : null,
+      ),
 
-      "agent-volume": (isLoading || hasMostSuccessfulAgentData(data) || hasCallVolumeData(data)) ? (
-        <section>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {(isLoading || hasMostSuccessfulAgentData(data)) && (
-              <MostSuccessfulAgent data={data} isLoading={isLoading} />
-            )}
-            {(isLoading || hasCallVolumeData(data)) && (
-              <div className="lg:col-span-2">
-                <CallVolumeTrends data={data} isLoading={isLoading} />
-              </div>
-            )}
-          </div>
-        </section>
-      ) : null,
-
-      "outcomes-evaluation": (isLoading || hasCallOutcomesData(data) || hasDailyMetricsData(data)) ? (
+      "agent-volume": (
         <section>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {(isLoading || hasCallOutcomesData(data)) && (
-              <CallOutcomes data={data} isLoading={isLoading} />
-            )}
-            {(isLoading || hasDailyMetricsData(data)) && (
-              <DailyMetricsCharts data={{ dailyMetrics: data?.dailyMetrics || [] }} isLoading={isLoading} />
-            )}
+            <CallVolumeTrends data={data} isLoading={isLoading} />
+            <DailyMetricsCharts data={{ dailyMetrics: data?.dailyMetrics || [] }} isLoading={isLoading} />
           </div>
+          {(isLoading || hasMostSuccessfulAgentData(data)) && (
+            <div className="mt-6">
+              <MostSuccessfulAgent data={data} isLoading={isLoading} />
+            </div>
+          )}
         </section>
-      ) : null,
+      ),
 
-      "recent-calls": (isLoading || hasRecentCallsData(data)) ? (
+      "outcomes-evaluation": (
+        <section>
+          <CallOutcomes data={data} isLoading={isLoading} />
+        </section>
+      ),
+
+      "recent-calls": (
         <section>
           <RecentCallsTable data={data?.recentCalls || []} isLoading={isLoading} />
         </section>
-      ) : null,
+      ),
 
-      "conversation-flow": (isLoading || hasConversationFlowData(data)) ? (
+      "conversation-flow": (
         <section>
           <ConversationFlowAnalysis
             data={data?.conversationFlow || { stages: [], successPaths: [], dropOffPoints: [] }}
             isLoading={isLoading}
           />
         </section>
-      ) : null,
+      ),
 
-      "duration-distribution": (isLoading || hasDurationDistributionData(data)) ? (
+      "duration-distribution": (
         <section>
           <DurationDistribution
             data={data?.durationHistogram || { histogram: [], stats: { average: "0:00", median: "0:00", mostCommon: "0:00", longest: "0:00" } }}
             isLoading={isLoading}
           />
         </section>
-      ) : null,
+      ),
 
-      "peak-usage": (isLoading || hasPeakUsageData(data)) ? (
+      "peak-usage": (
         <section>
           <PeakUsageHeatmap
             data={data?.peakUsageHeatmap || { heatmapData: [], insights: { peakHours: "", busiestDay: "", quietHours: "" } }}
             isLoading={isLoading}
           />
         </section>
-      ) : null,
+      ),
 
-      "conversation-outcomes": (isLoading || hasConversationOutcomesData(data)) ? (
+      "conversation-outcomes": (
         <section>
           <ConversationOutcomes
             data={data?.conversationOutcomes || { summary: { totalConversations: 0, successRate: 0, avgDuration: "0:00", avgSatisfaction: 0 }, outcomes: [] }}
             isLoading={isLoading}
           />
         </section>
-      ) : null,
+      ),
     };
   }, [data, isLoading, provider, timeRange, customDateRange]);
 
-  // Filter to only visible sections that have content
-  const visibleSections = sections.filter(s => s.visible && sectionContent[s.id] !== null);
+  // Filter to only visible sections
+  const visibleSections = sections.filter(s => s.visible);
   const hasAnyData = visibleSections.length > 0;
 
   if (error) {
@@ -264,6 +237,28 @@ export default function Dashboard() {
       <DashboardHeader />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Top controls: provider tabs + date picker */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+          <div className="flex items-center gap-4">
+            <Tabs value={provider} onValueChange={setProvider} className="w-[200px]">
+              <TabsList>
+                <TabsTrigger value="vapi" className="flex items-center gap-2">
+                  <Activity className="w-4 h-4" /> Vapi
+                </TabsTrigger>
+                <TabsTrigger value="retell" className="flex items-center gap-2">
+                  <Phone className="w-4 h-4" /> Retell
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+          <TimeRangeSelector
+            value={timeRange}
+            onChange={setTimeRange}
+            customDateRange={customDateRange}
+            onCustomDateChange={setCustomDateRange}
+          />
+        </div>
+
         {/* Empty state when no data */}
         {!isLoading && !hasAnyData && (
           <div className="text-center py-12 bg-card rounded-lg border border-border">

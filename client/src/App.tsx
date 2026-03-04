@@ -39,12 +39,16 @@ function AppRouter() {
       '/', '/login', '/signup', '/verify-email',
       '/solutions', '/use-cases', '/platform', '/why-invoxa', '/resources', '/book-demo', '/privacy', '/terms'
     ];
-    
-    const isPublicRoute = publicRoutes.some(route => 
+
+    const isPublicRoute = publicRoutes.some(route =>
       location === route || location.startsWith(route + '/')
     );
-    
-    if (!isLoading && !isAuthenticated && !isPublicRoute) {
+
+    // Also check localStorage to avoid race condition where auth state
+    // hasn't propagated yet but the user just logged in
+    const hasStoredToken = !!localStorage.getItem('auth_token');
+
+    if (!isLoading && !isAuthenticated && !hasStoredToken && !isPublicRoute) {
       setLocation('/');
     }
   }, [isAuthenticated, isLoading, location, setLocation]);
