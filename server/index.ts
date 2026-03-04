@@ -122,6 +122,8 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
+  // reusePort is intentionally omitted — it is not supported on macOS (ENOTSUP)
+  // and is not required for single-instance deployments on Render.
   server.listen({
     port,
     host: "0.0.0.0",
