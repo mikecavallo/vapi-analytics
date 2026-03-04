@@ -196,7 +196,7 @@ export default function LandingPage() {
             <div className="space-y-4">
               <div className="inline-flex items-center space-x-2 bg-cyan-500/20 rounded-full px-4 py-2 border border-cyan-300/30">
                 <Sparkles className="w-4 h-4 text-cyan-300" />
-                <span className="text-sm text-cyan-100">AI-Powered Growth for Forward-Thinking Companies</span>
+                <span className="text-sm text-cyan-100">AI-Powered Business Automation Solutions</span>
               </div>
               
               <div className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
@@ -231,7 +231,7 @@ export default function LandingPage() {
 
               <p className="text-xl md:text-2xl text-cyan-100 max-w-2xl">
                 <ShinyText
-                  text="We build custom AI platforms and automations that cut operating costs, increase output, and compound returns — for companies serious about scaling."
+                  text="We identify where AI delivers the highest impact in your business — then build and manage the solution. Custom-built, fully implemented, measurable results."
                   shimmerDuration={3}
                   shimmerDelay={2}
                   shimmerColor="rgba(191, 219, 254, 0.8)"
@@ -254,20 +254,7 @@ export default function LandingPage() {
               </Link>
             </div>
             
-            <div className="flex items-center space-x-8 pt-8">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-white">95%</div>
-                <div className="text-blue-200 text-sm">Call Success Rate</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-white">24/7</div>
-                <div className="text-blue-200 text-sm">Always Available</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-white">&lt; 2 hrs</div>
-                <div className="text-blue-200 text-sm">Setup Time</div>
-              </div>
-            </div>
+
           </motion.div>
 
           {/* Right Side - Visual Elements */}
@@ -358,10 +345,10 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
-              White-Glove Voice AI Services
+              Repetitive Operations Are Where AI Delivers the Highest ROI
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              Complete implementation from discovery to deployment. We don't just provide tools—we deliver working AI agents that transform your business operations with full-service support.
+              We go through your systems, workflows, and staffing — then build custom AI solutions for the specific areas where automation saves money, increases throughput, and improves consistency.
             </p>
           </div>
 
@@ -377,7 +364,7 @@ export default function LandingPage() {
                     Voice AI Agents
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300">
-                    24/7 inbound & outbound call handling with warm transfers and lead qualification.
+                    AI that handles calls, qualifies prospects, and routes them to the right place — 24/7, with no hold times and no staffing overhead.
                   </p>
                 </CardContent>
               </Card>
@@ -391,10 +378,10 @@ export default function LandingPage() {
                     <MessageCircle className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
-                    Messaging AI
+                    Messaging & Lead Automation
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Automated SMS, email, and direct mail campaigns with 2-way conversations.
+                    Automated SMS, email, and voice follow-ups that engage every lead instantly and keep them moving through your pipeline — without manual effort.
                   </p>
                 </CardContent>
               </Card>
@@ -408,10 +395,10 @@ export default function LandingPage() {
                     <Settings className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
-                    CRM & Integrations
+                    Process Automation
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Seamless workflow automation across all your existing platforms.
+                    Eliminate manual, repetitive tasks across your operation — data entry, lead routing, reporting, compliance checks — and reclaim the human time spent on things AI can handle.
                   </p>
                 </CardContent>
               </Card>
@@ -425,10 +412,10 @@ export default function LandingPage() {
                     <BarChart3 className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
-                    Analytics & Intelligence
+                    Analytics & Reporting
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Real-time performance monitoring with automated insights and alerts.
+                    Full call recordings, transcripts, and real-time dashboards on every interaction. Know exactly where your best leads come from and what's driving conversions.
                   </p>
                 </CardContent>
               </Card>
@@ -442,13 +429,10 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
-              Powered by Our Platform
+              Everything You Need, Built and Managed for You
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-4">
-              Our flagship solutions are delivered through our own platform—built to give you clarity, control, and results.
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-              The tech under the hood.
+              Every engagement is scoped to your specific needs. We build, train, and manage your AI solutions — from first call to full deployment.
             </p>
           </div>
 
@@ -461,11 +445,11 @@ export default function LandingPage() {
                     <BarChart3 className="w-6 h-6 text-white" />
                   </div>
                   <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
-                    VoiceScope Analytics
+                    AI Call Screener
                   </CardTitle>
                 </div>
                 <CardDescription className="text-gray-600 dark:text-gray-300 text-base">
-                  Analyze calls, spot trends, and ask questions in plain English.
+                  Handles inbound calls, qualifies contacts, and routes them appropriately — with full recordings, transcripts, and analytics on every interaction.
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-0">
@@ -508,11 +492,11 @@ export default function LandingPage() {
                     <Settings className="w-6 h-6 text-white" />
                   </div>
                   <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
-                    Assistant Studio
+                    Lead Automation Suite
                   </CardTitle>
                 </div>
                 <CardDescription className="text-gray-600 dark:text-gray-300 text-base">
-                  Design AI agents without code—just describe what you need.
+                  Instant outreach on every lead, automated follow-up sequences across SMS, email, and voice, and re-engagement campaigns for contacts that didn't convert the first time.
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-0">
@@ -549,11 +533,11 @@ export default function LandingPage() {
                     <PieChart className="w-6 h-6 text-white" />
                   </div>
                   <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
-                    Dashboard
+                    CRM & Analytics
                   </CardTitle>
                 </div>
                 <CardDescription className="text-gray-600 dark:text-gray-300 text-base">
-                  One place to manage every agent, conversation, and workflow.
+                  Full CRM with pipeline management, lead tracking, source performance data, real-time screening dashboards, lead scoring, and custom reporting.
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-0">
@@ -595,7 +579,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-8">
-              The White-Glove AI Partner
+              What You Get With Invoxa
             </h2>
           </div>
 
@@ -689,10 +673,10 @@ export default function LandingPage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                    Agents live in hours, not weeks.
+                    24/7/365 coverage — never miss a call or lead.
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300">
-                    While others give you tools to build with, we deliver working AI agents ready to serve your customers immediately.
+                    Your customers don't keep business hours. AI works around the clock — nights, weekends, holidays — so opportunities are never missed because no one was available.
                   </p>
                 </div>
               </div>
@@ -703,10 +687,10 @@ export default function LandingPage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                    We handle deployment, training, and monitoring.
+                    Perfect consistency — no bad days, no turnover.
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300">
-                    No more wrestling with configurations or wondering if your AI is performing well. Our team manages everything behind the scenes.
+                    AI executes your processes exactly the same way every time. No training ramp, no turnover, no variance — just consistent output at any volume.
                   </p>
                 </div>
               </div>
@@ -717,10 +701,10 @@ export default function LandingPage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                    Hands-on support and strategy, not "DIY docs."
+                    Unlimited scale — handles any volume, instantly.
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Get real human experts who understand your business goals and optimize your AI agents for maximum impact.
+                    Whether you're fielding 10 calls a day or 10,000, AI scales with your volume instantly. No hiring, no ramp time, no capacity ceilings.
                   </p>
                 </div>
               </div>
@@ -728,123 +712,10 @@ export default function LandingPage() {
               <div className="pt-6">
                 <Link href="/book-demo">
                   <Button size="lg" className="bg-gradient-to-r from-blue-700 to-cyan-600 hover:from-blue-800 hover:to-cyan-700 text-lg px-8 py-4">
-                    Experience White-Glove Service
+                    See How We Work
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Proof & Trust Section */}
-      <section className="bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20 py-20">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
-              Trusted by Teams Ready to Scale
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              From startups to established businesses, we deliver results that matter: more leads answered, more customers converted, less time wasted.
-            </p>
-          </div>
-
-          {/* Testimonials */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-            {/* Testimonial Card 1 */}
-            <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-              <CardContent className="p-6">
-                <div className="flex items-start space-x-1 mb-4">
-                  <Quote className="w-6 h-6 text-blue-500 flex-shrink-0" />
-                  <div className="flex text-yellow-400">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-current" />
-                    ))}
-                  </div>
-                </div>
-                <blockquote className="text-gray-700 dark:text-gray-300 mb-4 italic">
-                  "Our call response rate increased by 40% in the first month. The white-glove setup meant we were live in hours, not weeks."
-                </blockquote>
-                <div className="border-t pt-4">
-                  <div className="font-semibold text-gray-900 dark:text-white">Sarah Chen</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">VP of Operations, TechStart Inc.</div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Testimonial Card 2 */}
-            <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-              <CardContent className="p-6">
-                <div className="flex items-start space-x-1 mb-4">
-                  <Quote className="w-6 h-6 text-purple-500 flex-shrink-0" />
-                  <div className="flex text-yellow-400">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-current" />
-                    ))}
-                  </div>
-                </div>
-                <blockquote className="text-gray-700 dark:text-gray-300 mb-4 italic">
-                  "Finally, AI that works like we promised our customers. The support team feels like an extension of our company."
-                </blockquote>
-                <div className="border-t pt-4">
-                  <div className="font-semibold text-gray-900 dark:text-white">Marcus Rodriguez</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">CEO, GrowthCorp</div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Testimonial Card 3 */}
-            <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 md:col-span-2 lg:col-span-1">
-              <CardContent className="p-6">
-                <div className="flex items-start space-x-1 mb-4">
-                  <Quote className="w-6 h-6 text-green-500 flex-shrink-0" />
-                  <div className="flex text-yellow-400">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-current" />
-                    ))}
-                  </div>
-                </div>
-                <blockquote className="text-gray-700 dark:text-gray-300 mb-4 italic">
-                  "We went from missing 60% of leads to capturing 95%. The ROI was immediate and measurable."
-                </blockquote>
-                <div className="border-t pt-4">
-                  <div className="font-semibold text-gray-900 dark:text-white">Jennifer Kim</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Director of Sales, ScaleUp Solutions</div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Logo Bar Placeholder */}
-          <div className="text-center">
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 uppercase tracking-wider font-medium">
-              Trusted by Leading Companies
-            </p>
-            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12 opacity-60">
-              {/* Logo Placeholder 1 */}
-              <div className="bg-gray-200 dark:bg-gray-700 rounded-lg w-32 h-12 flex items-center justify-center">
-                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Client Logo</span>
-              </div>
-              
-              {/* Logo Placeholder 2 */}
-              <div className="bg-gray-200 dark:bg-gray-700 rounded-lg w-32 h-12 flex items-center justify-center">
-                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Client Logo</span>
-              </div>
-              
-              {/* Logo Placeholder 3 */}
-              <div className="bg-gray-200 dark:bg-gray-700 rounded-lg w-32 h-12 flex items-center justify-center">
-                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Client Logo</span>
-              </div>
-              
-              {/* Logo Placeholder 4 */}
-              <div className="bg-gray-200 dark:bg-gray-700 rounded-lg w-32 h-12 flex items-center justify-center">
-                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Client Logo</span>
-              </div>
-              
-              {/* Logo Placeholder 5 */}
-              <div className="bg-gray-200 dark:bg-gray-700 rounded-lg w-32 h-12 flex items-center justify-center">
-                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Client Logo</span>
               </div>
             </div>
           </div>
@@ -856,10 +727,10 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 text-center">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-8 leading-tight">
-              Ready to Launch Smarter Conversations?
+              Ready to Get Started?
             </h2>
             <p className="text-xl md:text-2xl text-violet-100 mb-12 max-w-2xl mx-auto">
-              Join the businesses already scaling with AI agents that work like people, without the payroll.
+              From discovery to deployment in as little as two weeks. Tell us exactly what you need — or start with our $1,500 AI Audit to map your highest-ROI opportunities.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
@@ -892,15 +763,15 @@ export default function LandingPage() {
             <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-8 text-violet-200">
               <div className="flex items-center space-x-2">
                 <CheckCircle className="w-5 h-5 text-green-400" />
-                <span>No long-term contracts</span>
+                <span>Custom-scoped to your operation</span>
               </div>
               <div className="flex items-center space-x-2">
                 <CheckCircle className="w-5 h-5 text-green-400" />
-                <span>Setup in hours, not weeks</span>
+                <span>Live in as little as two weeks</span>
               </div>
               <div className="flex items-center space-x-2">
                 <CheckCircle className="w-5 h-5 text-green-400" />
-                <span>White-glove support included</span>
+                <span>$1,500 AI Audit available</span>
               </div>
             </div>
           </div>
