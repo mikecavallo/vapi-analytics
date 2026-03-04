@@ -5,7 +5,10 @@ import type { TokenPayload, UserRole } from "@shared/schema";
 
 // Configuration
 const SALT_ROUNDS = 12;
-const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-change-in-production";
+const JWT_SECRET = process.env.JWT_SECRET || (() => {
+  if (process.env.NODE_ENV === 'production') throw new Error('JWT_SECRET environment variable is required in production');
+  return 'dev-only-jwt-secret-not-for-production';
+})();
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "24h";
 const EMAIL_TOKEN_EXPIRES_MINUTES = 30;
 
