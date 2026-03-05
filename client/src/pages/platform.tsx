@@ -209,7 +209,7 @@ export default function PlatformPage() {
                 <ArrowRight className="ml-2" size={20} />
               </Button>
             </Link>
-            <Link href="/studio">
+            <Link href="/assistant-studio">
               <Button size="lg" variant="outline" data-testid="button-try-studio">
                 Try Assistant Studio
                 <Settings className="ml-2" size={20} />
