@@ -31,7 +31,7 @@ import DraggableSection from "@/components/analytics/draggable-section";
 import AIChatbot from "@/components/ai-chatbot";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChartLine, Activity, Settings, RefreshCw, Phone, RotateCcw } from "lucide-react";
+import { ChartLine, Activity, Settings, RefreshCw, Phone, RotateCcw, Download } from "lucide-react";
 import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -39,6 +39,7 @@ import { useTheme } from "@/contexts/theme-context";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { useDashboardLayout } from "@/hooks/use-dashboard-layout";
+import { downloadCSV } from "@/lib/export-utils";
 
 // Helper functions to check if data is meaningful
 const hasKpiData = (data?: DashboardData) => {
@@ -121,6 +122,39 @@ export default function Dashboard() {
     queryKey: ["/api/analytics/summary", queryParams],
     enabled: timeRange !== "custom-range" || !!customDateRange,
   });
+
+  const handleExportCSV = () => {
+    if (!data) return;
+    const rows: Record<string, any>[] = [];
+
+    // Export daily metrics if available
+    if (data.dailyMetrics && data.dailyMetrics.length > 0) {
+      data.dailyMetrics.forEach((m: any) => {
+        rows.push({
+          date: m.date,
+          totalCalls: m.totalCalls ?? '',
+          successfulCalls: m.successfulCalls ?? '',
+          failedCalls: m.failedCalls ?? '',
+          avgDuration: m.avgDuration ?? '',
+          totalCost: m.totalCost ?? '',
+        });
+      });
+    }
+
+    // If no daily metrics, export KPIs as a single row
+    if (rows.length === 0 && data.kpis) {
+      rows.push({
+        totalCalls: data.kpis.totalCalls,
+        avgDuration: data.kpis.avgDuration,
+        successRate: data.kpis.successRate,
+        totalCost: data.kpis.totalCost,
+      });
+    }
+
+    if (rows.length === 0) return;
+    const dateStr = new Date().toISOString().split('T')[0];
+    downloadCSV(rows, `dashboard-metrics-${dateStr}.csv`);
+  };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -251,12 +285,23 @@ export default function Dashboard() {
               </TabsList>
             </Tabs>
           </div>
-          <TimeRangeSelector
-            value={timeRange}
-            onChange={setTimeRange}
-            customDateRange={customDateRange}
-            onCustomDateChange={setCustomDateRange}
-          />
+          <div className="flex items-center gap-2">
+            <TimeRangeSelector
+              value={timeRange}
+              onChange={setTimeRange}
+              customDateRange={customDateRange}
+              onCustomDateChange={setCustomDateRange}
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleExportCSV}
+              disabled={isLoading || !data}
+              title="Export CSV"
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Empty state when no data */}

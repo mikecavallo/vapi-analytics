@@ -1,12 +1,14 @@
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Brain, Wand2, Users, User, Sun, Moon, LogOut, BarChart3 } from "lucide-react";
+import { Brain, Wand2, Users, User, Sun, Moon, LogOut, BarChart3, Menu, Settings } from "lucide-react";
 import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 import { useTheme } from "@/contexts/theme-context";
 import { useAuth } from "@/contexts/auth-context";
@@ -15,6 +17,16 @@ export function DashboardHeader() {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const [location] = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const navLinks = [
+    { href: '/dashboard', label: 'Dashboard', icon: null },
+    { href: '/bulk-analysis', label: 'VoiceScope', icon: Brain },
+    { href: '/assistant-studio', label: 'Studio', icon: Wand2 },
+    { href: '/media', label: 'Media', icon: BarChart3, testId: 'link-media' },
+    ...(user?.role === 'super_admin' ? [{ href: '/agency', label: 'Agency', icon: Users }] : []),
+    { href: '/settings', label: 'Settings', icon: Settings },
+  ];
 
   return (
     <header className="bg-card border-b border-border sticky top-0 z-50">
@@ -24,76 +36,31 @@ export function DashboardHeader() {
           <div className="flex-shrink-0">
             <img src={logoTransparent} alt="Invoxa.ai" className="h-8" style={{ width: 'auto' }} />
           </div>
-          
-          {/* Navigation - Center */}
+
+          {/* Navigation - Center (desktop) */}
           <nav className="hidden md:flex space-x-8 mx-auto">
-            <Link href="/dashboard">
-              <span className={`pb-4 px-1 text-sm font-medium transition-colors ${
-                location === '/dashboard' 
-                  ? 'text-primary border-b-2 border-primary' 
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}>
-                Dashboard
-              </span>
-            </Link>
-            <Link href="/bulk-analysis">
-              <span className={`pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1 ${
-                location === '/bulk-analysis' 
-                  ? 'text-primary border-b-2 border-primary' 
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}>
-                <Brain size={16} />
-                <span>VoiceScope</span>
-              </span>
-            </Link>
-            <Link href="/assistant-studio">
-              <span className={`pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1 ${
-                location === '/assistant-studio' 
-                  ? 'text-primary border-b-2 border-primary' 
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}>
-                <Wand2 size={16} />
-                <span>Studio</span>
-              </span>
-            </Link>
-            <Link href="/media">
-              <span className={`pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1 ${
-                location === '/media' 
-                  ? 'text-primary border-b-2 border-primary' 
-                  : 'text-muted-foreground hover:text-foreground'
-              }`} data-testid="link-media">
-                <BarChart3 size={16} />
-                <span>Media</span>
-              </span>
-            </Link>
-            {user?.role === 'super_admin' && (
-              <Link href="/agency">
-                <span className={`pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1 ${
-                  location === '/agency' 
-                    ? 'text-primary border-b-2 border-primary' 
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}>
-                  <Users size={16} />
-                  <span>Agency</span>
+            {navLinks.map((link) => (
+              <Link key={link.href} href={link.href}>
+                <span
+                  className={`pb-4 px-1 text-sm font-medium transition-colors flex items-center space-x-1 ${
+                    location === link.href
+                      ? 'text-primary border-b-2 border-primary'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  {...(link.testId ? { 'data-testid': link.testId } : {})}
+                >
+                  {link.icon && <link.icon size={16} />}
+                  <span>{link.label}</span>
                 </span>
               </Link>
-            )}
-            <Link href="/settings">
-              <span className={`pb-4 px-1 text-sm font-medium transition-colors ${
-                location === '/settings' 
-                  ? 'text-primary border-b-2 border-primary' 
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}>
-                Settings
-              </span>
-            </Link>
+            ))}
           </nav>
-          
+
           {/* Right side controls */}
-          <div className="flex items-center space-x-4 ml-auto">
-            <Button 
-              variant="outline" 
-              size="sm" 
+          <div className="flex items-center space-x-3 ml-auto">
+            <Button
+              variant="outline"
+              size="sm"
               onClick={toggleTheme}
               className="w-8 h-8 rounded-full p-0"
               data-testid="button-toggle-theme"
@@ -113,6 +80,43 @@ export function DashboardHeader() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Mobile hamburger menu */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="sm" className="md:hidden w-8 h-8 p-0">
+                  <Menu size={20} />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-64 pt-12">
+                <nav className="flex flex-col space-y-4">
+                  {navLinks.map((link) => (
+                    <Link key={link.href} href={link.href}>
+                      <span
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors ${
+                          location === link.href
+                            ? 'bg-primary/10 text-primary'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                        }`}
+                      >
+                        {link.icon && <link.icon size={18} />}
+                        <span>{link.label}</span>
+                      </span>
+                    </Link>
+                  ))}
+                  <div className="border-t border-border pt-4">
+                    <button
+                      onClick={() => { logout(); setMobileMenuOpen(false); }}
+                      className="flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium text-destructive hover:bg-destructive/10 cursor-pointer w-full"
+                    >
+                      <LogOut size={18} />
+                      <span>Log out</span>
+                    </button>
+                  </div>
+                </nav>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>

@@ -6,6 +6,7 @@ import {
   vapiAnalyticsQuerySchema,
   type VapiAnalyticsQuery,
   type DashboardData,
+  type KpiData,
   signupSchema,
   loginSchema,
   emailVerificationSchema,
@@ -51,6 +52,7 @@ const MAX_ERROR_BODY_LOG_LENGTH = 500;
 function createEmptyDashboardData(): DashboardData {
   return {
     kpis: { totalCalls: 0, avgDuration: 0, successRate: 0, inboundSuccessRate: 0, outboundSuccessRate: 0, totalCost: 0 },
+    previousKpis: null,
     mostSuccessfulAgent: null,
     dailyMetrics: [],
     callVolumeTrends: [],
@@ -64,6 +66,64 @@ function createEmptyDashboardData(): DashboardData {
     durationHistogram: { histogram: [], stats: { average: "0:00", median: "0:00", mostCommon: "0s", longest: "0:00" } },
     peakUsageHeatmap: { heatmapData: [], insights: { peakHours: "N/A", busiestDay: "N/A", quietHours: "N/A" } },
     conversationOutcomes: { summary: { totalConversations: 0, successRate: 0, avgDuration: "0:00", avgSatisfaction: 0 }, outcomes: [] }
+  };
+}
+
+/**
+ * Compute KPI values from an array of raw (normalized) calls.
+ * Reused for both the current and previous period calculations.
+ */
+function computeKpisFromCalls(calls: any[]): KpiData {
+  if (!calls || calls.length === 0) {
+    return { totalCalls: 0, avgDuration: 0, successRate: 0, inboundSuccessRate: 0, outboundSuccessRate: 0, totalCost: 0 };
+  }
+
+  let totalDuration = 0;
+  let successfulCalls = 0;
+  let inboundCalls = 0;
+  let outboundCalls = 0;
+  let inboundSuccess = 0;
+  let outboundSuccess = 0;
+  let totalCost = 0;
+
+  calls.forEach(call => {
+    totalDuration += (call.duration || 0);
+    totalCost += (call.cost || 0);
+
+    const isSuccess = call.successEvaluation === 'true';
+    if (isSuccess) successfulCalls++;
+
+    if (call.type === 'inbound') {
+      inboundCalls++;
+      if (isSuccess) inboundSuccess++;
+    } else {
+      outboundCalls++;
+      if (isSuccess) outboundSuccess++;
+    }
+  });
+
+  return {
+    totalCalls: calls.length,
+    avgDuration: calls.length > 0 ? totalDuration / calls.length : 0,
+    successRate: calls.length > 0 ? (successfulCalls / calls.length) * 100 : 0,
+    inboundSuccessRate: inboundCalls > 0 ? (inboundSuccess / inboundCalls) * 100 : 0,
+    outboundSuccessRate: outboundCalls > 0 ? (outboundSuccess / outboundCalls) * 100 : 0,
+    totalCost,
+  };
+}
+
+/**
+ * Given a current period (start, end), return the previous period of the same duration.
+ * e.g. if current is 7 days, previous is the 7 days before that.
+ */
+function getPreviousPeriodRange(currentStart: string, currentEnd: string): { start: string; end: string } {
+  const startMs = new Date(currentStart).getTime();
+  const endMs = new Date(currentEnd).getTime();
+  const durationMs = endMs - startMs;
+
+  return {
+    start: new Date(startMs - durationMs).toISOString(),
+    end: new Date(startMs).toISOString(),
   };
 }
 
@@ -720,6 +780,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user profile (username and/or email)
+  app.patch("/api/auth/profile", authenticateUser, async (req, res) => {
+    try {
+      const { username, email } = req.body;
+      const userId = req.user!.id;
+
+      // Validate that at least one field is provided
+      if (!username && !email) {
+        return res.status(400).json({ error: "At least one field (username or email) is required" });
+      }
+
+      // Validate username if provided
+      if (username !== undefined) {
+        if (typeof username !== 'string' || username.trim().length < 2) {
+          return res.status(400).json({ error: "Username must be at least 2 characters long" });
+        }
+        // Check uniqueness
+        const existingUser = await storage.getUserByUsername(username.trim());
+        if (existingUser && existingUser.id !== userId) {
+          return res.status(409).json({ error: "Username is already taken" });
+        }
+      }
+
+      // Validate email if provided
+      if (email !== undefined) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (typeof email !== 'string' || !emailRegex.test(email.trim())) {
+          return res.status(400).json({ error: "Invalid email format" });
+        }
+        // Check uniqueness
+        const existingUser = await storage.getUserByEmail(email.trim());
+        if (existingUser && existingUser.id !== userId) {
+          return res.status(409).json({ error: "Email is already in use" });
+        }
+      }
+
+      const updates: Record<string, any> = {};
+      if (username) updates.username = username.trim();
+      if (email) updates.email = email.trim();
+
+      const updatedUser = await storage.updateUser(userId, updates);
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      auditLog('PROFILE_UPDATE', userId, { fieldsUpdated: Object.keys(updates) });
+      res.json({ user: sanitizeUser(updatedUser) });
+    } catch (error) {
+      console.error("Profile update error:", error);
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
+  // Change password
+  app.post("/api/auth/change-password", authenticateUser, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const userId = req.user!.id;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: "Current password and new password are required" });
+      }
+
+      // Get the user to verify current password
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Verify current password
+      const isValid = await verifyPassword(currentPassword, user.password);
+      if (!isValid) {
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+
+      // Validate new password strength
+      const strength = validatePasswordStrength(newPassword);
+      if (!strength.valid) {
+        return res.status(400).json({ error: strength.message });
+      }
+
+      // Hash and update
+      const hashedPassword = await hashPassword(newPassword);
+      await storage.updateUser(userId, { password: hashedPassword });
+
+      auditLog('PASSWORD_CHANGE', userId, {});
+      res.json({ message: "Password changed successfully" });
+    } catch (error) {
+      console.error("Change password error:", error);
+      res.status(500).json({ error: "Failed to change password" });
+    }
+  });
+
   // Customer API key management
   app.get("/api/customer/details", authenticateUser, requireCustomerAccess, async (req, res) => {
     try {
@@ -1001,8 +1154,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return callDate >= new Date(retellStart).getTime() && callDate <= new Date(retellEnd).getTime();
           });
 
+          // Compute previous period KPIs for trend comparison
+          const { start: prevStart, end: prevEnd } = getPreviousPeriodRange(retellStart, retellEnd);
+          const previousRetellCalls = retellCalls.filter(call => {
+            if (!call.startedAt) return false;
+            const callDate = new Date(call.startedAt).getTime();
+            return callDate >= new Date(prevStart).getTime() && callDate < new Date(prevEnd).getTime();
+          });
+
           // Build our Dashboard Data manually from the normalized raw calls
           const dashboardData = buildDashboardFromRawCalls(filteredRetellCalls, timeRange);
+          dashboardData.previousKpis = computeKpisFromCalls(previousRetellCalls);
           await storage.setCachedAnalytics(cacheKey, dashboardData);
           return res.json(dashboardData);
 
@@ -1021,15 +1183,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Build analytics queries for Vapi API (pass custom dates if provided)
         const analyticsQueries = await buildAnalyticsQueries(timeRange, startDate, endDate);
 
-        // Make request to Vapi Analytics API with customer-specific key
-        const vapiResponse = await fetch("https://api.vapi.ai/analytics", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${customer.vapiApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ queries: analyticsQueries }),
-        });
+        // Also build queries for the previous period to compute trend comparisons
+        const { start: currentStart, end: currentEnd } = getTimeRangeForQuery(timeRange, startDate, endDate);
+        const { start: prevStart, end: prevEnd } = getPreviousPeriodRange(currentStart, currentEnd);
+        const previousQueries = await buildAnalyticsQueries("custom-range", prevStart, prevEnd);
+
+        // Make requests to Vapi Analytics API for both periods in parallel
+        const [vapiResponse, vapiPrevResponse] = await Promise.all([
+          fetch("https://api.vapi.ai/analytics", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${customer.vapiApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ queries: analyticsQueries }),
+          }),
+          fetch("https://api.vapi.ai/analytics", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${customer.vapiApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ queries: previousQueries }),
+          }),
+        ]);
 
         if (!vapiResponse.ok) {
           const errorText = await vapiResponse.text();
@@ -1041,6 +1218,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Transform Vapi data to dashboard format and fetch recent calls
         const dashboardData = await transformVapiDataToDashboard(vapiData, customer.vapiApiKey);
+
+        // Compute previous period KPIs if the previous-period request succeeded
+        if (vapiPrevResponse.ok) {
+          const vapiPrevData = await vapiPrevResponse.json();
+          dashboardData.previousKpis = extractKpisFromVapiData(vapiPrevData);
+        } else {
+          dashboardData.previousKpis = null;
+        }
 
         // Cache the result
         await storage.setCachedAnalytics(cacheKey, dashboardData);
@@ -1863,6 +2048,121 @@ Apply these specific settings and create a comprehensive assistant configuration
     }
   });
 
+  // Assistant CRUD endpoints
+  app.get("/api/assistants", authenticateUser, async (req, res) => {
+    try {
+      const vapiApiKey = process.env.VAPI_API_KEY || "";
+      if (!vapiApiKey) {
+        return res.status(500).json({ error: "Vapi API key not configured" });
+      }
+
+      const response = await fetch("https://api.vapi.ai/assistant", {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${vapiApiKey}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Vapi API error: ${response.status} - ${JSON.stringify(errorData)}`);
+      }
+
+      const assistants = await response.json();
+      res.json(assistants);
+    } catch (error) {
+      console.error("List assistants error:", error);
+      res.status(500).json({ error: "Failed to fetch assistants from Vapi API" });
+    }
+  });
+
+  app.get("/api/assistants/:id", authenticateUser, async (req, res) => {
+    try {
+      const vapiApiKey = process.env.VAPI_API_KEY || "";
+      if (!vapiApiKey) {
+        return res.status(500).json({ error: "Vapi API key not configured" });
+      }
+
+      const { id } = req.params;
+      const response = await fetch(`https://api.vapi.ai/assistant/${id}`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${vapiApiKey}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Vapi API error: ${response.status} - ${JSON.stringify(errorData)}`);
+      }
+
+      const assistant = await response.json();
+      res.json(assistant);
+    } catch (error) {
+      console.error("Get assistant error:", error);
+      res.status(500).json({ error: "Failed to fetch assistant from Vapi API" });
+    }
+  });
+
+  app.delete("/api/assistants/:id", authenticateUser, async (req, res) => {
+    try {
+      const vapiApiKey = process.env.VAPI_API_KEY || "";
+      if (!vapiApiKey) {
+        return res.status(500).json({ error: "Vapi API key not configured" });
+      }
+
+      const { id } = req.params;
+      const response = await fetch(`https://api.vapi.ai/assistant/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${vapiApiKey}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Vapi API error: ${response.status} - ${JSON.stringify(errorData)}`);
+      }
+
+      auditLog('ASSISTANT_DELETED', req.user?.id, { assistantId: id });
+      res.json({ success: true, deletedId: id });
+    } catch (error) {
+      console.error("Delete assistant error:", error);
+      res.status(500).json({ error: "Failed to delete assistant from Vapi API" });
+    }
+  });
+
+  app.patch("/api/assistants/:id", authenticateUser, async (req, res) => {
+    try {
+      const vapiApiKey = process.env.VAPI_API_KEY || "";
+      if (!vapiApiKey) {
+        return res.status(500).json({ error: "Vapi API key not configured" });
+      }
+
+      const { id } = req.params;
+      const response = await fetch(`https://api.vapi.ai/assistant/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Authorization": `Bearer ${vapiApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(req.body),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Vapi API error: ${response.status} - ${JSON.stringify(errorData)}`);
+      }
+
+      const updatedAssistant = await response.json();
+      auditLog('ASSISTANT_UPDATED', req.user?.id, { assistantId: id });
+      res.json(updatedAssistant);
+    } catch (error) {
+      console.error("Update assistant error:", error);
+      res.status(500).json({ error: "Failed to update assistant via Vapi API" });
+    }
+  });
+
   // Advanced Report Generation endpoint
   app.post("/api/voicescope/generate-report", authenticateUser, async (req, res) => {
     try {
@@ -2614,6 +2914,86 @@ Generate professional insights in JSON format:
     }
   });
 
+  // AI Chatbot endpoint
+  app.post("/api/chatbot/query", authenticateUser, async (req, res) => {
+    try {
+      const { query, dashboardData } = req.body;
+      const openaiApiKey = process.env.OPENAI_API_KEY;
+
+      if (!openaiApiKey) {
+        return res.status(500).json({ error: "OpenAI API key not configured" });
+      }
+
+      if (!query || typeof query !== 'string' || query.trim().length === 0) {
+        return res.status(400).json({ error: "Query is required" });
+      }
+
+      if (query.length > MAX_PROMPT_LENGTH) {
+        return res.status(400).json({ error: `Query exceeds maximum length of ${MAX_PROMPT_LENGTH} characters` });
+      }
+
+      auditLog('CHATBOT_QUERY', req.user?.id, { query: query.substring(0, 100) });
+
+      // Truncate dashboard data to a reasonable size for context
+      const truncatedData = dashboardData ? JSON.stringify(dashboardData).substring(0, 8000) : '{}';
+
+      const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${openaiApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4",
+          messages: [
+            {
+              role: "system",
+              content: `You are an expert dashboard analytics assistant for a voice AI call analytics platform.
+
+You help users understand their call data by answering questions about:
+- Call volumes, success rates, and trends
+- Cost analysis and optimization opportunities
+- Call duration patterns and distributions
+- Outcome breakdowns and end reasons
+- Assistant/agent performance comparisons
+- Peak usage times and hourly patterns
+- Sentiment analysis and customer satisfaction
+
+You have access to the user's current dashboard data. Provide specific, data-driven answers based on what you see.
+Be concise but helpful. Use actual numbers from the data when available.
+If the data doesn't contain the information needed to answer, say so honestly and suggest what data might help.`
+            },
+            {
+              role: "user",
+              content: `Dashboard data context: ${truncatedData}
+
+User question: ${query}`
+            }
+          ],
+          max_tokens: 500,
+          temperature: 0.3,
+        }),
+      });
+
+      if (!openaiResponse.ok) {
+        const errorData = await openaiResponse.text();
+        console.error("OpenAI API error:", openaiResponse.status, errorData);
+        throw new Error(`OpenAI request failed`);
+      }
+
+      const openaiResult = await openaiResponse.json();
+      const response = openaiResult.choices[0].message.content;
+
+      res.json({ response });
+
+    } catch (error) {
+      console.error("Chatbot query error:", error);
+      res.status(500).json({
+        error: "Failed to generate response. Please try again."
+      });
+    }
+  });
+
   // Facebook Ads API Routes
 
   // Validate and save Facebook credentials (access token, app ID, app secret)
@@ -2904,6 +3284,80 @@ Generate professional insights in JSON format:
     }
   });
 
+  // Get daily Facebook Ads insights for charting
+  app.get("/api/facebook-ads/insights/daily", authenticateUser, async (req, res) => {
+    try {
+      const {
+        objectId,
+        level = 'campaign',
+        since,
+        until = new Date().toISOString().split('T')[0]
+      } = req.query;
+
+      if (!objectId) {
+        return res.status(400).json({ error: "Object ID is required" });
+      }
+
+      if (!since) {
+        return res.status(400).json({ error: "Since date is required" });
+      }
+
+      const validLevels = ['campaign', 'adset', 'ad'];
+      if (!validLevels.includes(level as string)) {
+        return res.status(400).json({ error: "Invalid level. Must be campaign, adset, or ad" });
+      }
+
+      const userId = req.user!.id;
+      const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
+
+      if (userCustomerAssignments.length === 0) {
+        return res.status(403).json({ error: "No customer assigned to user" });
+      }
+
+      const customerId = userCustomerAssignments[0].customerId;
+      const account = await storage.getFacebookAdsAccount(customerId);
+
+      if (!account || !account.isActive) {
+        return res.status(400).json({ error: "No active Facebook Ads account found" });
+      }
+
+      const insights = await facebookAdsService.getInsights(
+        account.accessToken,
+        objectId as string,
+        level as 'campaign' | 'adset' | 'ad',
+        {
+          since: since as string,
+          until: until as string,
+        },
+        undefined,
+        account.appSecret,
+        '1' // Daily breakdown
+      );
+
+      const dailyData = insights.data.map((day: any) => ({
+        date: day.date_start,
+        spend: Number(day.spend) || 0,
+        impressions: Number(day.impressions) || 0,
+        clicks: Number(day.clicks) || 0,
+        reach: Number(day.reach) || 0,
+        cpm: Number(day.cpm) || 0,
+        cpc: Number(day.cpc) || 0,
+        ctr: Number(day.ctr) || 0,
+      }));
+
+      res.json({
+        daily: dailyData,
+        dateRange: insights.dateRange
+      });
+
+    } catch (error) {
+      console.error("Facebook Ads daily insights error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to fetch daily insights"
+      });
+    }
+  });
+
   // Get hierarchical Facebook Ads data (campaigns -> adsets -> ads with metrics)
   app.get("/api/facebook-ads/hierarchy", authenticateUser, async (req, res) => {
     try {
@@ -3077,6 +3531,33 @@ function getTimeRangeForQuery(timeRange: string, startDate?: string, endDate?: s
   return { start, end };
 }
 
+/**
+ * Extract just the KPI values from a Vapi analytics response.
+ * Used for the previous-period comparison.
+ */
+function extractKpisFromVapiData(vapiData: any[]): KpiData {
+  const kpisData = vapiData.find((q: any) => q.name === "kpis");
+  const outcomesData = vapiData.find((q: any) => q.name === "call_outcomes");
+
+  const totalCalls = parseInt(kpisData?.result?.[0]?.totalCalls || "0");
+  const avgDurationMinutes = Math.round(parseFloat(kpisData?.result?.[0]?.avgDuration || "0") * 100) / 100;
+  const avgDuration = Math.round(avgDurationMinutes * 60 * 100) / 100;
+  const totalCost = Math.round(parseFloat(kpisData?.result?.[0]?.totalCost || "0") * 100) / 100;
+
+  const outcomeTotalCalls = outcomesData?.result?.reduce((sum: number, item: any) => sum + parseInt(item.count || "0"), 0) || 0;
+  const successfulCalls = outcomesData?.result?.filter((item: any) =>
+    ['customer-ended-call', 'assistant-ended-call'].includes(item.endedReason)
+  )?.reduce((sum: number, item: any) => sum + parseInt(item.count || "0"), 0) || 0;
+
+  const successRate = outcomeTotalCalls > 0 ? (successfulCalls / outcomeTotalCalls) * 100 : 0;
+
+  // Same estimation logic as transformVapiDataToDashboard
+  const inboundSuccessRate = successRate * 0.99;
+  const outboundSuccessRate = successRate * 0.95;
+
+  return { totalCalls, avgDuration, successRate, inboundSuccessRate, outboundSuccessRate, totalCost };
+}
+
 async function transformVapiDataToDashboard(vapiData: any[], vapiApiKey?: string): Promise<DashboardData> {
   const kpisData = vapiData.find(q => q.name === "kpis");
   const outcomesData = vapiData.find(q => q.name === "call_outcomes");
@@ -3181,6 +3662,7 @@ async function transformVapiDataToDashboard(vapiData: any[], vapiApiKey?: string
       outboundSuccessRate: Math.round(outboundSuccessRate * 100) / 100,
       totalCost,
     },
+    previousKpis: null, // Will be set by the caller after fetching the previous period
     mostSuccessfulAgent,
     callVolumeTrends,
     callOutcomes: outcomesData?.result?.map((item: any) => ({
