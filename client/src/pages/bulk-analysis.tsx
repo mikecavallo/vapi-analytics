@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import { Calendar } from "@/components/ui/calendar";
 import type { DateRange } from "react-day-picker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,7 +49,9 @@ import {
   Activity,
   Wand2,
   FileText,
-  LogOut
+  LogOut,
+  RotateCcw,
+  SlidersHorizontal
 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -56,6 +59,7 @@ import { useTheme } from "@/contexts/theme-context";
 import logoTransparent from "@assets/logo_transparent_1757373755849.png";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
+import { downloadCSV, downloadTextFile } from "@/lib/export-utils";
 
 interface FilterCriteria {
   id: string;
@@ -73,19 +77,117 @@ interface AnalysisMessage {
   analysisType?: string;
 }
 
+// localStorage keys for session persistence
+const LS_KEY_CONVERSATION = 'voicescope_conversation';
+const LS_KEY_CALLS = 'voicescope_calls';
+const LS_KEY_FILTERS = 'voicescope_filters';
+
+function loadFromStorage<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 export default function BulkAnalysis() {
-  // State management (keeping all existing state variables)
+  // State management with localStorage restoration
   const { toast } = useToast();
-  const [callsData, setCallsData] = useState<any[]>([]);
+
+  const [callsData, setCallsData] = useState<any[]>(() => loadFromStorage(LS_KEY_CALLS, []));
   const [isLoadingData, setIsLoadingData] = useState(false);
-  const [callIdFilter, setCallIdFilter] = useState('');
-  const [assistantIdFilter, setAssistantIdFilter] = useState('');
-  const [squadIdFilter, setSquadIdFilter] = useState('');
-  const [selectedDateRange, setSelectedDateRange] = useState<DateRange | undefined>(undefined);
-  const [provider, setProvider] = useState<'vapi' | 'retell'>('vapi');
-  const [conversationHistory, setConversationHistory] = useState<AnalysisMessage[]>([]);
+
+  // Restore filters from localStorage
+  const [callIdFilter, setCallIdFilter] = useState(() => {
+    const saved = loadFromStorage<Record<string, any>>(LS_KEY_FILTERS, {});
+    return (saved.callIdFilter as string) ?? '';
+  });
+  const [assistantIdFilter, setAssistantIdFilter] = useState(() => {
+    const saved = loadFromStorage<Record<string, any>>(LS_KEY_FILTERS, {});
+    return (saved.assistantIdFilter as string) ?? '';
+  });
+  const [squadIdFilter, setSquadIdFilter] = useState(() => {
+    const saved = loadFromStorage<Record<string, any>>(LS_KEY_FILTERS, {});
+    return (saved.squadIdFilter as string) ?? '';
+  });
+  const [selectedDateRange, setSelectedDateRange] = useState<DateRange | undefined>(() => {
+    const saved = loadFromStorage<Record<string, any>>(LS_KEY_FILTERS, {});
+    if (saved.dateRange?.from) {
+      return {
+        from: new Date(saved.dateRange.from),
+        to: saved.dateRange.to ? new Date(saved.dateRange.to) : undefined,
+      };
+    }
+    return undefined;
+  });
+  const [provider, setProvider] = useState<'vapi' | 'retell'>(() => {
+    const saved = loadFromStorage<Record<string, any>>(LS_KEY_FILTERS, {});
+    return (saved.provider as 'vapi' | 'retell') ?? 'vapi';
+  });
+
+  // Restore conversation history, re-hydrating Date objects
+  const [conversationHistory, setConversationHistory] = useState<AnalysisMessage[]>(() => {
+    const stored = loadFromStorage<AnalysisMessage[]>(LS_KEY_CONVERSATION, []);
+    return stored.map(msg => ({ ...msg, timestamp: new Date(msg.timestamp) }));
+  });
+
   const [analysisQuery, setAnalysisQuery] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  // Persist conversation history to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(LS_KEY_CONVERSATION, JSON.stringify(conversationHistory));
+    } catch { /* storage full or unavailable */ }
+  }, [conversationHistory]);
+
+  // Persist calls data to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(LS_KEY_CALLS, JSON.stringify(callsData));
+    } catch { /* storage full or unavailable */ }
+  }, [callsData]);
+
+  // Persist filters to localStorage
+  useEffect(() => {
+    try {
+      const filtersToSave = {
+        callIdFilter,
+        assistantIdFilter,
+        squadIdFilter,
+        provider,
+        dateRange: selectedDateRange?.from
+          ? {
+              from: selectedDateRange.from.toISOString(),
+              to: selectedDateRange.to?.toISOString(),
+            }
+          : undefined,
+      };
+      localStorage.setItem(LS_KEY_FILTERS, JSON.stringify(filtersToSave));
+    } catch { /* storage full or unavailable */ }
+  }, [callIdFilter, assistantIdFilter, squadIdFilter, provider, selectedDateRange]);
+
+  // New Session: clear all persisted state
+  const handleNewSession = useCallback(() => {
+    localStorage.removeItem(LS_KEY_CONVERSATION);
+    localStorage.removeItem(LS_KEY_CALLS);
+    localStorage.removeItem(LS_KEY_FILTERS);
+    setConversationHistory([]);
+    setCallsData([]);
+    setCallIdFilter('');
+    setAssistantIdFilter('');
+    setSquadIdFilter('');
+    setSelectedDateRange(undefined);
+    setProvider('vapi');
+    setAnalysisQuery('');
+    toast({
+      title: "New session started",
+      description: "All previous conversation and data have been cleared.",
+    });
+  }, [toast]);
 
   // Example prompts for the chat
   const examplePrompts = [
@@ -254,18 +356,27 @@ export default function BulkAnalysis() {
       {/* VoiceScope Header Section */}
       <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-950 dark:to-purple-950 border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
-              <img src={logoTransparent} alt="Invoxa.ai" className="h-10 w-auto" />
+          <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+            <div className="bg-white dark:bg-gray-800 p-2 sm:p-3 rounded-lg shadow-sm">
+              <img src={logoTransparent} alt="Invoxa.ai" className="h-8 sm:h-10 w-auto" />
             </div>
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-700 to-cyan-600 bg-clip-text text-transparent">
+            <div className="flex-1">
+              <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-blue-700 to-cyan-600 bg-clip-text text-transparent">
                 VoiceScope
               </h1>
-              <p className="text-lg text-muted-foreground mt-1">
+              <p className="text-sm sm:text-lg text-muted-foreground mt-1">
                 AI-Powered Call Data Analysis Platform
               </p>
             </div>
+            <Button
+              variant="outline"
+              onClick={handleNewSession}
+              className="self-start"
+              data-testid="button-new-session"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              New Session
+            </Button>
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -307,11 +418,81 @@ export default function BulkAnalysis() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 min-h-0 flex flex-col gap-6 p-6">
+      <div className="flex-1 min-h-0 flex flex-col gap-4 sm:gap-6 p-3 sm:p-6">
+        {/* Mobile: Filter toggle button */}
+        <div className="lg:hidden">
+          <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" className="w-full flex items-center gap-2">
+                <SlidersHorizontal className="h-4 w-4" />
+                {hasFilters ? 'Edit Filters' : 'Set Filters'}
+                {callsData.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">{callsData.length} calls</Badge>
+                )}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-80 sm:w-96 pt-8 overflow-y-auto">
+              <div className="space-y-6 pb-6">
+                <div>
+                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Filter className="h-5 w-5 text-blue-500" />
+                    Data Filters
+                  </h2>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Provider</Label>
+                  <Tabs value={provider} onValueChange={(v) => { setProvider(v as 'vapi' | 'retell'); setCallsData([]); }}>
+                    <TabsList className="w-full">
+                      <TabsTrigger value="vapi" className="flex-1 flex items-center gap-2">
+                        <Activity className="w-4 h-4" /> Vapi
+                      </TabsTrigger>
+                      <TabsTrigger value="retell" className="flex-1 flex items-center gap-2">
+                        <Phone className="w-4 h-4" /> Retell
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Assistant ID</Label>
+                  <Input placeholder="Enter assistant ID" value={assistantIdFilter} onChange={(e) => setAssistantIdFilter(e.target.value)} className="w-full" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Squad ID</Label>
+                  <Input placeholder="Enter squad ID" value={squadIdFilter} onChange={(e) => setSquadIdFilter(e.target.value)} className="w-full" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Date Range</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {selectedDateRange?.from ? (
+                          selectedDateRange.to ? `${selectedDateRange.from.toLocaleDateString()} - ${selectedDateRange.to.toLocaleDateString()}` : selectedDateRange.from.toLocaleDateString()
+                        ) : "Pick a date range"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="range" selected={selectedDateRange} onSelect={setSelectedDateRange} numberOfMonths={1} />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-3 pt-4">
+                  <Button onClick={() => { fetchDataWithFilters(); setMobileFiltersOpen(false); }} disabled={!hasFilters || isLoadingData} className="w-full bg-gradient-to-r from-blue-700 to-cyan-600 hover:from-blue-800 hover:to-cyan-700">
+                    {isLoadingData ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading...</>) : (<><Download className="mr-2 h-4 w-4" />Get Data</>)}
+                  </Button>
+                  <Button variant="outline" onClick={clearAllFilters} className="w-full">
+                    <X className="mr-2 h-4 w-4" />Clear All
+                  </Button>
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+
         {/* Top Row: Filters + Chat */}
-        <div className="flex gap-6 min-h-[500px]">
-          {/* Left: Data Filters */}
-          <div className="w-80 h-full bg-card border border-border rounded-lg p-6">
+        <div className="flex flex-col lg:flex-row gap-6 min-h-[400px] lg:min-h-[500px]">
+          {/* Left: Data Filters (desktop only) */}
+          <div className="hidden lg:block w-80 h-full bg-card border border-border rounded-lg p-6">
             <div className="space-y-6">
             <div>
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -478,12 +659,12 @@ export default function BulkAnalysis() {
               </CardHeader>
               <CardContent className="flex-1 min-h-0 flex flex-col p-4 overflow-hidden">
                 {/* Conversation History */}
-                <ScrollArea className="flex-1 min-h-[400px] border rounded-lg p-3 mb-4">
+                <ScrollArea className="flex-1 min-h-[250px] sm:min-h-[400px] border rounded-lg p-3 mb-4">
                   {conversationHistory.length === 0 ? (
                     <div className="text-center text-muted-foreground py-8">
                       <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
                       <p className="font-medium">Ready to Analyze Your Data</p>
-                      <p className="text-sm">Load call data from the filters on the left, then ask questions to get AI-powered insights</p>
+                      <p className="text-sm">Load call data using the filters, then ask questions to get AI-powered insights</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -576,10 +757,55 @@ export default function BulkAnalysis() {
             {callsData.length > 0 ? (
               <Card className="h-full rounded-none border-0 flex flex-col">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-blue-500" />
-                    Dataset Preview ({callsData.length} calls)
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-blue-500" />
+                      Dataset Preview ({callsData.length} calls)
+                    </CardTitle>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const rows = callsData.map(call => ({
+                            id: call.id,
+                            type: call.type || '',
+                            assistantName: call.assistantName || call.assistant?.name || '',
+                            createdAt: call.createdAt || '',
+                            duration: call.duration ?? '',
+                            cost: call.cost ?? '',
+                            status: call.status || '',
+                            endedReason: call.endedReason || '',
+                          }));
+                          const dateStr = new Date().toISOString().split('T')[0];
+                          downloadCSV(rows, `voicescope-calls-${dateStr}.csv`);
+                        }}
+                        title="Export Calls CSV"
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Export Calls CSV
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (conversationHistory.length === 0) return;
+                          const text = conversationHistory.map(msg => {
+                            const time = msg.timestamp.toLocaleString();
+                            const role = msg.role === 'user' ? 'You' : 'AI';
+                            return `[${time}] ${role}:\n${msg.content}\n`;
+                          }).join('\n---\n\n');
+                          const dateStr = new Date().toISOString().split('T')[0];
+                          downloadTextFile(text, `voicescope-analysis-${dateStr}.txt`);
+                        }}
+                        disabled={conversationHistory.length === 0}
+                        title="Export Analysis"
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Export Analysis
+                      </Button>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="flex-1 min-h-0">
                   <ScrollArea className="h-full">

@@ -57,70 +57,43 @@ export default function AIChatbot({ callData }: AIChatbotProps) {
     setInputValue("");
     setIsLoading(true);
 
-    // Simulate AI response based on the query
-    const response = await generateAIResponse(userMessage.content, callData);
-    
-    const assistantMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      type: 'assistant',
-      content: response,
-      timestamp: new Date(),
-    };
+    try {
+      const res = await fetch("/api/chatbot/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          query: userMessage.content,
+          dashboardData: callData,
+        }),
+      });
 
-    setTimeout(() => {
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.error || "Failed to get response");
+      }
+
+      const data = await res.json();
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: data.response,
+        timestamp: new Date(),
+      };
+
       setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: "Sorry, I wasn't able to process your question. Please try again in a moment.",
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
-  };
-
-  const generateAIResponse = async (query: string, data: any): Promise<string> => {
-    const lowerQuery = query.toLowerCase();
-    
-    if (lowerQuery.includes('total') && lowerQuery.includes('call')) {
-      return `Based on your data, you have ${data?.kpis?.totalCalls || 863} total calls with an average duration of ${data?.kpis?.avgDuration ? Math.round(data.kpis.avgDuration / 60 * 100) / 100 : 1.23} minutes.`;
     }
-    
-    if (lowerQuery.includes('success') || lowerQuery.includes('rate')) {
-      return `Your success rate is ${data?.kpis?.successRate || 57.13}%. This is calculated based on calls that ended successfully versus total calls.`;
-    }
-    
-    if (lowerQuery.includes('cost') || lowerQuery.includes('expensive')) {
-      return `Your total cost is $${data?.kpis?.totalCost || 106.18} with an average cost per call of $${data?.costAnalysis?.avgCostPerCall || 0.12}.`;
-    }
-    
-    if (lowerQuery.includes('duration') || lowerQuery.includes('long')) {
-      return `The average call duration is ${data?.kpis?.avgDuration ? Math.round(data.kpis.avgDuration / 60 * 100) / 100 : 1.23} minutes. Most calls fall into the 2-3 minute range based on your duration distribution.`;
-    }
-    
-    if (lowerQuery.includes('outcome') || lowerQuery.includes('end')) {
-      const topOutcome = data?.callOutcomes?.[0];
-      return `The most common call outcome is "${topOutcome?.outcome || 'customer-ended-call'}" with ${topOutcome?.percentage || 57.13}% of calls.`;
-    }
-    
-    if (lowerQuery.includes('assistant') || lowerQuery.includes('performance')) {
-      const topAssistant = data?.assistantPerformance?.[0];
-      return `Your top performing assistant has handled ${topAssistant?.calls || 14} calls with a ${topAssistant?.successRate || 98.41}% success rate.`;
-    }
-    
-    if (lowerQuery.includes('time') || lowerQuery.includes('when') || lowerQuery.includes('hour')) {
-      return `Based on your hourly patterns, peak call times are around 6 PM with 345 calls, followed by 3 PM with 258 calls. Business hours (9 AM - 5 PM) show the highest activity.`;
-    }
-    
-    if (lowerQuery.includes('trend') || lowerQuery.includes('growing') || lowerQuery.includes('increasing')) {
-      return `Your call volume has been trending upward, with recent data showing 431 calls in the latest period compared to 172 calls earlier. This represents strong growth in usage.`;
-    }
-
-    // Default response
-    return `I can help you analyze various aspects of your call data including:
-    
-• Total calls and success rates
-• Cost analysis and trends  
-• Call duration patterns
-• Outcome distributions
-• Assistant performance
-• Peak usage times
-
-What specific metric would you like me to analyze for you?`;
   };
 
   const formatTime = (date: Date) => {
