@@ -172,15 +172,21 @@ export const vapiAnalyticsResponseSchema = z.object({
 export type VapiAnalyticsResponse = z.infer<typeof vapiAnalyticsResponseSchema>;
 
 // Dashboard Data Types
+// KPI shape used for both current and previous period
+export const kpiDataSchema = z.object({
+  totalCalls: z.number(),
+  avgDuration: z.number(), // in seconds
+  successRate: z.number(), // percentage
+  inboundSuccessRate: z.number(), // percentage for inbound calls
+  outboundSuccessRate: z.number(), // percentage for outbound calls
+  totalCost: z.number(),
+});
+
+export type KpiData = z.infer<typeof kpiDataSchema>;
+
 export const dashboardDataSchema = z.object({
-  kpis: z.object({
-    totalCalls: z.number(),
-    avgDuration: z.number(), // in seconds
-    successRate: z.number(), // percentage
-    inboundSuccessRate: z.number(), // percentage for inbound calls
-    outboundSuccessRate: z.number(), // percentage for outbound calls
-    totalCost: z.number(),
-  }),
+  kpis: kpiDataSchema,
+  previousKpis: kpiDataSchema.nullable().optional(),
   mostSuccessfulAgent: z.object({
     name: z.string(),
     successRate: z.number(),

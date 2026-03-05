@@ -255,7 +255,8 @@ export class FacebookAdsService {
     level: 'campaign' | 'adset' | 'ad',
     dateRange: { since: string; until: string },
     breakdown?: string[],
-    appSecret?: string
+    appSecret?: string,
+    timeIncrement?: string
   ): Promise<FacebookAdsMetrics> {
     try {
       const fields = [
@@ -296,6 +297,11 @@ export class FacebookAdsService {
         }),
         limit: '100',
       };
+
+      // Add time increment for daily breakdown
+      if (timeIncrement) {
+        params.time_increment = timeIncrement;
+      }
 
       // Add breakdown if specified
       if (breakdown && breakdown.length > 0) {

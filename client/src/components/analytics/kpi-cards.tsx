@@ -1,14 +1,29 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Phone, Clock, CheckCircle, DollarSign, TrendingUp, TrendingDown } from "lucide-react";
-import { DashboardData } from "@shared/schema";
+import { Phone, Clock, CheckCircle, DollarSign, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { DashboardData, KpiData } from "@shared/schema";
 
 interface KpiCardsProps {
   data?: DashboardData;
   isLoading: boolean;
 }
 
+/**
+ * Compute the percentage change between a current and previous value.
+ * Returns null when there is no previous data to compare against.
+ * Returns "new" sentinel when previous was 0 but current > 0.
+ */
+function computeTrend(current: number, previous: number | undefined): number | null | "new" {
+  if (previous === undefined || previous === null) return null;
+  if (previous === 0) return current > 0 ? "new" : null;
+  return parseFloat(((current - previous) / previous * 100).toFixed(1));
+}
+
+type TrendValue = number | null | "new";
+
 export default function KpiCards({ data, isLoading }: KpiCardsProps) {
+  const prev = data?.previousKpis as KpiData | null | undefined;
+
   const formatDuration = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
@@ -25,25 +40,36 @@ export default function KpiCards({ data, isLoading }: KpiCardsProps) {
     }).format(amount);
   };
 
-  const kpiCards = [
+  const kpiCards: Array<{
+    title: string;
+    value: number;
+    format: (val: number) => string;
+    icon: typeof Phone;
+    trend: TrendValue;
+    trendLabel: string;
+    color: string;
+    bgColor: string;
+    testId: string;
+    invertTrend?: boolean;
+  }> = [
     {
       title: "Total Calls",
       value: data?.kpis.totalCalls || 0,
       format: (val: number) => val.toLocaleString(),
       icon: Phone,
-      trend: 12.5,
-      trendLabel: "vs last month",
+      trend: computeTrend(data?.kpis.totalCalls || 0, prev?.totalCalls),
+      trendLabel: "vs prior period",
       color: "text-primary",
       bgColor: "bg-primary/10",
       testId: "kpi-total-calls"
     },
     {
-      title: "Avg Duration", 
+      title: "Avg Duration",
       value: data?.kpis.avgDuration || 0,
       format: formatDuration,
       icon: Clock,
-      trend: -3.2,
-      trendLabel: "vs last month",
+      trend: computeTrend(data?.kpis.avgDuration || 0, prev?.avgDuration),
+      trendLabel: "vs prior period",
       color: "text-chart-3",
       bgColor: "bg-chart-3/10",
       testId: "kpi-avg-duration"
@@ -53,9 +79,9 @@ export default function KpiCards({ data, isLoading }: KpiCardsProps) {
       value: data?.kpis.inboundSuccessRate || 0,
       format: (val: number) => `${val.toFixed(1)}%`,
       icon: CheckCircle,
-      trend: 5.7,
-      trendLabel: "vs last month",
-      color: "text-green-600", 
+      trend: computeTrend(data?.kpis.inboundSuccessRate || 0, prev?.inboundSuccessRate),
+      trendLabel: "vs prior period",
+      color: "text-green-600",
       bgColor: "bg-green-100 dark:bg-green-900/20",
       testId: "kpi-inbound-success-rate"
     },
@@ -64,9 +90,9 @@ export default function KpiCards({ data, isLoading }: KpiCardsProps) {
       value: data?.kpis.outboundSuccessRate || 0,
       format: (val: number) => `${val.toFixed(1)}%`,
       icon: CheckCircle,
-      trend: 3.2,
-      trendLabel: "vs last month",
-      color: "text-blue-600", 
+      trend: computeTrend(data?.kpis.outboundSuccessRate || 0, prev?.outboundSuccessRate),
+      trendLabel: "vs prior period",
+      color: "text-blue-600",
       bgColor: "bg-blue-100 dark:bg-blue-900/20",
       testId: "kpi-outbound-success-rate"
     },
@@ -75,13 +101,51 @@ export default function KpiCards({ data, isLoading }: KpiCardsProps) {
       value: data?.kpis.totalCost || 0,
       format: formatCurrency,
       icon: DollarSign,
-      trend: 8.1,
-      trendLabel: "vs last month",
+      trend: computeTrend(data?.kpis.totalCost || 0, prev?.totalCost),
+      trendLabel: "vs prior period",
       color: "text-chart-4",
       bgColor: "bg-chart-4/10",
-      testId: "kpi-total-cost"
+      testId: "kpi-total-cost",
+      invertTrend: true, // cost going up is bad
     },
   ];
+
+  const renderTrend = (card: typeof kpiCards[number]) => {
+    const { trend, trendLabel, invertTrend } = card;
+
+    // No previous data available — hide trend entirely
+    if (trend === null) {
+      return (
+        <span className="text-muted-foreground text-sm">No prior data</span>
+      );
+    }
+
+    // Previous was 0, current > 0 — show "New" badge
+    if (trend === "new") {
+      return (
+        <span className="text-chart-2 text-sm font-medium">New</span>
+      );
+    }
+
+    // Normal numeric trend
+    const isPositiveDirection = invertTrend ? trend <= 0 : trend >= 0;
+
+    return (
+      <>
+        {trend === 0 ? (
+          <Minus className="text-muted-foreground mr-1" size={14} />
+        ) : isPositiveDirection ? (
+          <TrendingUp className="text-chart-2 mr-1" size={14} />
+        ) : (
+          <TrendingDown className="text-destructive mr-1" size={14} />
+        )}
+        <span className={trend === 0 ? "text-muted-foreground" : isPositiveDirection ? "text-chart-2" : "text-destructive"}>
+          {trend > 0 ? "+" : ""}{trend}%
+        </span>
+        <span className="text-muted-foreground text-sm ml-1">{trendLabel}</span>
+      </>
+    );
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -102,17 +166,7 @@ export default function KpiCards({ data, isLoading }: KpiCardsProps) {
                   {isLoading ? (
                     <Skeleton className="h-4 w-24" />
                   ) : (
-                    <>
-                      {card.trend >= 0 ? (
-                        <TrendingUp className="text-chart-2 mr-1" size={14} />
-                      ) : (
-                        <TrendingDown className="text-destructive mr-1" size={14} />
-                      )}
-                      <span className={card.trend >= 0 ? "text-chart-2" : "text-destructive"}>
-                        {card.trend >= 0 ? "+" : ""}{card.trend}%
-                      </span>
-                      <span className="text-muted-foreground text-sm ml-1">{card.trendLabel}</span>
-                    </>
+                    renderTrend(card)
                   )}
                 </div>
               </div>

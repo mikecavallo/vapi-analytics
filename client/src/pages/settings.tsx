@@ -53,6 +53,15 @@ export default function SettingsPage() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [showRetellKey, setShowRetellKey] = useState(false);
 
+  // Profile form state
+  const [profileUsername, setProfileUsername] = useState(user?.username || '');
+  const [profileEmail, setProfileEmail] = useState(user?.email || '');
+
+  // Password form state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   // Fetch current customer details to get API key
   const { data: customer } = useQuery<Customer>({
     queryKey: ['/api/customer/details'],
@@ -80,6 +89,63 @@ export default function SettingsPage() {
       toast({ title: 'Error', description: 'Failed to update API key', variant: 'destructive' });
     },
   });
+
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: { username?: string; email?: string }) => {
+      const response = await apiRequest('PATCH', '/api/auth/profile', data);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'Profile Updated', description: 'Your profile has been updated successfully.' });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+    },
+    onError: (error: any) => {
+      const message = error?.message || 'Failed to update profile';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    },
+  });
+
+  // Change password mutation
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
+      const response = await apiRequest('POST', '/api/auth/change-password', data);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'Password Changed', description: 'Your password has been changed successfully.' });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    },
+    onError: (error: any) => {
+      const message = error?.message || 'Failed to change password';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    },
+  });
+
+  const handleProfileSave = () => {
+    const updates: { username?: string; email?: string } = {};
+    if (profileUsername !== user?.username) updates.username = profileUsername;
+    if (profileEmail !== user?.email) updates.email = profileEmail;
+    if (Object.keys(updates).length === 0) {
+      toast({ title: 'No Changes', description: 'No changes to save.' });
+      return;
+    }
+    updateProfileMutation.mutate(updates);
+  };
+
+  const handleChangePassword = () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast({ title: 'Error', description: 'All password fields are required.', variant: 'destructive' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ title: 'Error', description: 'New passwords do not match.', variant: 'destructive' });
+      return;
+    }
+    changePasswordMutation.mutate({ currentPassword, newPassword });
+  };
 
   // Update local settings when context settings change
   useState(() => {
@@ -159,8 +225,12 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <Tabs defaultValue="api" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs defaultValue="profile" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="profile" className="flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Profile
+            </TabsTrigger>
             <TabsTrigger value="api" className="flex items-center gap-2">
               <Key className="w-4 h-4" />
               API Configuration
@@ -170,10 +240,108 @@ export default function SettingsPage() {
               Warning Settings
             </TabsTrigger>
             <TabsTrigger value="appearance" className="flex items-center gap-2">
-              <User className="w-4 h-4" />
+              <Settings className="w-4 h-4" />
               Appearance
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="profile" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Profile Information
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Update your username and email address
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="profile-username">Username</Label>
+                  <Input
+                    id="profile-username"
+                    value={profileUsername}
+                    onChange={(e) => setProfileUsername(e.target.value)}
+                    placeholder="Enter your username"
+                    data-testid="input-profile-username"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="profile-email">Email</Label>
+                  <Input
+                    id="profile-email"
+                    type="email"
+                    value={profileEmail}
+                    onChange={(e) => setProfileEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    data-testid="input-profile-email"
+                  />
+                </div>
+                <Button
+                  onClick={handleProfileSave}
+                  disabled={updateProfileMutation.isPending || (profileUsername === user?.username && profileEmail === user?.email)}
+                  data-testid="button-save-profile"
+                >
+                  {updateProfileMutation.isPending ? 'Saving...' : 'Save'}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Key className="w-5 h-5" />
+                  Change Password
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Update your account password
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="current-password">Current Password</Label>
+                  <Input
+                    id="current-password"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter current password"
+                    data-testid="input-current-password"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">New Password</Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password"
+                    data-testid="input-new-password"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Confirm New Password</Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm new password"
+                    data-testid="input-confirm-password"
+                  />
+                </div>
+                <Button
+                  onClick={handleChangePassword}
+                  disabled={changePasswordMutation.isPending || !currentPassword || !newPassword || !confirmPassword}
+                  data-testid="button-change-password"
+                >
+                  {changePasswordMutation.isPending ? 'Changing...' : 'Change Password'}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="api" className="space-y-6">
             <Card>

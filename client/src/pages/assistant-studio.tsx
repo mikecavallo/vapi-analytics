@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
   assistantGenerationRequestSchema,
   assistantConfigSchema,
@@ -50,7 +50,11 @@ import {
   Phone,
   AlertTriangle,
   Plus,
-  X
+  X,
+  Trash2,
+  Pencil,
+  RefreshCw,
+  List
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
@@ -67,7 +71,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { apiRequest } from "@/lib/queryClient";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import { apiRequest, getQueryFn } from "@/lib/queryClient";
 
 // Default values for the form
 const getDefaultValues = (): AssistantConfig => ({
@@ -159,10 +165,43 @@ export default function AssistantStudio() {
   const { theme } = useTheme();
   const { user } = useAuth();
   const { toast } = useToast();
-  
+  const qc = useQueryClient();
+
   // State for generated assistant and UI
   const [createdAssistant, setCreatedAssistant] = useState<any>(null);
   const [generationStep, setGenerationStep] = useState<'form' | 'generating' | 'ready'>('form');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Fetch all assistants for the management tab
+  const { data: assistants = [], isLoading: assistantsLoading, refetch: refetchAssistants } = useQuery<any[]>({
+    queryKey: ["/api/assistants"],
+    queryFn: getQueryFn({ on401: "throw" }),
+    staleTime: 60_000,
+  });
+
+  // Delete assistant mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest('DELETE', `/api/assistants/${id}`);
+      return response.json();
+    },
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: ["/api/assistants"] });
+      toast({
+        title: "Assistant Deleted",
+        description: "The assistant has been permanently removed.",
+      });
+      setDeletingId(null);
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Delete Failed",
+        description: error.message || "Failed to delete assistant.",
+      });
+      setDeletingId(null);
+    },
+  });
   
   // Form setup with proper validation
   const form = useForm<AssistantConfig>({
@@ -320,7 +359,7 @@ export default function AssistantStudio() {
           </div>
 
           <Tabs defaultValue="configure" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="configure" data-testid="tab-configure">
                 <Settings size={16} className="mr-2" />
                 Configure
@@ -332,6 +371,10 @@ export default function AssistantStudio() {
               <TabsTrigger value="preview" data-testid="tab-preview">
                 <Eye size={16} className="mr-2" />
                 Preview & Deploy
+              </TabsTrigger>
+              <TabsTrigger value="assistants" data-testid="tab-assistants">
+                <List size={16} className="mr-2" />
+                My Assistants
               </TabsTrigger>
             </TabsList>
 
@@ -1760,6 +1803,166 @@ export default function AssistantStudio() {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            {/* My Assistants Tab */}
+            <TabsContent value="assistants" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center space-x-2">
+                        <List size={20} />
+                        <span>My Assistants</span>
+                      </CardTitle>
+                      <CardDescription>
+                        View, edit, and manage all your Vapi assistants
+                      </CardDescription>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => refetchAssistants()}
+                      disabled={assistantsLoading}
+                      data-testid="button-refresh-assistants"
+                    >
+                      <RefreshCw size={16} className={`mr-2 ${assistantsLoading ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {assistantsLoading ? (
+                    <div className="space-y-3">
+                      {[...Array(5)].map((_, i) => (
+                        <div key={i} className="flex items-center space-x-4">
+                          <Skeleton className="h-4 w-[200px]" />
+                          <Skeleton className="h-4 w-[120px]" />
+                          <Skeleton className="h-4 w-[100px]" />
+                          <Skeleton className="h-4 w-[140px]" />
+                          <Skeleton className="h-4 w-[80px]" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : assistants.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Brain size={48} className="mx-auto mb-4 opacity-50" />
+                      <p className="text-lg font-medium">No assistants found</p>
+                      <p className="text-sm mt-1">Create your first assistant using the Configure tab.</p>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Model</TableHead>
+                          <TableHead>Voice</TableHead>
+                          <TableHead>Created</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {assistants.map((assistant: any) => (
+                          <TableRow key={assistant.id}>
+                            <TableCell className="font-medium">
+                              <div className="flex flex-col">
+                                <span>{assistant.name || 'Unnamed Assistant'}</span>
+                                <span className="text-xs text-muted-foreground font-mono">{assistant.id?.slice(0, 12)}...</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">
+                                {assistant.model?.model || assistant.model?.provider || 'N/A'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {assistant.voice?.voiceId || assistant.voice?.provider || 'N/A'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm">
+                              {assistant.createdAt
+                                ? new Date(assistant.createdAt).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                  })
+                                : 'N/A'}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end space-x-2">
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button variant="ghost" size="sm" data-testid={`button-view-${assistant.id}`}>
+                                      <Eye size={16} />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-2xl max-h-[80vh]">
+                                    <DialogHeader>
+                                      <DialogTitle>{assistant.name || 'Assistant Details'}</DialogTitle>
+                                      <DialogDescription>Full configuration for this assistant</DialogDescription>
+                                    </DialogHeader>
+                                    <ScrollArea className="h-[60vh]">
+                                      <pre className="text-xs bg-muted p-4 rounded-md overflow-x-auto">
+                                        {JSON.stringify(assistant, null, 2)}
+                                      </pre>
+                                    </ScrollArea>
+                                  </DialogContent>
+                                </Dialog>
+
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-destructive hover:text-destructive"
+                                      data-testid={`button-delete-${assistant.id}`}
+                                    >
+                                      <Trash2 size={16} />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Assistant</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to permanently delete <strong>{assistant.name || 'this assistant'}</strong>?
+                                        This action cannot be undone and will remove the assistant from Vapi.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        onClick={() => {
+                                          setDeletingId(assistant.id);
+                                          deleteMutation.mutate(assistant.id);
+                                        }}
+                                        disabled={deletingId === assistant.id}
+                                      >
+                                        {deletingId === assistant.id ? (
+                                          <>
+                                            <Loader2 size={16} className="mr-2 animate-spin" />
+                                            Deleting...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Trash2 size={16} className="mr-2" />
+                                            Delete
+                                          </>
+                                        )}
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </main>
