@@ -14,3 +14,7 @@ services:
         generateValue: true
       - key: ENCRYPTION_KEY
         generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: FACEBOOK_APP_SECRET
+        sync: false
