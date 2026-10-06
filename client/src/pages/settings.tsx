@@ -27,6 +27,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface Customer {
+  // Provider keys arrive masked from the API (e.g. "••••abcd"); full keys are never sent to the browser.
   id: string;
   name: string;
   description?: string;
@@ -363,14 +364,14 @@ export default function SettingsPage() {
                     </p>
                     <p className="text-sm text-muted-foreground">
                       API Key Status: {customer.vapiApiKey ? (
-                        <span className="text-green-600 font-medium">✓ Configured</span>
+                        <span className="text-green-600 font-medium">✓ Configured <span className="font-mono text-xs">({customer.vapiApiKey})</span></span>
                       ) : (
                         <span className="text-orange-600 font-medium">⚠ Not configured</span>
                       )}
                     </p>
                     <p className="text-sm text-muted-foreground mt-1">
                       Retell Key Status: {customer.retellApiKey ? (
-                        <span className="text-green-600 font-medium">✓ Configured</span>
+                        <span className="text-green-600 font-medium">✓ Configured <span className="font-mono text-xs">({customer.retellApiKey})</span></span>
                       ) : (
                         <span className="text-orange-600 font-medium">⚠ Not configured</span>
                       )}

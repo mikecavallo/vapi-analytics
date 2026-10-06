@@ -279,20 +279,19 @@ export default function LandingPage() {
               {/* Floating Dashboard Preview */}
               <div className="absolute -right-8 top-20 bg-white rounded-xl shadow-xl p-4 max-w-xs hidden lg:block">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold text-gray-800">Live Dashboard</h4>
+                  <h4 className="font-semibold text-gray-800">Dashboard preview</h4>
                   <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-xs text-green-600">Live</span>
+                    <span className="text-[10px] uppercase tracking-wide font-semibold text-gray-500 border border-gray-300 dark:border-gray-600 rounded px-1.5 py-0.5" title="Illustrative mockup, not real customer data">Sample data</span>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-blue-50 rounded-lg p-3 text-center">
                     <div className="text-lg font-bold text-blue-600">94.2%</div>
-                    <div className="text-xs text-gray-500">Success Rate</div>
+                    <div className="text-xs text-gray-500">Success Rate (sample)</div>
                   </div>
                   <div className="bg-green-50 rounded-lg p-3 text-center">
                     <div className="text-lg font-bold text-green-600">$2,847</div>
-                    <div className="text-xs text-gray-500">Saved Today</div>
+                    <div className="text-xs text-gray-500">Saved Today (sample)</div>
                   </div>
                 </div>
               </div>
@@ -422,8 +421,7 @@ export default function LandingPage() {
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Call Trends</span>
                         <div className="flex items-center space-x-1">
-                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                          <span className="text-xs text-green-600">Live</span>
+                          <span className="text-[10px] uppercase tracking-wide font-semibold text-gray-500 border border-gray-300 dark:border-gray-600 rounded px-1.5 py-0.5" title="Illustrative mockup, not real customer data">Sample data</span>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
@@ -433,7 +431,7 @@ export default function LandingPage() {
                         </div>
                         <div className="bg-green-50 dark:bg-green-900/30 rounded p-2">
                           <div className="text-lg font-bold text-green-600">94.2%</div>
-                          <div className="text-xs text-gray-600 dark:text-gray-400">Success Rate</div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">Success Rate (sample)</div>
                         </div>
                       </div>
                     </div>
@@ -594,14 +592,13 @@ export default function LandingPage() {
                         <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">Invoxa Dashboard</span>
                       </div>
                       <div className="flex items-center space-x-1">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <span className="text-xs text-green-600">Live</span>
+                        <span className="text-[10px] uppercase tracking-wide font-semibold text-gray-500 border border-gray-300 dark:border-gray-600 rounded px-1.5 py-0.5" title="Illustrative mockup, not real customer data">Sample data</span>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="bg-blue-50 dark:bg-blue-900/30 rounded p-2">
                         <div className="text-lg font-bold text-blue-600">94.2%</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">Success Rate</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400">Success Rate (sample)</div>
                       </div>
                       <div className="bg-green-50 dark:bg-green-900/30 rounded p-2">
                         <div className="text-lg font-bold text-green-600">247</div>

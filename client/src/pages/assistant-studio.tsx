@@ -74,6 +74,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
+import { useFeatures } from "@/hooks/use-features";
+import { Link } from "wouter";
 
 // Default values for the form
 const getDefaultValues = (): AssistantConfig => ({
@@ -173,7 +175,10 @@ export default function AssistantStudio() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Fetch all assistants for the management tab
-  const { data: assistants = [], isLoading: assistantsLoading, refetch: refetchAssistants } = useQuery<any[]>({
+  const features = useFeatures();
+  const aiDisabled = features?.openai === false;
+
+  const { data: assistants = [], isLoading: assistantsLoading, error: assistantsError, refetch: refetchAssistants } = useQuery<any[]>({
     queryKey: ["/api/assistants"],
     queryFn: getQueryFn({ on401: "throw" }),
     staleTime: 60_000,
@@ -241,7 +246,8 @@ export default function AssistantStudio() {
   const generateMutation = useMutation({
     mutationFn: async (data: AssistantGenerationRequest): Promise<AssistantConfig> => {
       const response = await apiRequest('POST', '/api/assistant-studio/generate', data);
-      return response.json();
+      const body = await response.json();
+      return body.config;
     },
     onSuccess: (generatedConfig) => {
       // Populate the main form with generated configuration
@@ -253,6 +259,7 @@ export default function AssistantStudio() {
       });
     },
     onError: (error: any) => {
+      setGenerationStep('form');
       toast({
         variant: "destructive",
         title: "Generation Failed",
@@ -396,6 +403,12 @@ export default function AssistantStudio() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
+                      {aiDisabled && (
+                        <div className="mb-4 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-3 text-sm text-amber-900 dark:text-amber-200" data-testid="notice-ai-not-configured">
+                          <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+                          <span>AI generation is not configured on this server (no OpenAI API key). You can still fill in the configuration below by hand.</span>
+                        </div>
+                      )}
                       <Form {...generationForm}>
                         <div className="space-y-4">
                           <FormField
@@ -1367,7 +1380,7 @@ export default function AssistantStudio() {
                             type="button"
                             onClick={generationForm.handleSubmit(handleGenerate)}
                             size="lg"
-                            disabled={generateMutation.isPending || generationStep === 'generating'}
+                            disabled={aiDisabled || generateMutation.isPending || generationStep === 'generating'}
                             data-testid="button-generate-assistant"
                             className="w-full"
                             variant="outline"
@@ -1844,6 +1857,13 @@ export default function AssistantStudio() {
                         </div>
                       ))}
                     </div>
+                  ) : assistantsError ? (
+                    <div className="text-center py-12 text-muted-foreground" data-testid="assistants-error">
+                      <AlertTriangle size={48} className="mx-auto mb-4 opacity-50" />
+                      <p className="text-lg font-medium">Could not load assistants</p>
+                      <p className="text-sm mt-1">{(assistantsError as Error).message}</p>
+                      <Link href="/settings" className="text-sm text-primary underline mt-2 inline-block">Open Settings</Link>
+                    </div>
                   ) : assistants.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground">
                       <Brain size={48} className="mx-auto mb-4 opacity-50" />
@@ -1851,6 +1871,13 @@ export default function AssistantStudio() {
                       <p className="text-sm mt-1">Create your first assistant using the Configure tab.</p>
                     </div>
                   ) : (
+                    <>
+                    {assistants.some((a: any) => a.demo) && (
+                      <div className="mb-4 flex items-start gap-2 rounded-md border border-blue-300 bg-blue-50 dark:bg-blue-950/30 p-3 text-sm text-blue-900 dark:text-blue-200" data-testid="notice-demo-assistants">
+                        <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+                        <span>Demo workspace: these are read-only sample assistants. Connect your own Vapi API key in <Link href="/settings" className="underline">Settings</Link> to manage real assistants.</span>
+                      </div>
+                    )}
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -1910,6 +1937,7 @@ export default function AssistantStudio() {
                                   </DialogContent>
                                 </Dialog>
 
+                                {!assistant.demo && (
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
                                     <Button
@@ -1954,12 +1982,14 @@ export default function AssistantStudio() {
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
                                 </AlertDialog>
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
+                    </>
                   )}
                 </CardContent>
               </Card>
