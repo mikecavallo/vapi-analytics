@@ -9,7 +9,9 @@ import { useAuth } from '@/contexts/auth-context';
 import { Mail, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function EmailVerification() {
-  const [token, setToken] = useState('');
+  const [token, setToken] = useState(() =>
+    typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('token') || '' : ''
+  );
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);

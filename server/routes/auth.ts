@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import { buildVerificationEmail, getEmailSender } from "../email/sender";
 import { storage } from "../storage";
 import { signupSchema, loginSchema, emailVerificationSchema, type UserRole } from "@shared/schema";
 import { z } from "zod";
@@ -51,7 +52,15 @@ export function registerAuthRoutes(app: Express): void {
 
       await storage.createEmailVerificationToken(user.id, token, expiresAt);
 
-      // TODO: Implement email service (SendGrid/SES) for production
+      // Send the verification email (Resend when RESEND_API_KEY is set, console log otherwise).
+      // APP_URL should be set in production so links never depend on the request Host header.
+      const appUrl = process.env.APP_URL || `${req.protocol}://${req.get("host")}`;
+      try {
+        await getEmailSender().send(buildVerificationEmail(user.email, token, appUrl));
+      } catch (emailError) {
+        console.error("Failed to send verification email:", emailError);
+      }
+
       res.status(201).json({
         message: "User created successfully. Please verify your email to complete registration.",
         user: sanitizeUser(user),
