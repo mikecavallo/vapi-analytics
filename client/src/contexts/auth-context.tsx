@@ -1,3 +1,4 @@
+import { flushSync } from "react-dom";
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 
@@ -110,11 +111,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { success: false, error: data.error || 'Login failed' };
       }
 
-      // Store auth data
-      setUser(data.user);
-      setCustomerId(data.customerId);
-      setToken(data.token);
-      
+      // Store auth data. flushSync commits the state before the caller navigates:
+      // wouter's navigation renders synchronously, and without this ProtectedRoute
+      // would see the pre-login state and bounce back to /login.
+      flushSync(() => {
+        setUser(data.user);
+        setCustomerId(data.customerId);
+        setToken(data.token);
+      });
+
       localStorage.setItem('auth_token', data.token);
       localStorage.setItem('auth_user', JSON.stringify(data.user));
       localStorage.setItem('auth_customer_id', data.customerId || '');
