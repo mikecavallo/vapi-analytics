@@ -37,18 +37,18 @@ export function Footer() {
           <div className="space-y-4">
             <h4 className="text-sm font-semibold text-black dark:text-white">Company</h4>
             <nav className="flex flex-col space-y-2">
-              <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-about">
+              <Link href="/why-invoxa" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-about">
                 About
-              </a>
+              </Link>
               <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-privacy">
                 Privacy Policy
               </Link>
               <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-terms">
                 Terms of Service
               </Link>
-              <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-contact">
+              <Link href="/book-demo" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-contact">
                 Contact
-              </a>
+              </Link>
             </nav>
           </div>
         </div>
