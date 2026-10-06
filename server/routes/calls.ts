@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { VapiClient } from "@vapi-ai/server-sdk";
+import { normalizeProvider, usesDemoData } from "../providers/source";
 import { authenticateUser, requireCustomerAccess, validateCustomerAccess } from "../auth-middleware";
 import { fetchRetellCallsWithFilters } from "../providers/calls";
 
@@ -16,6 +17,10 @@ export function registerCallRoutes(app: Express): void {
       }
 
       const customer = await storage.getCustomer(customerId);
+
+      if (usesDemoData(customer, normalizeProvider(provider))) {
+        return res.json(await storage.getDemoCalls(customerId, normalizeProvider(provider), { limit: 20 }));
+      }
 
       if (provider === 'retell') {
         if (!customer || !customer.retellApiKey) {
@@ -76,6 +81,14 @@ export function registerCallRoutes(app: Express): void {
 
       // Get customer data to retrieve their specific Vapi API key
       const customer = await storage.getCustomer(customerId);
+
+      if (usesDemoData(customer, "vapi")) {
+        const demoCall = await storage.getDemoCall(customerId, id);
+        if (!demoCall) {
+          return res.status(404).json({ error: "Call not found" });
+        }
+        return res.json(demoCall);
+      }
       if (!customer || !customer.vapiApiKey) {
         return res.status(500).json({
           error: "Customer Vapi API key not configured. Contact support."

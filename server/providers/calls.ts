@@ -81,6 +81,9 @@ export async function fetchCallsWithFilters(queryParams: Record<string, string>,
       cost: call.cost || 0,
       // Ensure createdAt field exists
       createdAt: call.createdAt || call.startedAt,
+      // Vapi reports success under analysis.successEvaluation; surface it at the top level
+      // so Vapi and Retell calls aggregate identically.
+      successEvaluation: call.analysis?.successEvaluation != null ? String(call.analysis.successEvaluation) : null,
     }));
 
     console.log(`Successfully fetched ${processedCalls.length} calls`);
@@ -213,4 +216,44 @@ export async function fetchRetellCallsWithFilters(queryParams: Record<string, st
       throw error;
     }
   }
+}
+
+/**
+ * Look up a Vapi assistant's display name. Falls back to a short id label when the
+ * lookup fails; never invents a name.
+ */
+export async function fetchAssistantName(assistantId: string, vapiApiKey: string): Promise<string> {
+  const fallback = `Assistant ${assistantId?.slice(0, 8) || "Unknown"}`;
+  if (!assistantId || !vapiApiKey) return fallback;
+
+  try {
+    const response = await fetch(`https://api.vapi.ai/assistant/${assistantId}`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${vapiApiKey}`,
+        "Content-Type": "application/json",
+      },
+    });
+    if (!response.ok) {
+      console.error(`Failed to fetch assistant ${assistantId}:`, response.statusText);
+      return fallback;
+    }
+    const assistantData = await response.json();
+    return assistantData.name || fallback;
+  } catch (error) {
+    console.error(`Error fetching assistant ${assistantId}:`, error);
+    return fallback;
+  }
+}
+
+/** Fill in assistantName for Vapi calls that only carry an assistantId. */
+export async function attachVapiAssistantNames<T extends { assistantId?: string | null; assistantName?: string | null }>(
+  calls: T[],
+  vapiApiKey: string,
+): Promise<T[]> {
+  const missing = Array.from(new Set(calls.filter(c => !c.assistantName && c.assistantId).map(c => c.assistantId as string)));
+  if (missing.length === 0) return calls;
+  const names = new Map<string, string>();
+  await Promise.all(missing.map(async id => names.set(id, await fetchAssistantName(id, vapiApiKey))));
+  return calls.map(c => (!c.assistantName && c.assistantId ? { ...c, assistantName: names.get(c.assistantId) } : c));
 }

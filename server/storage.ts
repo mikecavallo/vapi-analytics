@@ -22,11 +22,13 @@ import {
   userCustomerAssignments,
   emailVerificationTokens,
   facebookAdsAccounts,
-  facebookAdsCampaigns
+  facebookAdsCampaigns,
+  demoCalls,
+  type InsertDemoCall,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { encrypt, decrypt } from './utils/encryption';
 
 export interface IStorage {
@@ -83,6 +85,11 @@ export interface IStorage {
   getFacebookAdsCampaigns(facebookAdsAccountId: string): Promise<FacebookAdsCampaign[]>;
   createOrUpdateFacebookAdsCampaign(campaign: InsertFacebookAdsCampaign): Promise<FacebookAdsCampaign>;
   deleteFacebookAdsCampaign(facebookAdsAccountId: string, campaignId: string): Promise<boolean>;
+
+  // Demo mode sample calls
+  getDemoCalls(customerId: string, provider: string, opts?: { start?: string; end?: string; limit?: number }): Promise<Record<string, any>[]>;
+  getDemoCall(customerId: string, id: string): Promise<Record<string, any> | undefined>;
+  replaceDemoCalls(customerId: string, rows: InsertDemoCall[]): Promise<void>;
 }
 
 // Database connected via shared module
@@ -560,6 +567,34 @@ export class DbStorage implements IStorage {
       ))
       .returning();
     return result.length > 0;
+  }
+
+  // Demo mode sample calls
+  async getDemoCalls(customerId: string, provider: string, opts: { start?: string; end?: string; limit?: number } = {}): Promise<Record<string, any>[]> {
+    const conditions = [eq(demoCalls.customerId, customerId), eq(demoCalls.provider, provider)];
+    if (opts.start) conditions.push(gte(demoCalls.createdAt, new Date(opts.start)));
+    if (opts.end) conditions.push(lte(demoCalls.createdAt, new Date(opts.end)));
+    const rows = await db.select().from(demoCalls)
+      .where(and(...conditions))
+      .orderBy(desc(demoCalls.createdAt))
+      .limit(opts.limit ?? 1000);
+    return rows.map(r => r.call as Record<string, any>);
+  }
+
+  async getDemoCall(customerId: string, id: string): Promise<Record<string, any> | undefined> {
+    const rows = await db.select().from(demoCalls)
+      .where(and(eq(demoCalls.customerId, customerId), eq(demoCalls.id, id)))
+      .limit(1);
+    return rows[0]?.call as Record<string, any> | undefined;
+  }
+
+  async replaceDemoCalls(customerId: string, rows: InsertDemoCall[]): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx.delete(demoCalls).where(eq(demoCalls.customerId, customerId));
+      for (let i = 0; i < rows.length; i += 200) {
+        await tx.insert(demoCalls).values(rows.slice(i, i + 200));
+      }
+    });
   }
 }
 

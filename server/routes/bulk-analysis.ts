@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage";
+import { normalizeProvider, usesDemoData } from "../providers/source";
 import { authenticateUser, requireCustomerAccess, validateCustomerAccess } from "../auth-middleware";
 import { auditLog, MAX_PROMPT_LENGTH } from "./shared";
 import { fetchCallsWithFilters, fetchRetellCallsWithFilters } from "../providers/calls";
@@ -44,7 +45,16 @@ export function registerBulkAnalysisRoutes(app: Express): void {
 
       let calls: any[];
 
-      if (provider === 'retell') {
+      if (usesDemoData(customer, normalizeProvider(provider))) {
+        calls = await storage.getDemoCalls(customerId, normalizeProvider(provider), {
+          start: queryParams.createdAtGe || queryParams.createdAtGt,
+          end: queryParams.createdAtLe || queryParams.createdAtLt,
+          limit,
+        });
+        if (queryParams.assistantId) {
+          calls = calls.filter(call => call.assistantId === queryParams.assistantId);
+        }
+      } else if (provider === 'retell') {
         if (!customer || !customer.retellApiKey) {
           return res.status(500).json({
             error: "Retell API key not configured. Go to Settings to add it."

@@ -40,14 +40,12 @@ export default function PeakUsageHeatmap({ data, isLoading }: PeakUsageHeatmapPr
     );
   }
 
-  const getIntensityColor = (intensity: number) => {
-    if (intensity >= 0.8) return "bg-chart-1";
-    if (intensity >= 0.6) return "bg-chart-1/80";
-    if (intensity >= 0.4) return "bg-chart-1/60";
-    if (intensity >= 0.2) return "bg-chart-1/40";
-    if (intensity > 0) return "bg-chart-1/20";
-    return "bg-muted";
-  };
+  // Opacity is applied inline: the chart colors are CSS variables, so Tailwind's
+  // "/20"-style opacity modifiers don't apply to them.
+  const getIntensityColor = (intensity: number) => (intensity > 0 ? "bg-chart-1" : "bg-muted");
+  const getIntensityStyle = (intensity: number) =>
+    intensity > 0 ? { opacity: 0.2 + 0.8 * Math.min(1, intensity) } : undefined;
+
 
   const getCellData = (hour: string, day: string) => {
     return data.heatmapData.find(d => d.hour === hour && d.day === day) || { calls: 0, intensity: 0 };
@@ -65,8 +63,8 @@ export default function PeakUsageHeatmap({ data, isLoading }: PeakUsageHeatmapPr
             <span className="text-muted-foreground">Low</span>
             <div className="flex space-x-1">
               <div className="w-3 h-3 rounded bg-muted"></div>
-              <div className="w-3 h-3 rounded bg-chart-1/20"></div>
-              <div className="w-3 h-3 rounded bg-chart-1/60"></div>
+              <div className="w-3 h-3 rounded bg-chart-1" style={{ opacity: 0.2 }}></div>
+              <div className="w-3 h-3 rounded bg-chart-1" style={{ opacity: 0.6 }}></div>
               <div className="w-3 h-3 rounded bg-chart-1"></div>
             </div>
             <span className="text-muted-foreground">High</span>
@@ -98,6 +96,7 @@ export default function PeakUsageHeatmap({ data, isLoading }: PeakUsageHeatmapPr
                       <div
                         key={`${hour}-${day}`}
                         className={`h-6 rounded-sm cursor-pointer transition-all hover:ring-2 hover:ring-chart-1/50 ${getIntensityColor(cellData.intensity)}`}
+                        style={getIntensityStyle(cellData.intensity)}
                         title={`${day} ${hour}: ${cellData.calls} calls`}
                         data-testid={`heatmap-cell-${day}-${hour}`}
                       />

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, decimal, integer, boolean, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, decimal, integer, boolean, unique, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -56,6 +56,22 @@ export const emailVerificationTokens = pgTable("email_verification_tokens", {
   used: boolean("used").notNull().default(false),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
+
+// Sample calls for demo mode (DEMO_MODE=true). Populated only by `npm run db:seed-demo`
+// with clearly fake data so the dashboards can be explored without Vapi/Retell keys.
+// `call` holds a provider-normalized call (see server/analytics/dashboard.ts NormalizedCall).
+export const demoCalls = pgTable("demo_calls", {
+  id: varchar("id").primaryKey(),
+  customerId: varchar("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(), // 'vapi' | 'retell'
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  call: jsonb("call").notNull(),
+}, (table) => ({
+  customerProviderCreatedIdx: index("demo_calls_customer_provider_created_idx").on(table.customerId, table.provider, table.createdAt),
+}));
+
+export type DemoCall = typeof demoCalls.$inferSelect;
+export type InsertDemoCall = typeof demoCalls.$inferInsert;
 
 // Authentication schemas
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -225,7 +241,8 @@ export const dashboardDataSchema = z.object({
   costAnalysis: z.object({
     avgCostPerCall: z.number(),
     costPerMinute: z.number(),
-    monthlyCostTrend: z.number(),
+    // Period-over-period change in total cost (%); null when there is no previous-period baseline
+    monthlyCostTrend: z.number().nullable(),
   }),
   durationDistribution: z.array(z.object({
     range: z.string(),
@@ -283,15 +300,17 @@ export const dashboardDataSchema = z.object({
       totalConversations: z.number(),
       successRate: z.number(),
       avgDuration: z.string(),
-      avgSatisfaction: z.number(),
+      // Neither Vapi nor Retell reports customer satisfaction; always null until a real source exists
+      avgSatisfaction: z.number().nullable(),
     }),
     outcomes: z.array(z.object({
       outcome: z.string(),
       volume: z.number(),
       percentage: z.number(),
       avgDuration: z.string(),
-      satisfaction: z.number(),
-      trend: z.number(),
+      satisfaction: z.number().nullable(),
+      // Change in this outcome's share vs the previous period (percentage points); null without a baseline
+      trend: z.number().nullable(),
     })),
   }),
   dailyMetrics: z.array(z.object({
@@ -304,6 +323,12 @@ export const dashboardDataSchema = z.object({
     avgCost: z.number(),
     successRate: z.number(),
   })),
+  // Where the numbers came from: 'vapi' | 'retell' | 'demo'. callLimitReached means the provider
+  // returned the per-request maximum, so totals cover only the most recent calls in the period.
+  meta: z.object({
+    source: z.enum(["vapi", "retell", "demo"]),
+    callLimitReached: z.boolean(),
+  }).optional(),
 });
 
 export type DashboardData = z.infer<typeof dashboardDataSchema>;
