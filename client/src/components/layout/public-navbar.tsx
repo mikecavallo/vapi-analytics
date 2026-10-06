@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Sun, Moon, Menu } from 'lucide-react';
 import { useTheme } from '@/contexts/theme-context';
-import logoTransparent from "@assets/logo_transparent_1757609077252.png";
+import logoTransparent from "@/assets/logo-navbar.png";
 
 export function PublicNavbar() {
   const { theme, toggleTheme } = useTheme();

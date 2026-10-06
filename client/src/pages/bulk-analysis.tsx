@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useFeatures } from "@/hooks/use-features";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -56,7 +57,7 @@ import {
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
-import logoTransparent from "@assets/logo_transparent_1757373755849.png";
+import logoTransparent from "@/assets/logo.png";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { downloadCSV, downloadTextFile } from "@/lib/export-utils";
@@ -95,6 +96,8 @@ function loadFromStorage<T>(key: string, fallback: T): T {
 export default function BulkAnalysis() {
   // State management with localStorage restoration
   const { toast } = useToast();
+  const features = useFeatures();
+  const aiDisabled = features?.openai === false;
 
   const [callsData, setCallsData] = useState<any[]>(() => loadFromStorage(LS_KEY_CALLS, []));
   const [isLoadingData, setIsLoadingData] = useState(false);
@@ -248,24 +251,7 @@ export default function BulkAnalysis() {
       });
     } catch (error: any) {
       console.error('Error fetching filtered calls:', error);
-      let description = "There was an error loading your call data. Please try again.";
-      try {
-        const msg = error?.message || '';
-        // Server returns JSON with nested Vapi error message
-        const jsonMatch = msg.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          // Could be nested: {error: "API call failed: 400 - {\"message\":\"...\"}"}
-          const inner = parsed.error || parsed.message || '';
-          const innerJson = inner.match(/\{[\s\S]*\}/);
-          if (innerJson) {
-            const innerParsed = JSON.parse(innerJson[0]);
-            if (innerParsed.message) description = innerParsed.message;
-          } else if (parsed.message) {
-            description = parsed.message;
-          }
-        }
-      } catch {}
+      const description = error?.message || "There was an error loading your call data. Please try again.";
       toast({
         title: "Error loading data",
         description,
@@ -305,11 +291,11 @@ export default function BulkAnalysis() {
       setConversationHistory(prev => [...prev, newMessage]);
       setIsAnalyzing(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Analysis error:', error);
       toast({
         title: "Analysis failed",
-        description: "There was an error analyzing your data. Please try again.",
+        description: error?.message || "There was an error analyzing your data. Please try again.",
         variant: "destructive",
       });
       setIsAnalyzing(false);
@@ -383,8 +369,8 @@ export default function BulkAnalysis() {
             <div>
               <h3 className="text-xl font-semibold mb-4 text-foreground">What is VoiceScope?</h3>
               <p className="text-muted-foreground mb-4 leading-relaxed">
-                VoiceScope is our proprietary AI analysis engine that transforms your voice call data into actionable insights. 
-                Simply filter your call data and ask natural language questions to uncover patterns, trends, and optimization opportunities.
+                VoiceScope lets you filter your call records and ask questions about them in plain language.
+                The transcripts of up to 50 selected calls are sent to OpenAI, which answers with patterns, trends, and suggestions.
               </p>
             </div>
             
@@ -402,10 +388,6 @@ export default function BulkAnalysis() {
                 <li className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
                   <span>Compare assistant effectiveness and optimization areas</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  <span>Generate detailed reports and compliance summaries</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
@@ -718,6 +700,13 @@ export default function BulkAnalysis() {
                   )}
                 </ScrollArea>
 
+                {aiDisabled && (
+                  <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-3 text-sm text-amber-900 dark:text-amber-200 flex-none" data-testid="notice-ai-not-configured">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <span>AI analysis is not configured on this server (no OpenAI API key). You can still load and browse calls; set <code>OPENAI_API_KEY</code> to enable questions.</span>
+                  </div>
+                )}
+
                 {/* Input Box */}
                 <div className="flex gap-3 flex-none">
                   <Textarea
@@ -730,7 +719,7 @@ export default function BulkAnalysis() {
                   />
                   <Button
                     onClick={handleAnalysisSubmit}
-                    disabled={!analysisQuery.trim() || callsData.length === 0 || performAnalysisMutation.isPending}
+                    disabled={aiDisabled || !analysisQuery.trim() || callsData.length === 0 || performAnalysisMutation.isPending}
                     className="self-end"
                     data-testid="button-submit-analysis"
                   >

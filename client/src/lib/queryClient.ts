@@ -1,9 +1,27 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+/** Error from an API call. `message` is the server's user-facing `error` text when it sent one. */
+export class ApiError extends Error {
+  constructor(public status: number, message: string, public code?: string) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    let message = text;
+    let code: string | undefined;
+    try {
+      const parsed = JSON.parse(text);
+      if (typeof parsed?.error === "string") message = parsed.error;
+      else if (typeof parsed?.message === "string") message = parsed.message;
+      if (typeof parsed?.code === "string") code = parsed.code;
+    } catch {
+      // not JSON: keep the raw text
+    }
+    throw new ApiError(res.status, message, code);
   }
 }
 

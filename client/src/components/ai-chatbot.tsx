@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageCircle, Send, X, Minimize2, Maximize2, Bot, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { apiRequest, ApiError } from "@/lib/queryClient";
 
 interface Message {
   id: string;
@@ -58,21 +59,11 @@ export default function AIChatbot({ callData }: AIChatbotProps) {
     setIsLoading(true);
 
     try {
-      const res = await fetch("/api/chatbot/query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          query: userMessage.content,
-          dashboardData: callData,
-        }),
+      // apiRequest sends the auth token; the previous cookie-only fetch was always rejected with 401.
+      const res = await apiRequest("POST", "/api/chatbot/query", {
+        query: userMessage.content,
+        dashboardData: callData,
       });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        throw new Error(errorData?.error || "Failed to get response");
-      }
-
       const data = await res.json();
 
       const assistantMessage: Message = {
@@ -84,10 +75,13 @@ export default function AIChatbot({ callData }: AIChatbotProps) {
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
+      const notConfigured = error instanceof ApiError && error.code === "OPENAI_NOT_CONFIGURED";
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        content: "Sorry, I wasn't able to process your question. Please try again in a moment.",
+        content: notConfigured
+          ? "The AI assistant is not configured on this server (no OpenAI API key), so I can't answer questions here. The dashboard data itself is unaffected."
+          : "Sorry, I wasn't able to process your question. Please try again in a moment.",
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);

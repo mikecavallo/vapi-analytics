@@ -40,7 +40,7 @@ export default function WhyInvoxaPage() {
               transition={{ duration: 0.8, delay: 0.4 }}
               className="text-xl md:text-2xl text-cyan-100 mb-12 max-w-4xl mx-auto leading-relaxed"
             >
-              Client stories, measurable ROI, and a partnership that scales with your business.
+              Hands-on implementation, transparent call analytics, and a partnership that scales with your business.
             </motion.p>
           </motion.div>
         </div>
@@ -105,19 +105,19 @@ export default function WhyInvoxaPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-3">
                   <TrendingUp className="w-6 h-6 text-purple-600" />
-                  Proven Results
+                  Measurable Results
                 </CardTitle>
                 <CardDescription>
-                  Measurable business impact from day one
+                  Every outcome tracked in your own call data
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                  <li>• 95%+ call success rates achieved</li>
-                  <li>• 40%+ improvement in lead capture</li>
-                  <li>• 60% reduction in missed opportunities</li>
-                  <li>• 24/7 availability without human costs</li>
-                  <li>• Immediate ROI and cost savings</li>
+                  <li>• Success rate, duration, and cost per call from real call records</li>
+                  <li>• Period-over-period comparisons on every key metric</li>
+                  <li>• Per-assistant performance breakdowns</li>
+                  <li>• 24/7 call coverage by your voice agents</li>
+                  <li>• Cost tracking per call and per minute</li>
                 </ul>
               </CardContent>
             </Card>
@@ -132,7 +132,7 @@ export default function WhyInvoxaPage() {
             Ready for Your Success Story?
           </h2>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-            Join the businesses already transforming their operations with white-glove voice AI implementation
+            See how white-glove voice AI implementation could work for your operations
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/book-demo">

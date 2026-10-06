@@ -3,8 +3,20 @@ import helmet from "helmet";
 import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { assertSecureConfig } from "./config";
+
+// Fail fast in production when JWT_SECRET / ENCRYPTION_KEY are missing or placeholders.
+assertSecureConfig();
 
 const app = express();
+
+// Behind a reverse proxy (Render, Fly, nginx) req.ip must come from X-Forwarded-For, or every
+// client shares the proxy's address and one bad actor can lock everyone out of login.
+// TRUST_PROXY accepts an Express "trust proxy" value; production defaults to one hop.
+const trustProxy = process.env.TRUST_PROXY ?? (process.env.NODE_ENV === "production" ? "1" : undefined);
+if (trustProxy !== undefined) {
+  app.set("trust proxy", /^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy === "true" ? true : trustProxy);
+}
 
 // Security middleware
 app.use(helmet({
@@ -12,7 +24,7 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       imgSrc: ["'self'", "data:", "https:", "blob:"],
       connectSrc: ["'self'", "https:", "wss:"],
       fontSrc: ["'self'", "https:", "data:"],
@@ -65,7 +77,8 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
+      // Never log response bodies for auth routes (they carry tokens and user records).
+      if (capturedJsonResponse && !path.startsWith("/api/auth")) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
 

@@ -32,7 +32,7 @@ import AIChatbot from "@/components/ai-chatbot";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChartLine, Activity, Settings, RefreshCw, Phone, RotateCcw, Download } from "lucide-react";
-import logoTransparent from "@assets/logo_transparent_1757373755849.png";
+import logoTransparent from "@/assets/logo.png";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
@@ -271,6 +271,16 @@ export default function Dashboard() {
       <DashboardHeader />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {data?.meta?.source === "demo" && (
+          <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100" data-testid="banner-demo-data">
+            Demo mode: these figures are computed from generated sample calls, not a real account. Add a Vapi or Retell API key in Settings to see live data.
+          </div>
+        )}
+        {data?.meta?.callLimitReached && (
+          <div className="mb-4 rounded-md border px-4 py-2 text-sm text-muted-foreground" data-testid="banner-call-limit">
+            This period has more calls than can be fetched in one request; figures cover the most recent 1,000 calls.
+          </div>
+        )}
         {/* Top controls: provider tabs + date picker */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
           <div className="flex items-center gap-4">

@@ -47,6 +47,24 @@ export default function ConversationFlowAnalysis({ data, isLoading }: Conversati
     );
   }
 
+  const hasData = data.stages.length > 0 || data.successPaths.length > 0 || data.dropOffPoints.length > 0;
+  if (!hasData) {
+    return (
+      <Card className="col-span-full">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Conversation Flow Analysis</CardTitle>
+          <p className="text-sm text-muted-foreground">User journey paths and decision points</p>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground" data-testid="text-flow-unavailable">
+            Not available yet: stage-level flow data is not computed from provider call records.
+            VoiceScope can answer questions about call transcripts in the meantime.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const getPerformanceColor = (percentage: number) => {
     if (percentage >= 90) return "text-chart-2";
     if (percentage >= 70) return "text-chart-3";
@@ -83,35 +101,19 @@ export default function ConversationFlowAnalysis({ data, isLoading }: Conversati
           <div className="lg:col-span-2">
             <div className="border rounded-lg p-6 h-64 bg-gradient-to-r from-muted/50 to-muted/30 relative overflow-hidden">
               <div className="absolute inset-0 flex items-center justify-center">
-                {/* Simple Flow Visualization */}
+                {/* Flow built from the stages returned by the API */}
                 <div className="flex items-center space-x-8">
-                  <div className="flex flex-col items-center">
-                    <div className="w-12 h-12 rounded-full bg-chart-2/20 flex items-center justify-center">
-                      <span className="text-chart-2 font-bold">95%</span>
+                  {data.stages.map((stage, index) => (
+                    <div key={stage.name} className="flex items-center space-x-8">
+                      {index > 0 && <div className="w-8 h-1 bg-chart-2/50 rounded"></div>}
+                      <div className="flex flex-col items-center">
+                        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                          <span className={`font-bold ${getPerformanceColor(stage.performance)}`}>{stage.performance}%</span>
+                        </div>
+                        <span className="text-xs mt-2">{stage.name}</span>
+                      </div>
                     </div>
-                    <span className="text-xs mt-2">Call Start</span>
-                  </div>
-                  <div className="w-8 h-1 bg-chart-2/50 rounded"></div>
-                  <div className="flex flex-col items-center">
-                    <div className="w-12 h-12 rounded-full bg-chart-2/20 flex items-center justify-center">
-                      <span className="text-chart-2 font-bold">97%</span>
-                    </div>
-                    <span className="text-xs mt-2">Greeting</span>
-                  </div>
-                  <div className="w-8 h-1 bg-chart-2/50 rounded"></div>
-                  <div className="flex flex-col items-center">
-                    <div className="w-12 h-12 rounded-full bg-chart-3/20 flex items-center justify-center">
-                      <span className="text-chart-3 font-bold">92%</span>
-                    </div>
-                    <span className="text-xs mt-2">Intent Recognition</span>
-                  </div>
-                  <div className="w-8 h-1 bg-chart-3/50 rounded"></div>
-                  <div className="flex flex-col items-center">
-                    <div className="w-12 h-12 rounded-full bg-chart-4/20 flex items-center justify-center">
-                      <span className="text-chart-4 font-bold">75%</span>
-                    </div>
-                    <span className="text-xs mt-2">Resolution</span>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>

@@ -14,19 +14,29 @@ interface ConversationOutcomesProps {
       totalConversations: number;
       successRate: number;
       avgDuration: string;
-      avgSatisfaction: number;
+      avgSatisfaction: number | null;
     };
     outcomes: Array<{
       outcome: string;
       volume: number;
       percentage: number;
       avgDuration: string;
-      satisfaction: number;
-      trend: number;
+      satisfaction: number | null;
+      trend: number | null;
     }>;
   };
   isLoading: boolean;
 }
+
+const parseDuration = (value: string): number => {
+  const [m, s] = value.split(':').map(Number);
+  return (m || 0) * 60 + (s || 0);
+};
+
+const formatSeconds = (seconds: number): string => {
+  const total = Math.round(seconds);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+};
 
 export default function ConversationOutcomes({ data, isLoading }: ConversationOutcomesProps) {
   const [selectedOutcome, setSelectedOutcome] = useState("all");
@@ -45,9 +55,15 @@ export default function ConversationOutcomes({ data, isLoading }: ConversationOu
       outcome: "other",
       volume: smallOutcomes.reduce((sum, outcome) => sum + outcome.volume, 0),
       percentage: smallOutcomes.reduce((sum, outcome) => sum + outcome.percentage, 0),
-      avgDuration: "0:45", // Average of small outcomes
-      satisfaction: smallOutcomes.reduce((sum, outcome) => sum + outcome.satisfaction, 0) / smallOutcomes.length,
-      trend: smallOutcomes.reduce((sum, outcome) => sum + outcome.trend, 0) / smallOutcomes.length
+      avgDuration: formatSeconds(
+        smallOutcomes.reduce((sum, outcome) => sum + parseDuration(outcome.avgDuration) * outcome.volume, 0) /
+        Math.max(1, smallOutcomes.reduce((sum, outcome) => sum + outcome.volume, 0))
+      ),
+      satisfaction: null,
+      // Share change of a group is the sum of its members' share changes
+      trend: smallOutcomes.every(outcome => outcome.trend !== null)
+        ? smallOutcomes.reduce((sum, outcome) => sum + (outcome.trend as number), 0)
+        : null,
     };
     
     return [...significantOutcomes, otherCategory];
@@ -95,7 +111,8 @@ export default function ConversationOutcomes({ data, isLoading }: ConversationOu
     return "text-muted-foreground";
   };
 
-  const getTrendIcon = (trend: number) => {
+  const getTrendIcon = (trend: number | null) => {
+    if (trend === null) return <div className="w-4 h-4" />;
     if (trend > 0) return <TrendingUp className="text-chart-2" size={14} />;
     if (trend < 0) return <TrendingDown className="text-destructive" size={14} />;
     return <div className="w-4 h-4" />;
@@ -174,7 +191,7 @@ export default function ConversationOutcomes({ data, isLoading }: ConversationOu
                 <Star className="text-chart-4 mr-1 fill-current" size={18} />
               </div>
               <p className="text-2xl font-bold mb-1 text-chart-4" data-testid="stat-avg-satisfaction">
-                {data.summary.avgSatisfaction}
+                {data.summary.avgSatisfaction ?? "N/A"}
               </p>
               <p className="text-xs text-muted-foreground">Avg Satisfaction</p>
             </div>
@@ -228,19 +245,27 @@ export default function ConversationOutcomes({ data, isLoading }: ConversationOu
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
-                        <div className="flex items-center justify-center space-x-1">
-                          {getSatisfactionStars(outcome.satisfaction)}
-                          <span className="text-xs text-muted-foreground ml-1">
-                            {outcome.satisfaction.toFixed(1)}
-                          </span>
-                        </div>
+                        {outcome.satisfaction === null ? (
+                          <span className="text-xs text-muted-foreground">Not tracked</span>
+                        ) : (
+                          <div className="flex items-center justify-center space-x-1">
+                            {getSatisfactionStars(outcome.satisfaction)}
+                            <span className="text-xs text-muted-foreground ml-1">
+                              {outcome.satisfaction.toFixed(1)}
+                            </span>
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center space-x-1">
                           {getTrendIcon(outcome.trend)}
-                          <span className={`text-xs font-medium ${outcome.trend > 0 ? 'text-chart-2' : outcome.trend < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                            {outcome.trend > 0 ? '+' : ''}{outcome.trend.toFixed(1)}%
-                          </span>
+                          {outcome.trend === null ? (
+                            <span className="text-xs text-muted-foreground">N/A</span>
+                          ) : (
+                            <span className={`text-xs font-medium ${outcome.trend > 0 ? 'text-chart-2' : outcome.trend < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                              {outcome.trend > 0 ? '+' : ''}{outcome.trend.toFixed(1)} pts
+                            </span>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

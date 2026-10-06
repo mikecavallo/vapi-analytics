@@ -14,12 +14,13 @@ import { Users, Building, Mail, Key, Plus, Trash2, Settings, ChartLine, Brain, A
 import { Link } from 'wouter';
 import { useTheme } from '@/contexts/theme-context';
 import { Sun, Moon } from 'lucide-react';
-import logoTransparent from "@assets/logo_transparent_1757373755849.png";
+import logoTransparent from "@/assets/logo.png";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface Customer {
+  // Provider keys arrive masked from the API (e.g. "••••abcd"); full keys are never sent to the browser.
   id: string;
   name: string;
   description?: string;
@@ -100,8 +101,8 @@ export default function AgencyPage() {
       setNewCustomerApiKey('');
       setNewCustomerRetellKey('');
     },
-    onError: (error) => {
-      toast({ title: 'Error', description: 'Failed to create customer', variant: 'destructive' });
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error?.message || 'Failed to create customer', variant: 'destructive' });
     },
   });
 
@@ -117,8 +118,8 @@ export default function AgencyPage() {
       setIsAddEmailOpen(false);
       setNewWhitelistEmail('');
     },
-    onError: (error) => {
-      toast({ title: 'Error', description: 'Failed to add email to whitelist', variant: 'destructive' });
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error?.message || 'Failed to add email to whitelist', variant: 'destructive' });
     },
   });
 
@@ -257,7 +258,7 @@ export default function AgencyPage() {
                           <TableCell>{customer.description || '-'}</TableCell>
                           <TableCell>
                             <span className="font-mono text-xs">
-                              {customer.vapiApiKey ? '••••••••' : 'Not set'}
+                              {customer.vapiApiKey || 'Not set'}
                             </span>
                           </TableCell>
                           <TableCell>
