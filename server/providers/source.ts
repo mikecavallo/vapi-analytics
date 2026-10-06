@@ -54,6 +54,8 @@ export async function loadCallsForPeriods(
 
   if (usesDemoData(customer, provider)) {
     const calls = (await storage.getDemoCalls(customer!.id, provider, { start: previous.start, end: current.end, limit: 5000 })) as NormalizedCall[];
+    // Workspaces that were never seeded get the normal empty state, not a demo banner.
+    if (calls.length === 0) return null;
     return {
       source: "demo",
       current: filterCallsByRange(calls, current.start, current.end),

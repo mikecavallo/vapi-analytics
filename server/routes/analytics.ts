@@ -38,7 +38,7 @@ export function registerAnalyticsRoutes(app: Express): void {
         const periods = await loadCallsForPeriods(customer, provider, range, getPreviousPeriodRange(range.start, range.end));
         if (!periods) {
           return res.status(500).json({
-            error: "Customer Retell API key not configured. Contact support."
+            error: `Customer ${provider === "retell" ? "Retell" : "Vapi"} API key not configured. Contact support.`
           });
         }
         const result = aggregateCallsLikeVapi(periods.current, range);
