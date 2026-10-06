@@ -20,7 +20,9 @@ export function sendError(res: Response, error: unknown, fallback: string, logLa
     return;
   }
   if (error instanceof ZodError) {
-    res.status(400).json({ error: "Invalid input", details: error.errors.map((e) => ({ path: e.path, message: e.message })) });
+    const first = error.errors[0];
+    const summary = first ? `${first.path.length ? `${first.path.join(".")}: ` : ""}${first.message}` : "";
+    res.status(400).json({ error: summary ? `Invalid input (${summary})` : "Invalid input", details: error.errors.map((e) => ({ path: e.path, message: e.message })) });
     return;
   }
   console.error(logLabel ? `[${logLabel}]` : "[error]", error);
