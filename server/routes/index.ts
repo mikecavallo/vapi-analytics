@@ -13,6 +13,7 @@ import { registerAssistantRoutes } from "./assistants";
 import { registerConversationFlowRoutes } from "./conversation-flow";
 import { registerChatbotRoutes } from "./chatbot";
 import { registerFacebookAdsRoutes } from "./facebook-ads";
+import { registerFeatureRoutes } from "./features";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Apply general API rate limiting to protected endpoint groups
@@ -21,7 +22,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/voicescope', apiRateLimit);
   app.use('/api/assistant-studio', apiRateLimit);
   app.use('/api/conversation-flow', apiRateLimit);
+  app.use('/api/assistants', apiRateLimit);
+  app.use('/api/chatbot', apiRateLimit);
+  app.use('/api/performance-benchmarks', apiRateLimit);
+  app.use('/api/facebook-ads', apiRateLimit);
 
+  registerFeatureRoutes(app);
   registerAuthRoutes(app);
   registerCustomerRoutes(app);
   registerAdminRoutes(app);

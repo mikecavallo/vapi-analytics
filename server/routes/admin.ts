@@ -1,56 +1,50 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { randomUUID } from "crypto";
 import { authenticateUser, requireSuperAdmin } from "../auth-middleware";
+import { sendError } from "../http-error";
+import { sanitizeUser } from "../auth-utils";
+import { toPublicCustomer } from "./customer";
+import { auditLog } from "./shared";
+import { adminCreateCustomerSchema, whitelistEmailSchema } from "./validation";
 
 export function registerAdminRoutes(app: Express): void {
-  // Super-admin endpoints
+  // Super-admin endpoints. Provider keys are masked in every response.
   app.get("/api/admin/customers", authenticateUser, requireSuperAdmin, async (req, res) => {
     try {
       const customers = await storage.getAllCustomers();
-      res.json(customers);
+      res.json(customers.map(toPublicCustomer));
     } catch (error) {
-      console.error("[ADMIN CUSTOMERS] Error:", error);
-      res.status(500).json({ error: "Failed to fetch customers" });
+      sendError(res, error, "Failed to fetch customers", "admin-customers");
     }
   });
 
   app.post("/api/admin/customers", authenticateUser, requireSuperAdmin, async (req, res) => {
     try {
-      const { name, description, vapiApiKey, retellApiKey } = req.body;
+      const { name, description, vapiApiKey, retellApiKey } = adminCreateCustomerSchema.parse(req.body);
 
-      if (!name) {
-        return res.status(400).json({ error: "Name is required" });
-      }
-
-      const customerId = randomUUID();
+      // Only the keys the admin entered for this customer are stored. The platform's own
+      // VAPI_API_KEY is never copied into a customer workspace.
       const customer = await storage.createCustomer({
         name,
         description: description || null,
         createdByUserId: req.user!.id,
-        vapiApiKey: process.env.VAPI_API_KEY || vapiApiKey || null,
-        retellApiKey: retellApiKey || null
+        vapiApiKey: vapiApiKey || null,
+        retellApiKey: retellApiKey || null,
       });
 
-      res.json(customer);
+      auditLog("CUSTOMER_CREATED", req.user!.id, { customerId: customer.id });
+      res.json(toPublicCustomer(customer));
     } catch (error) {
-      console.error("[CREATE CUSTOMER] Error:", error);
-      res.status(500).json({ error: "Failed to create customer" });
+      sendError(res, error, "Failed to create customer", "admin-create-customer");
     }
   });
 
   app.get("/api/admin/users", authenticateUser, requireSuperAdmin, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
-      // Remove password hashes from response
-      const safeUsers = users.map(user => ({
-        ...user,
-        password: undefined
-      }));
-      res.json(safeUsers);
+      res.json(users.map(sanitizeUser));
     } catch (error) {
-      console.error("[ADMIN USERS] Error:", error);
-      res.status(500).json({ error: "Failed to fetch users" });
+      sendError(res, error, "Failed to fetch users", "admin-users");
     }
   });
 
@@ -59,29 +53,21 @@ export function registerAdminRoutes(app: Express): void {
       const whitelist = await storage.getAllEmailWhitelist();
       res.json(whitelist);
     } catch (error) {
-      console.error("[ADMIN EMAIL WHITELIST] Error:", error);
-      res.status(500).json({ error: "Failed to fetch email whitelist" });
+      sendError(res, error, "Failed to fetch email whitelist", "admin-whitelist");
     }
   });
 
   app.post("/api/admin/email-whitelist", authenticateUser, requireSuperAdmin, async (req, res) => {
     try {
-      const { email } = req.body;
-
-      if (!email || !email.includes('@')) {
-        return res.status(400).json({ error: "Valid email address is required" });
-      }
-
-      const emailId = randomUUID();
+      const { email } = whitelistEmailSchema.parse(req.body);
       const whitelistEntry = await storage.addEmailToWhitelist({
-        email: email.toLowerCase(),
-        createdByUserId: req.user!.id
+        email,
+        createdByUserId: req.user!.id,
       });
-
+      auditLog("WHITELIST_ADD", req.user!.id, {});
       res.json(whitelistEntry);
     } catch (error) {
-      console.error("[ADD EMAIL WHITELIST] Error:", error);
-      res.status(500).json({ error: "Failed to add email to whitelist" });
+      sendError(res, error, "Failed to add email to whitelist", "admin-whitelist-add");
     }
   });
 }

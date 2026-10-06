@@ -66,8 +66,10 @@ export function registerAnalyticsRoutes(app: Express): void {
 
       if (!vapiResponse.ok) {
         const errorText = await vapiResponse.text();
-        return res.status(vapiResponse.status).json({
-          error: `Vapi API error: ${errorText}`
+        console.error("[vapi] request failed:", vapiResponse.status, errorText.slice(0, 500));
+        // 502, not the provider's status: a Vapi 401 must not look like an expired session to the client.
+        return res.status(502).json({
+          error: vapiResponse.status === 401 ? "Vapi rejected this workspace's API key. Check it in Settings." : `Vapi API error (${vapiResponse.status})`
         });
       }
 

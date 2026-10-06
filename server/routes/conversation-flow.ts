@@ -1,54 +1,29 @@
 import type { Express } from "express";
-import { authenticateUser } from "../auth-middleware";
-import { MAX_PROMPT_LENGTH, MAX_ANALYSIS_CALLS_FLOW } from "./shared";
+import { authenticateUser, requireCustomerAccess, validateCustomerAccess } from "../auth-middleware";
+import { HttpError, requireOpenAiKey, sendError } from "../http-error";
+import { requireTenantKey } from "../providers/tenant";
+import { getOwnedCalls } from "../providers/vapi-api";
+import { conversationFlowSchema } from "./validation";
 
 export function registerConversationFlowRoutes(app: Express): void {
   // Conversation Flow Analysis endpoint
-  app.post("/api/conversation-flow/analyze", authenticateUser, async (req, res) => {
+  // Analyzes only calls that belong to the signed-in customer's own Vapi account.
+  app.post("/api/conversation-flow/analyze", authenticateUser, requireCustomerAccess, validateCustomerAccess, async (req, res) => {
     try {
-      const { callIds, analysisType } = req.body;
-      const vapiApiKey = process.env.VAPI_API_KEY || "";
-      const openaiApiKey = process.env.OPENAI_API_KEY;
+      const openaiApiKey = requireOpenAiKey();
+      const { callIds, analysisType } = conversationFlowSchema.parse(req.body);
+      const { key } = await requireTenantKey(req, "vapi");
 
-      if (!vapiApiKey || !openaiApiKey) {
-        return res.status(500).json({ error: "API keys not configured" });
-      }
-
-      if (!callIds || !Array.isArray(callIds) || callIds.length === 0) {
-        return res.status(400).json({ error: "callIds array is required" });
-      }
-
-      if (callIds.length > MAX_ANALYSIS_CALLS_FLOW) {
-        return res.status(400).json({ error: `callIds exceeds maximum allowed length of ${MAX_ANALYSIS_CALLS_FLOW}` });
-      }
-
-      if (analysisType && typeof analysisType === 'string' && analysisType.length > MAX_PROMPT_LENGTH) {
-        return res.status(400).json({ error: `analysisType exceeds maximum length of ${MAX_PROMPT_LENGTH} characters` });
-      }
-
-      // Fetch call details for conversation flow analysis
-      const callPromises = callIds.map(async (callId: string) => {
-        const response = await fetch(`https://api.vapi.ai/call/${callId}`, {
-          headers: { "Authorization": `Bearer ${vapiApiKey}` },
-        });
-        return response.ok ? response.json() : null;
-      });
-
-      const calls = (await Promise.all(callPromises)).filter(Boolean);
-
+      const calls = await getOwnedCalls(key, callIds);
       if (calls.length === 0) {
-        return res.status(404).json({ error: "No valid calls found" });
+        throw new HttpError(404, "No valid calls found");
       }
 
-      // Analyze conversation flows with OpenAI
-      const openai = new (await import('openai')).default({ apiKey: openaiApiKey });
-      const flowAnalysis = await analyzeConversationFlows(openai, calls, analysisType);
-
-      console.log(`[${new Date().toLocaleTimeString()}] Analyzed conversation flows for ${calls.length} calls`);
+      const openai = new (await import("openai")).default({ apiKey: openaiApiKey });
+      const flowAnalysis = await analyzeConversationFlows(openai, calls, analysisType || "general");
       res.json(flowAnalysis);
     } catch (error) {
-      console.error("Conversation flow analysis error:", error);
-      res.status(500).json({ error: "Failed to analyze conversation flows" });
+      sendError(res, error, "Failed to analyze conversation flows", "conversation-flow");
     }
   });
 

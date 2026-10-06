@@ -1,25 +1,16 @@
 import type { Express } from "express";
 import { authenticateUser } from "../auth-middleware";
-import { auditLog, MAX_PROMPT_LENGTH } from "./shared";
+import { requireOpenAiKey, sendError } from "../http-error";
+import { auditLog } from "./shared";
+import { chatbotQuerySchema } from "./validation";
 
 export function registerChatbotRoutes(app: Express): void {
   // AI Chatbot endpoint
   app.post("/api/chatbot/query", authenticateUser, async (req, res) => {
     try {
-      const { query, dashboardData } = req.body;
-      const openaiApiKey = process.env.OPENAI_API_KEY;
-
-      if (!openaiApiKey) {
-        return res.status(500).json({ error: "OpenAI API key not configured" });
-      }
-
-      if (!query || typeof query !== 'string' || query.trim().length === 0) {
-        return res.status(400).json({ error: "Query is required" });
-      }
-
-      if (query.length > MAX_PROMPT_LENGTH) {
-        return res.status(400).json({ error: `Query exceeds maximum length of ${MAX_PROMPT_LENGTH} characters` });
-      }
+      // The chatbot only sees the dashboard data the client already has; it makes no provider calls.
+      const openaiApiKey = requireOpenAiKey();
+      const { query, dashboardData } = chatbotQuerySchema.parse(req.body);
 
       auditLog('CHATBOT_QUERY', req.user?.id, { query: query.substring(0, 100) });
 
@@ -76,12 +67,8 @@ User question: ${query}`
       res.json({ response });
 
     } catch (error) {
-      console.error("Chatbot query error:", error);
-      res.status(500).json({
-        error: "Failed to generate response. Please try again."
-      });
+      sendError(res, error, "Failed to generate response. Please try again.", "chatbot");
     }
   });
 
-  // Facebook Ads API Routes
 }

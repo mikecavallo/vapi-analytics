@@ -1,66 +1,41 @@
 import type { Express } from "express";
-import { authenticateUser } from "../auth-middleware";
-import { MAX_PROMPT_LENGTH } from "./shared";
+import { authenticateUser, requireCustomerAccess, validateCustomerAccess } from "../auth-middleware";
+import { HttpError, requireOpenAiKey, sendError } from "../http-error";
+import { requireTenantKey } from "../providers/tenant";
+import { getOwnedAssistant, getOwnedCalls, listCalls } from "../providers/vapi-api";
+import { generateReportSchema, optimizePromptSchema } from "./validation";
+
+// VoiceScope routes act only on the signed-in customer's own Vapi account (tenant key).
+const customerOnly = [authenticateUser, requireCustomerAccess, validateCustomerAccess];
 
 export function registerVoicescopeRoutes(app: Express): void {
-  // AI Prompt Optimization endpoint
-  app.post("/api/voicescope/optimize-prompt", authenticateUser, async (req, res) => {
+  // AI prompt optimization over a few of the customer's own calls.
+  app.post("/api/voicescope/optimize-prompt", ...customerOnly, async (req, res) => {
     try {
-      const { assistantId, currentPrompt, transcriptIds } = req.body;
-      const openaiApiKey = process.env.OPENAI_API_KEY;
+      const openaiApiKey = requireOpenAiKey();
+      const { assistantId, currentPrompt, transcriptIds } = optimizePromptSchema.parse(req.body);
+      const { key } = await requireTenantKey(req, "vapi");
 
-      if (!openaiApiKey) {
-        return res.status(500).json({ error: "OpenAI API key not configured" });
+      // Ownership: the assistant and every call must exist on this customer's Vapi account.
+      if (!(await getOwnedAssistant(key, assistantId))) {
+        throw new HttpError(404, "Assistant not found");
       }
-
-      if (!assistantId || !currentPrompt || !transcriptIds?.length) {
-        return res.status(400).json({ error: "Missing required fields: assistantId, currentPrompt, or transcriptIds" });
-      }
-
-      if (typeof currentPrompt === 'string' && currentPrompt.length > MAX_PROMPT_LENGTH) {
-        return res.status(400).json({ error: `Prompt exceeds maximum length of ${MAX_PROMPT_LENGTH} characters` });
-      }
-
-      const vapiApiKey = process.env.VAPI_API_KEY || "";
-
-      // Fetch transcripts for analysis
-      const transcriptPromises = transcriptIds.slice(0, 10).map(async (callId: string) => {
-        try {
-          const response = await fetch(`https://api.vapi.ai/call/${callId}`, {
-            method: "GET",
-            headers: {
-              "Authorization": `Bearer ${vapiApiKey}`,
-              "Content-Type": "application/json",
-            },
-          });
-
-          if (response.ok) {
-            const callData = await response.json();
-            return {
-              id: callId,
-              transcript: callData.transcript || "",
-              duration: callData.duration || 0,
-              status: callData.status,
-              endedReason: callData.endedReason
-            };
-          }
-          return null;
-        } catch (error) {
-          console.error(`Error fetching call ${callId}:`, error);
-          return null;
-        }
-      });
-
-      const transcripts = (await Promise.all(transcriptPromises)).filter(Boolean);
+      const calls = await getOwnedCalls(key, transcriptIds);
+      const transcripts = calls.map((callData) => ({
+        id: callData.id,
+        transcript: callData.transcript || "",
+        duration: callData.duration || 0,
+        status: callData.status,
+        endedReason: callData.endedReason,
+      }));
 
       if (transcripts.length === 0) {
-        return res.status(400).json({ error: "No valid transcripts found for analysis" });
+        throw new HttpError(404, "None of the requested calls were found on this workspace's Vapi account");
       }
 
-      // Analyze transcripts with AI
-      const openai = new (await import('openai')).default({ apiKey: openaiApiKey });
+      const openai = new (await import("openai")).default({ apiKey: openaiApiKey });
 
-      const analysisPrompt = `As an AI conversation optimization expert, analyze these healthcare voice agent transcripts and current prompt to suggest improvements.
+      const analysisPrompt = `As an AI conversation optimization expert, analyze these voice agent transcripts and current prompt to suggest improvements.
 
 Current Assistant Prompt:
 """
@@ -68,10 +43,10 @@ ${currentPrompt}
 """
 
 Transcripts to analyze (${transcripts.length} calls):
-${transcripts.map(t => `
+${transcripts.map((t) => `
 Call ${t.id} (Status: ${t.status}, Ended: ${t.endedReason}):
 ${t.transcript}
----`).join('\n')}
+---`).join("\n")}
 
 Please provide optimization suggestions in JSON format:
 {
@@ -91,80 +66,45 @@ Please provide optimization suggestions in JSON format:
 }`;
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4", // Using GPT-4 for better analysis
+        model: "gpt-4",
         messages: [{ role: "user", content: analysisPrompt }],
         response_format: { type: "json_object" },
         temperature: 0.3,
       });
 
-      const analysis = JSON.parse(response.choices[0].message.content || '{}');
-
-      console.log(`[${new Date().toLocaleTimeString()}] Generated prompt optimization for assistant ${assistantId}`);
+      const analysis = JSON.parse(response.choices[0].message.content || "{}");
       res.json({
         assistantId,
         analysis,
         transcriptsAnalyzed: transcripts.length,
-        generatedAt: new Date().toISOString()
+        generatedAt: new Date().toISOString(),
       });
     } catch (error) {
-      console.error("Prompt optimization error:", error);
-      res.status(500).json({ error: "Failed to generate prompt optimization" });
+      sendError(res, error, "Failed to generate prompt optimization", "voicescope-optimize");
     }
   });
 
-  // Advanced Report Generation endpoint
-  app.post("/api/voicescope/generate-report", authenticateUser, async (req, res) => {
+  // Report generation over the customer's own Vapi calls.
+  app.post("/api/voicescope/generate-report", ...customerOnly, async (req, res) => {
     try {
-      const { reportType, dateRange, includeTranscripts, includeBenchmarks, customFilters } = req.body;
-      const vapiApiKey = process.env.VAPI_API_KEY || "";
-      const openaiApiKey = process.env.OPENAI_API_KEY;
+      const openaiApiKey = requireOpenAiKey();
+      const { reportType, dateRange, includeTranscripts, includeBenchmarks, customFilters } = generateReportSchema.parse(req.body);
+      const { key } = await requireTenantKey(req, "vapi");
 
-      if (!vapiApiKey || !openaiApiKey) {
-        return res.status(500).json({ error: "API keys not configured" });
-      }
-
-      // Fetch calls data
-      const response = await fetch("https://api.vapi.ai/call", {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${vapiApiKey}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Vapi API error: ${response.status}`);
-      }
-
-      const callsData = await response.json();
-      let calls = callsData || [];
-
-      // Apply date filtering
-      if (dateRange?.from) {
-        const fromDate = new Date(dateRange.from);
-        calls = calls.filter((call: any) => new Date(call.createdAt) >= fromDate);
-      }
-      if (dateRange?.to) {
-        const toDate = new Date(dateRange.to);
-        calls = calls.filter((call: any) => new Date(call.createdAt) <= toDate);
-      }
-
-      // Apply custom filters
-      if (customFilters?.assistantId) {
-        calls = calls.filter((call: any) => call.assistantId === customFilters.assistantId);
-      }
+      const params: Record<string, string> = { limit: "1000" };
+      if (dateRange?.from) params.createdAtGe = dateRange.from;
+      if (dateRange?.to) params.createdAtLe = dateRange.to;
+      if (customFilters?.assistantId) params.assistantId = customFilters.assistantId;
+      let calls = await listCalls(key, params);
       if (customFilters?.status) {
         calls = calls.filter((call: any) => call.status === customFilters.status);
       }
 
-      // Generate comprehensive analytics
-      const analytics = await generateAdvancedAnalytics(calls, includeTranscripts);
+      const analytics = await generateAdvancedAnalytics(calls, !!includeTranscripts);
 
-      // Generate AI insights using OpenAI
-      const openai = new (await import('openai')).default({ apiKey: openaiApiKey });
+      const openai = new (await import("openai")).default({ apiKey: openaiApiKey });
       const insights = await generateAIInsights(openai, analytics, calls, reportType);
 
-      // Create the report structure
       const report = {
         metadata: {
           title: getReportTitle(reportType),
@@ -173,27 +113,25 @@ Please provide optimization suggestions in JSON format:
           dateRange,
           totalCalls: calls.length,
           reportId: `RPT-${Date.now()}`,
-          period: calculateReportPeriod(dateRange)
+          period: calculateReportPeriod(dateRange),
         },
         executiveSummary: insights.executiveSummary,
         keyMetrics: analytics.keyMetrics,
         detailedAnalysis: analytics.detailedAnalysis,
-        healthcareCompliance: analytics.healthcareCompliance,
+        callQuality: analytics.callQuality,
         performanceTrends: analytics.performanceTrends,
         recommendations: insights.recommendations,
         actionItems: insights.actionItems,
         appendices: {
-          rawData: includeTranscripts ? calls.slice(0, 50) : [], // Limit to 50 for report size
+          rawData: includeTranscripts ? calls.slice(0, 50) : [],
           benchmarkData: includeBenchmarks ? analytics.benchmarks : null,
-          methodology: getAnalysisMethodology()
-        }
+          methodology: getAnalysisMethodology(),
+        },
       };
 
-      console.log(`[${new Date().toLocaleTimeString()}] Generated ${reportType} report with ${calls.length} calls`);
       res.json(report);
     } catch (error) {
-      console.error("Report generation error:", error);
-      res.status(500).json({ error: "Failed to generate report" });
+      sendError(res, error, "Failed to generate report", "voicescope-report");
     }
   });
 
@@ -289,8 +227,7 @@ Please provide optimization suggestions in JSON format:
           efficiency: (stats.successfulCalls / stats.totalCalls) * (60 / (stats.totalDuration / stats.totalCalls))
         }))
       },
-      healthcareCompliance: {
-        hipaaComplianceScore: calculateHIPAAScore(calls),
+      callQuality: {
         privacyMetrics: analyzePrivacyMetrics(calls),
         auditTrail: generateAuditTrail(calls.slice(0, 10)) // Recent calls for audit
       },
@@ -300,11 +237,7 @@ Please provide optimization suggestions in JSON format:
         costTrends: calculateCostTrends(calls)
       },
       benchmarks: {
-        industryAverages: {
-          successRate: 85,
-          avgDuration: 120,
-          avgCost: 0.15
-        },
+        // No external industry baseline is available, so only this account's own figures are reported.
         currentPerformance: {
           successRate: (successfulCalls / totalCalls) * 100,
           avgDuration,
@@ -323,7 +256,6 @@ Analytics Data:
 - Average Duration: ${analytics.keyMetrics.avgDuration} seconds
 - Total Cost: $${analytics.keyMetrics.totalCost}
 - Healthcare Metrics: ${analytics.keyMetrics.appointmentBookingRate.toFixed(1)}% appointment bookings, ${analytics.keyMetrics.urgentCallPercentage.toFixed(1)}% urgent calls
-- HIPAA Compliance Score: ${analytics.healthcareCompliance.hipaaComplianceScore}%
 
 Generate a professional analysis in JSON format:
 {
@@ -355,30 +287,12 @@ Generate a professional analysis in JSON format:
     return JSON.parse(response.choices[0].message.content || '{}');
   }
 
-  function calculateHIPAAScore(calls: any[]): number {
-    let score = 100;
-    const totalCalls = calls.length;
-
-    // Deduct for failures that might indicate compliance issues
-    const failedCalls = calls.filter(call => call.status === 'failed').length;
-    score -= (failedCalls / totalCalls) * 20;
-
-    // Deduct for calls without proper completion
-    const incompleteCalls = calls.filter(call =>
-      !['completed', 'customer-ended-call'].includes(call.endedReason)
-    ).length;
-    score -= (incompleteCalls / totalCalls) * 10;
-
-    return Math.max(score, 0);
-  }
-
   function analyzePrivacyMetrics(calls: any[]) {
     return {
       callsWithPersonalInfo: calls.filter(call =>
         call.transcript?.match(/\b\d{3}-\d{2}-\d{4}\b|\b\d{3}-\d{3}-\d{4}\b/g)
       ).length,
-      averageCallDuration: calls.reduce((sum, call) => sum + (call.duration || 0), 0) / calls.length || 0,
-      dataRetentionCompliance: 100 // Simplified for demo
+      averageCallDuration: calls.reduce((sum, call) => sum + (call.duration || 0), 0) / calls.length || 0
     };
   }
 
@@ -452,10 +366,9 @@ Generate a professional analysis in JSON format:
   function getAnalysisMethodology(): any {
     return {
       dataCollection: "Voice call data collected through Vapi platform API",
-      analysisFramework: "Healthcare-specific voice analytics with HIPAA compliance focus",
-      qualityAssurance: "AI-powered transcript analysis with human validation protocols",
-      complianceStandards: ["HIPAA", "Healthcare Industry Best Practices"],
-      reportingPeriod: "Real-time data with up to 24-hour processing delay"
+      analysisFramework: "Aggregates computed from the account's call records; narrative sections generated by OpenAI",
+      limitations: "Keyword-based topic detection; AI-generated text is not reviewed by a person and is not a compliance assessment",
+      reportingPeriod: "Calls returned by the Vapi API for the requested date range (up to 1,000)"
     };
   }
 }

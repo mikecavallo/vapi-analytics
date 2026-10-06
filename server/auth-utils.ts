@@ -2,13 +2,12 @@ import bcrypt from "bcrypt";
 import jwt, { SignOptions } from "jsonwebtoken";
 import crypto from "crypto";
 import type { TokenPayload, UserRole } from "@shared/schema";
+import { getJwtSecret } from "./config";
 
 // Configuration
 const SALT_ROUNDS = 12;
-const JWT_SECRET = process.env.JWT_SECRET || (() => {
-  if (process.env.NODE_ENV === 'production') throw new Error('JWT_SECRET environment variable is required in production');
-  return 'dev-only-jwt-secret-not-for-production';
-})();
+// Fails fast in production when JWT_SECRET is missing, short, or a known placeholder.
+const JWT_SECRET = getJwtSecret();
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "24h";
 const EMAIL_TOKEN_EXPIRES_MINUTES = 30;
 
@@ -25,11 +24,22 @@ export async function hashPassword(plainPassword: string): Promise<string> {
   }
 }
 
+/** True when a stored password value is a bcrypt hash (not legacy plaintext). */
+export function isBcryptHash(value: string | null | undefined): boolean {
+  return typeof value === "string" && /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(value);
+}
+
+// Compared against when the user does not exist, so response time does not reveal which
+// email addresses have accounts.
+const DUMMY_HASH = "$2b$12$LkcTwsXXmgk06UhBa7zLdezwNpGWxYtN1o84Fvg4wGpBY6UJMCyFK";
+
 /**
- * Verify a plain text password against a hashed password
+ * Verify a plain text password against a bcrypt hash. Never accepts plaintext: a stored value
+ * that is not a bcrypt hash always fails (run `npm run db:security-migrate` to rehash legacy rows).
  */
 export async function verifyPassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
   try {
+    if (!isBcryptHash(hashedPassword)) return false;
     const isValid = await bcrypt.compare(plainPassword, hashedPassword);
     return isValid;
   } catch (error) {
@@ -184,4 +194,9 @@ export function validatePasswordStrength(password: string): { valid: boolean; me
  */
 export function isTokenExpired(expiresAt: Date): boolean {
   return new Date() > expiresAt;
+}
+
+/** Burn the same bcrypt cost as a real check (used when the account does not exist). */
+export async function dummyPasswordCheck(plainPassword: string): Promise<void> {
+  await bcrypt.compare(plainPassword, DUMMY_HASH).catch(() => false);
 }

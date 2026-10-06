@@ -1,16 +1,16 @@
 import type { Express } from "express";
-import { authenticateUser } from "../auth-middleware";
+import { authenticateUser, requireCustomerAccess, validateCustomerAccess } from "../auth-middleware";
 import { fetchCallsWithFilters } from "../providers/calls";
+import { getTenantContext } from "../providers/tenant";
+import { sendError } from "../http-error";
+import { storage } from "../storage";
 
 export function registerBenchmarkRoutes(app: Express): void {
   // Performance Benchmarks endpoint
-  app.get("/api/performance-benchmarks", authenticateUser, async (req: any, res: any) => {
+  // Uses the signed-in customer's own Vapi key (or their demo calls); never the platform key.
+  app.get("/api/performance-benchmarks", authenticateUser, requireCustomerAccess, validateCustomerAccess, async (req: any, res: any) => {
     try {
-      const vapiApiKey = process.env.VAPI_API_KEY || "";
-
-      if (!vapiApiKey) {
-        return res.status(500).json({ error: "Vapi API key not configured" });
-      }
+      const ctx = await getTenantContext(req, "vapi");
 
       // Generate realistic benchmark data safely without pulling excessive data
       const now = new Date();
@@ -24,7 +24,9 @@ export function registerBenchmarkRoutes(app: Express): void {
         createdAtLt: toDate
       };
 
-      const calls = await fetchCallsWithFilters(queryParams, vapiApiKey);
+      const calls = ctx.demo
+        ? await storage.getDemoCalls(ctx.customer.id, "vapi", { start: fromDate, end: toDate, limit: 100 })
+        : await fetchCallsWithFilters(queryParams, ctx.key!);
 
       const performanceMetrics = {
         callTimingDistribution: analyzeTiming(calls),
@@ -37,8 +39,7 @@ export function registerBenchmarkRoutes(app: Express): void {
       console.log(`[${new Date().toLocaleTimeString()}] Generated performance benchmarks for ${calls.length} calls`);
       res.json(performanceMetrics);
     } catch (error) {
-      console.error("Performance benchmarks error:", error);
-      res.status(500).json({ error: "Failed to generate performance benchmarks" });
+      sendError(res, error, "Failed to generate performance benchmarks", "benchmarks");
     }
   });
 
@@ -152,8 +153,7 @@ export function registerBenchmarkRoutes(app: Express): void {
       appointmentBookingRate: (appointmentCalls.length / calls.length) * 100,
       urgentCallPercentage: (urgentCalls.length / calls.length) * 100,
       prescriptionInquiries: (prescriptionCalls.length / calls.length) * 100,
-      avgAppointmentCallDuration: appointmentCalls.reduce((sum, call) => sum + (call.duration || 0), 0) / appointmentCalls.length || 0,
-      complianceScore: calculateComplianceScore(calls)
+      avgAppointmentCallDuration: appointmentCalls.reduce((sum, call) => sum + (call.duration || 0), 0) / appointmentCalls.length || 0
     };
   }
 
@@ -192,12 +192,8 @@ export function registerBenchmarkRoutes(app: Express): void {
       return callDate >= sevenDaysAgo;
     });
 
+    // No external industry baseline is available, so only this account's own figures are reported.
     return {
-      industryBenchmarks: {
-        avgDuration: 120, // 2 minutes industry average
-        successRate: 85,  // 85% industry average
-        costPerCall: 0.15 // $0.15 industry average
-      },
       currentPerformance: {
         avgDuration: last30Days.reduce((sum, call) => sum + (call.duration || 0), 0) / last30Days.length || 0,
         successRate: (last30Days.filter(call => ['completed', 'customer-ended-call'].includes(call.endedReason)).length / last30Days.length) * 100,
@@ -209,20 +205,5 @@ export function registerBenchmarkRoutes(app: Express): void {
         successRate: 0  // Simplified for now
       }
     };
-  }
-
-  function calculateComplianceScore(calls: any[]) {
-    // Simplified HIPAA compliance scoring based on call patterns
-    let score = 100;
-
-    const totalCalls = calls.length;
-    const failedCalls = calls.filter(call => call.status === 'failed').length;
-    const longCalls = calls.filter(call => (call.duration || 0) > 600).length; // Over 10 minutes
-
-    // Deduct points for issues
-    score -= (failedCalls / totalCalls) * 20; // Up to 20 points for failure rate
-    score -= (longCalls / totalCalls) * 10;   // Up to 10 points for inefficiency
-
-    return Math.max(score, 0);
   }
 }

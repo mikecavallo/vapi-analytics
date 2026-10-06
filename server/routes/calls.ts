@@ -4,6 +4,8 @@ import { VapiClient } from "@vapi-ai/server-sdk";
 import { normalizeProvider, usesDemoData } from "../providers/source";
 import { authenticateUser, requireCustomerAccess, validateCustomerAccess } from "../auth-middleware";
 import { fetchRetellCallsWithFilters } from "../providers/calls";
+import { assertProviderId } from "../providers/vapi-api";
+import { HttpError, sendError } from "../http-error";
 
 export function registerCallRoutes(app: Express): void {
   // Get recent calls
@@ -24,8 +26,8 @@ export function registerCallRoutes(app: Express): void {
 
       if (provider === 'retell') {
         if (!customer || !customer.retellApiKey) {
-          return res.status(500).json({
-            error: "Customer Retell API key not configured. Contact support."
+          return res.status(400).json({
+            error: "No Retell API key is connected to this workspace. Add one in Settings.", code: "PROVIDER_KEY_MISSING"
           });
         }
 
@@ -38,8 +40,8 @@ export function registerCallRoutes(app: Express): void {
       } else {
 
         if (!customer || !customer.vapiApiKey) {
-          return res.status(500).json({
-            error: "Customer Vapi API key not configured. Contact support."
+          return res.status(400).json({
+            error: "No Vapi API key is connected to this workspace. Add one in Settings.", code: "PROVIDER_KEY_MISSING"
           });
         }
 
@@ -53,8 +55,10 @@ export function registerCallRoutes(app: Express): void {
 
         if (!response.ok) {
           const errorText = await response.text();
-          return res.status(response.status).json({
-            error: `Vapi API error: ${errorText}`
+          console.error("[vapi] request failed:", response.status, errorText.slice(0, 500));
+          // 502, not the provider's status: a Vapi 401 must not look like an expired session to the client.
+          return res.status(502).json({
+            error: response.status === 401 ? "Vapi rejected this workspace's API key. Check it in Settings." : `Vapi API error (${response.status})`
           });
         }
 
@@ -72,7 +76,9 @@ export function registerCallRoutes(app: Express): void {
   // Get individual call details
   app.get("/api/calls/:id", authenticateUser, requireCustomerAccess, validateCustomerAccess, async (req, res) => {
     try {
-      const { id } = req.params;
+      // Reject malformed IDs before they reach a provider URL. Ownership is enforced by using
+      // only this customer's own key (or their own demo rows).
+      const id = assertProviderId(req.params.id, "call ID");
       const customerId = req.customerId;
 
       if (!customerId) {
@@ -90,8 +96,8 @@ export function registerCallRoutes(app: Express): void {
         return res.json(demoCall);
       }
       if (!customer || !customer.vapiApiKey) {
-        return res.status(500).json({
-          error: "Customer Vapi API key not configured. Contact support."
+        return res.status(400).json({
+          error: "No Vapi API key is connected to this workspace. Add one in Settings.", code: "PROVIDER_KEY_MISSING"
         });
       }
 
@@ -112,11 +118,13 @@ export function registerCallRoutes(app: Express): void {
       }
 
       res.json({ ...callData, duration });
-    } catch (error) {
-      console.error("Call details API error:", error);
-      res.status(500).json({
-        error: error instanceof Error ? error.message : "Internal server error"
-      });
+    } catch (error: any) {
+      if (error instanceof HttpError) return sendError(res, error, "");
+      // The Vapi SDK throws on 404 for calls that are not on this account.
+      if (error?.statusCode === 404 || error?.statusCode === 400) {
+        return res.status(404).json({ error: "Call not found" });
+      }
+      sendError(res, error, "Failed to load call details", "call-details");
     }
   });
 }

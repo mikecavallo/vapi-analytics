@@ -3,9 +3,11 @@ import { buildVerificationEmail, getEmailSender } from "../email/sender";
 import { storage } from "../storage";
 import { signupSchema, loginSchema, emailVerificationSchema, type UserRole } from "@shared/schema";
 import { z } from "zod";
-import { hashPassword, verifyPassword, generateToken, generateEmailVerificationToken, getEmailTokenExpiration, validatePasswordStrength, sanitizeUser, createTokenPayload } from "../auth-utils";
+import { hashPassword, verifyPassword, isBcryptHash, dummyPasswordCheck, generateToken, generateEmailVerificationToken, getEmailTokenExpiration, validatePasswordStrength, sanitizeUser, createTokenPayload } from "../auth-utils";
 import { authenticateUser, authRateLimit } from "../auth-middleware";
 import { auditLog } from "./shared";
+import { sendError } from "../http-error";
+import { changePasswordSchema, profileUpdateSchema } from "./validation";
 
 export function registerAuthRoutes(app: Express): void {
   // Authentication endpoints
@@ -89,24 +91,23 @@ export function registerAuthRoutes(app: Express): void {
       // Find user by email
       const user = await storage.getUserByEmail(email);
       if (!user) {
+        await dummyPasswordCheck(password);
         auditLog('LOGIN_FAILURE', undefined, { email, reason: 'user_not_found' });
         return res.status(401).json({ error: "Invalid email or password" });
       }
 
-      // Verify password
-      const isPlainPassword = user.password === password;
-      const isValidHashedPassword = await verifyPassword(password, user.password);
-
-      if (!isPlainPassword && !isValidHashedPassword) {
-        auditLog('LOGIN_FAILURE', user.id, { email, reason: 'invalid_password' });
+      // bcrypt only. Legacy plaintext rows never match: run `npm run db:security-migrate` once
+      // to rehash them (see README "Security").
+      if (!isBcryptHash(user.password)) {
+        await dummyPasswordCheck(password);
+        auditLog('LOGIN_FAILURE', user.id, { email, reason: 'legacy_password_needs_migration' });
         return res.status(401).json({ error: "Invalid email or password" });
       }
 
-      // If it was a plain password, upgrade it to a hash now for better security
-      if (isPlainPassword) {
-        console.log(`Upgrading plain text password for user: ${user.email}`);
-        const hashedPassword = await hashPassword(password);
-        await storage.updateUser(user.id, { password: hashedPassword });
+      const isValidPassword = await verifyPassword(password, user.password);
+      if (!isValidPassword) {
+        auditLog('LOGIN_FAILURE', user.id, { email, reason: 'invalid_password' });
+        return res.status(401).json({ error: "Invalid email or password" });
       }
 
       // Check if email is verified
@@ -230,42 +231,26 @@ export function registerAuthRoutes(app: Express): void {
   // Update user profile (username and/or email)
   app.patch("/api/auth/profile", authenticateUser, async (req, res) => {
     try {
-      const { username, email } = req.body;
+      const { username, email } = profileUpdateSchema.parse(req.body);
       const userId = req.user!.id;
 
-      // Validate that at least one field is provided
-      if (!username && !email) {
-        return res.status(400).json({ error: "At least one field (username or email) is required" });
-      }
-
-      // Validate username if provided
       if (username !== undefined) {
-        if (typeof username !== 'string' || username.trim().length < 2) {
-          return res.status(400).json({ error: "Username must be at least 2 characters long" });
-        }
-        // Check uniqueness
-        const existingUser = await storage.getUserByUsername(username.trim());
+        const existingUser = await storage.getUserByUsername(username);
         if (existingUser && existingUser.id !== userId) {
           return res.status(409).json({ error: "Username is already taken" });
         }
       }
 
-      // Validate email if provided
       if (email !== undefined) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (typeof email !== 'string' || !emailRegex.test(email.trim())) {
-          return res.status(400).json({ error: "Invalid email format" });
-        }
-        // Check uniqueness
-        const existingUser = await storage.getUserByEmail(email.trim());
+        const existingUser = await storage.getUserByEmail(email);
         if (existingUser && existingUser.id !== userId) {
           return res.status(409).json({ error: "Email is already in use" });
         }
       }
 
       const updates: Record<string, any> = {};
-      if (username) updates.username = username.trim();
-      if (email) updates.email = email.trim();
+      if (username) updates.username = username;
+      if (email) updates.email = email;
 
       const updatedUser = await storage.updateUser(userId, updates);
       if (!updatedUser) {
@@ -275,20 +260,15 @@ export function registerAuthRoutes(app: Express): void {
       auditLog('PROFILE_UPDATE', userId, { fieldsUpdated: Object.keys(updates) });
       res.json({ user: sanitizeUser(updatedUser) });
     } catch (error) {
-      console.error("Profile update error:", error);
-      res.status(500).json({ error: "Failed to update profile" });
+      sendError(res, error, "Failed to update profile", "profile-update");
     }
   });
 
   // Change password
-  app.post("/api/auth/change-password", authenticateUser, async (req, res) => {
+  app.post("/api/auth/change-password", authRateLimit, authenticateUser, async (req, res) => {
     try {
-      const { currentPassword, newPassword } = req.body;
+      const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
       const userId = req.user!.id;
-
-      if (!currentPassword || !newPassword) {
-        return res.status(400).json({ error: "Current password and new password are required" });
-      }
 
       // Get the user to verify current password
       const user = await storage.getUser(userId);
@@ -315,8 +295,7 @@ export function registerAuthRoutes(app: Express): void {
       auditLog('PASSWORD_CHANGE', userId, {});
       res.json({ message: "Password changed successfully" });
     } catch (error) {
-      console.error("Change password error:", error);
-      res.status(500).json({ error: "Failed to change password" });
+      sendError(res, error, "Failed to change password", "change-password");
     }
   });
 }

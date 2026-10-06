@@ -1,53 +1,126 @@
 import type { Express } from "express";
-import { authenticateUser } from "../auth-middleware";
-import { auditLog, MAX_PROMPT_LENGTH } from "./shared";
+import { authenticateUser, requireCustomerAccess, validateCustomerAccess } from "../auth-middleware";
+import { requireOpenAiKey, sendError, HttpError } from "../http-error";
+import { getTenantContext, requireTenantKey } from "../providers/tenant";
+import {
+  assertProviderId,
+  createAssistant,
+  deleteAssistant,
+  getOwnedAssistant,
+  listAssistants,
+  updateAssistant,
+} from "../providers/vapi-api";
+import { DEMO_ASSISTANTS } from "../demo/sample-calls";
+import { auditLog } from "./shared";
+import { assistantConfigInputSchema, assistantGenerateSchema, assistantPatchSchema } from "./validation";
+
+// Every Assistant Studio route runs as the signed-in customer and talks to Vapi with that
+// customer's own stored key (see providers/tenant.ts). The platform VAPI_API_KEY is never used.
+const customerOnly = [authenticateUser, requireCustomerAccess, validateCustomerAccess];
+
+/** Read-only sample assistants shown to demo workspaces (no Vapi key connected). */
+function demoAssistants() {
+  return DEMO_ASSISTANTS.map((a) => ({
+    id: a.id,
+    name: a.name,
+    demo: true,
+    model: { provider: "openai", model: "sample" },
+    voice: { provider: "sample", voiceId: "sample" },
+    createdAt: null,
+  }));
+}
+
+/** Maps the Studio form config to the Vapi create-assistant payload. */
+export function buildVapiAssistantPayload(config: any): Record<string, unknown> {
+  return {
+    name: config.name,
+    firstMessage: config.firstMessage,
+    firstMessageMode: config.firstMessageMode || "assistant-speaks-first",
+    firstMessageInterruptionsEnabled: config.firstMessageInterruptionsEnabled || false,
+    maxDurationSeconds: config.maxDurationSeconds || 600,
+    backgroundSound: config.backgroundSound || "office",
+    modelOutputInMessagesEnabled: config.modelOutputInMessagesEnabled || false,
+    ...(config.voicemailMessage && { voicemailMessage: config.voicemailMessage }),
+    ...(config.endCallMessage && { endCallMessage: config.endCallMessage }),
+    ...(config.endCallPhrases?.length > 0 && { endCallPhrases: config.endCallPhrases }),
+    model: {
+      provider: config.model.provider,
+      model: config.model.model,
+      temperature: config.model.temperature,
+      maxTokens: config.model.maxTokens,
+      emotionRecognitionEnabled: config.model.emotionRecognitionEnabled,
+      ...(config.systemMessage && { messages: [{ role: "system", content: config.systemMessage }] }),
+    },
+    voice: {
+      provider: config.voice.provider,
+      voiceId: config.voice.voiceId,
+      stability: config.voice.stability,
+      similarityBoost: config.voice.similarityBoost,
+      style: config.voice.style,
+      useSpeakerBoost: config.voice.useSpeakerBoost,
+    },
+    transcriber: {
+      provider: config.transcriber.provider,
+      model: config.transcriber.model,
+      language: config.transcriber.language,
+      smartFormat: config.transcriber.smartFormat,
+      keywords: config.transcriber.keywords,
+    },
+    ...(config.analysisPlan && {
+      analysisPlan: {
+        summaryPrompt: config.analysisPlan.summaryPrompt,
+        structuredDataSchema: config.analysisPlan.structuredDataSchema,
+      },
+    }),
+    ...(config.startSpeakingPlan && {
+      startSpeakingPlan: {
+        waitSeconds: config.startSpeakingPlan.waitSeconds,
+        smartEndpointingEnabled: config.startSpeakingPlan.smartEndpointingEnabled,
+      },
+    }),
+    ...(config.stopSpeakingPlan && {
+      stopSpeakingPlan: {
+        numWords: config.stopSpeakingPlan.numWords,
+        voiceSeconds: Math.min(config.stopSpeakingPlan.voiceSeconds || 0.4, 0.5),
+        backoffSeconds: config.stopSpeakingPlan.backoffSeconds,
+      },
+    }),
+    ...(config.monitorPlan && {
+      monitorPlan: {
+        listenEnabled: config.monitorPlan.listenEnabled,
+        controlEnabled: config.monitorPlan.controlEnabled,
+      },
+    }),
+    ...(config.backgroundSpeechDenoisingPlan && { backgroundSpeechDenoisingPlan: {} }),
+    ...(config.metadata && { metadata: config.metadata }),
+  };
+}
 
 export function registerAssistantRoutes(app: Express): void {
-  // Assistant Studio endpoints
-  app.post("/api/assistant-studio/generate", authenticateUser, async (req, res) => {
+  // Generate an assistant config with OpenAI. Does not touch Vapi.
+  app.post("/api/assistant-studio/generate", ...customerOnly, async (req, res) => {
     try {
+      const openaiApiKey = requireOpenAiKey();
+      const { name, description, conversationFlow } = assistantGenerateSchema.parse(req.body);
       const {
-        name,
-        description,
-        conversationFlow,
         voiceSettings,
-        // Call behavior
         firstMessageMode,
         firstMessageInterruptionsEnabled,
         maxDurationSeconds,
         backgroundSound,
         modelOutputInMessagesEnabled,
-        // Messages
         voicemailMessage,
         endCallMessage,
         endCallPhrases,
-        // Advanced features
         enableAnalysis,
         enableMonitoring,
         enableDenoising,
         startSpeakingWait,
         stopSpeakingWords,
-        metadata
+        metadata,
       } = req.body;
-      const openaiApiKey = process.env.OPENAI_API_KEY;
 
-      if (!openaiApiKey) {
-        return res.status(500).json({ error: "OpenAI API key not configured" });
-      }
-
-      if (!name || !description) {
-        return res.status(400).json({ error: "Assistant name and description are required" });
-      }
-
-      if (typeof description === 'string' && description.length > MAX_PROMPT_LENGTH) {
-        return res.status(400).json({ error: `Description exceeds maximum length of ${MAX_PROMPT_LENGTH} characters` });
-      }
-
-      if (conversationFlow && typeof conversationFlow === 'string' && conversationFlow.length > MAX_PROMPT_LENGTH) {
-        return res.status(400).json({ error: `Conversation flow exceeds maximum length of ${MAX_PROMPT_LENGTH} characters` });
-      }
-
-      const openai = new (await import('openai')).default({ apiKey: openaiApiKey });
+      const openai = new (await import("openai")).default({ apiKey: openaiApiKey });
 
       const systemPrompt = `You are an expert AI assistant configuration specialist for voice AI systems using the Vapi platform. Your job is to create comprehensive assistant configurations based on user descriptions and preferences.
 
@@ -62,6 +135,7 @@ IMPORTANT: You must respond with ONLY a valid JSON object that follows this exac
 {
   "name": "Assistant name from user input",
   "firstMessage": "Initial greeting message",
+  "systemMessage": "The full system prompt that defines the assistant's role, tone, and conversation flow",
   "firstMessageMode": "assistant-speaks-first",
   "firstMessageInterruptionsEnabled": false, 
   "maxDurationSeconds": 600,
@@ -130,7 +204,7 @@ REQUIRED FIELDS:
 
 ADDITIONAL CONTEXT:
 ${conversationFlow ? `Conversation Flow: ${conversationFlow}` : ''}
-${voiceSettings ? `Voice Settings: ${voiceSettings}` : ''}
+${voiceSettings ? `Voice Settings: ${JSON.stringify(voiceSettings)}` : ''}
 
 CALL BEHAVIOR SETTINGS:
 - First Message Mode: ${firstMessageMode || 'assistant-speaks-first'}
@@ -142,7 +216,7 @@ CALL BEHAVIOR SETTINGS:
 MESSAGE CONFIGURATION:
 ${voicemailMessage ? `- Voicemail Message: ${voicemailMessage}` : ''}
 ${endCallMessage ? `- End Call Message: ${endCallMessage}` : ''}
-${endCallPhrases?.length ? `- Auto-Hangup Phrases: ${endCallPhrases.join(', ')}` : ''}
+${Array.isArray(endCallPhrases) && endCallPhrases.length ? `- Auto-Hangup Phrases: ${endCallPhrases.join(', ')}` : ''}
 
 ADVANCED FEATURES:
 - Enable Call Analysis: ${enableAnalysis || false}
@@ -155,268 +229,95 @@ ${metadata ? `- Custom Metadata: ${JSON.stringify(metadata)}` : ''}
 Apply these specific settings and create a comprehensive assistant configuration that matches the user's requirements. Use the exact name provided and configure all the advanced features as specified.`;
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+        model: "gpt-4",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
+          { role: "user", content: userPrompt },
         ],
         temperature: 0.3,
       });
 
-      const responseContent = response.choices[0].message.content || '';
-
+      const responseContent = response.choices[0].message.content || "";
       let assistantConfig;
       try {
-        // Try to find JSON in the response if it's wrapped in other text
         const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
-        const jsonString = jsonMatch ? jsonMatch[0] : responseContent;
-        assistantConfig = JSON.parse(jsonString);
-      } catch (parseError) {
-        console.error("JSON parsing error:", parseError);
-        console.error("Response content:", responseContent);
-        return res.status(500).json({ error: "Failed to parse assistant configuration from AI response" });
+        assistantConfig = JSON.parse(jsonMatch ? jsonMatch[0] : responseContent);
+      } catch {
+        throw new HttpError(502, "The AI response could not be parsed. Please try again.");
       }
 
       if (!assistantConfig.name || !assistantConfig.firstMessage || !assistantConfig.systemMessage) {
-        return res.status(500).json({ error: "Invalid assistant configuration generated" });
+        throw new HttpError(502, "The AI returned an incomplete configuration. Please try again.");
       }
 
-      console.log(`[${new Date().toLocaleTimeString()}] Generated assistant configuration: ${assistantConfig.name}`);
-      res.json({
-        config: assistantConfig,
-        generatedAt: new Date().toISOString()
-      });
+      res.json({ config: assistantConfig, generatedAt: new Date().toISOString() });
     } catch (error) {
-      console.error("Assistant generation error:", error);
-      res.status(500).json({ error: "Failed to generate assistant configuration" });
+      sendError(res, error, "Failed to generate assistant configuration", "assistant-generate");
     }
   });
 
-  app.post("/api/assistant-studio/create", authenticateUser, async (req, res) => {
+  // Create an assistant on the customer's own Vapi account.
+  app.post("/api/assistant-studio/create", ...customerOnly, async (req, res) => {
     try {
-      const { config } = req.body;
-      const vapiApiKey = process.env.VAPI_API_KEY || "";
+      const { key } = await requireTenantKey(req, "vapi");
+      // Accept both { config } and the bare config object the Studio form posts.
+      const config = assistantConfigInputSchema.parse(req.body?.config ?? req.body);
+      const createdAssistant = await createAssistant(key, buildVapiAssistantPayload(config));
 
-      if (!vapiApiKey) {
-        return res.status(500).json({ error: "Vapi API key not configured" });
-      }
-
-      if (!config) {
-        return res.status(400).json({ error: "Assistant configuration is required" });
-      }
-
-      // Create assistant through Vapi API with comprehensive configuration
-      const vapiPayload = {
-        name: config.name,
-        firstMessage: config.firstMessage,
-        firstMessageMode: config.firstMessageMode || 'assistant-speaks-first',
-        firstMessageInterruptionsEnabled: config.firstMessageInterruptionsEnabled || false,
-        maxDurationSeconds: config.maxDurationSeconds || config.conversationConfig?.maxDurationSeconds || 600,
-        backgroundSound: config.backgroundSound || config.conversationConfig?.backgroundSound || 'office',
-        modelOutputInMessagesEnabled: config.modelOutputInMessagesEnabled || config.conversationConfig?.modelOutputInMessagesEnabled || false,
-        ...(config.voicemailMessage && { voicemailMessage: config.voicemailMessage }),
-        ...(config.endCallMessage && { endCallMessage: config.endCallMessage }),
-        ...(config.endCallPhrases && config.endCallPhrases.length > 0 && { endCallPhrases: config.endCallPhrases }),
-        model: {
-          provider: config.model.provider,
-          model: config.model.model,
-          temperature: config.model.temperature,
-          maxTokens: config.model.maxTokens,
-          emotionRecognitionEnabled: config.model.emotionRecognitionEnabled
-        },
-        voice: {
-          provider: config.voice.provider,
-          voiceId: config.voice.voiceId,
-          stability: config.voice.stability,
-          similarityBoost: config.voice.similarityBoost,
-          style: config.voice.style,
-          useSpeakerBoost: config.voice.useSpeakerBoost
-        },
-        transcriber: {
-          provider: config.transcriber.provider,
-          model: config.transcriber.model,
-          language: config.transcriber.language,
-          smartFormat: config.transcriber.smartFormat,
-          keywords: config.transcriber.keywords
-        },
-        ...(config.analysisPlan && {
-          analysisPlan: {
-            summaryPrompt: config.analysisPlan.summaryPrompt,
-            structuredDataSchema: config.analysisPlan.structuredDataSchema
-          }
-        }),
-        ...(config.analysisSettings && {
-          analysisPlan: {
-            summaryPrompt: config.analysisSettings.summaryPrompt,
-            structuredDataSchema: config.analysisSettings.structuredDataSchema
-          }
-        }),
-        ...(config.startSpeakingPlan && {
-          startSpeakingPlan: {
-            waitSeconds: config.startSpeakingPlan.waitSeconds,
-            smartEndpointingEnabled: config.startSpeakingPlan.smartEndpointingEnabled
-          }
-        }),
-        ...(config.stopSpeakingPlan && {
-          stopSpeakingPlan: {
-            numWords: config.stopSpeakingPlan.numWords,
-            voiceSeconds: Math.min(config.stopSpeakingPlan.voiceSeconds || 0.4, 0.5),
-            backoffSeconds: config.stopSpeakingPlan.backoffSeconds
-          }
-        }),
-        ...(config.monitorPlan && {
-          monitorPlan: {
-            listenEnabled: config.monitorPlan.listenEnabled,
-            controlEnabled: config.monitorPlan.controlEnabled
-          }
-        }),
-        ...(config.backgroundSpeechDenoisingPlan && {
-          backgroundSpeechDenoisingPlan: {}
-        }),
-        ...(config.metadata && { metadata: config.metadata })
-      };
-
-      const response = await fetch("https://api.vapi.ai/assistant", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${vapiApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(vapiPayload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Vapi API error: ${response.status} - ${JSON.stringify(errorData)}`);
-      }
-
-      const createdAssistant = await response.json();
-
-      auditLog('ASSISTANT_CREATED', req.user?.id, { assistantId: createdAssistant.id, assistantName: config.name });
-
-      console.log(`[${new Date().toLocaleTimeString()}] Created assistant: ${createdAssistant.id}`);
-      res.json({
-        assistant: createdAssistant,
-        createdAt: new Date().toISOString()
-      });
+      auditLog("ASSISTANT_CREATED", req.user?.id, { customerId: req.customerId, assistantId: createdAssistant.id });
+      res.json({ assistant: createdAssistant, createdAt: new Date().toISOString() });
     } catch (error) {
-      console.error("Assistant creation error:", error);
-      res.status(500).json({ error: "Failed to create assistant via Vapi API" });
+      sendError(res, error, "Failed to create assistant via Vapi API", "assistant-create");
     }
   });
 
-  // Assistant CRUD endpoints
-  app.get("/api/assistants", authenticateUser, async (req, res) => {
+  // List the assistants on the customer's own Vapi account (sample assistants in demo mode).
+  app.get("/api/assistants", ...customerOnly, async (req, res) => {
     try {
-      const vapiApiKey = process.env.VAPI_API_KEY || "";
-      if (!vapiApiKey) {
-        return res.status(500).json({ error: "Vapi API key not configured" });
-      }
-
-      const response = await fetch("https://api.vapi.ai/assistant", {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${vapiApiKey}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Vapi API error: ${response.status} - ${JSON.stringify(errorData)}`);
-      }
-
-      const assistants = await response.json();
-      res.json(assistants);
+      const ctx = await getTenantContext(req, "vapi");
+      if (ctx.demo) return res.json(demoAssistants());
+      res.json(await listAssistants(ctx.key!));
     } catch (error) {
-      console.error("List assistants error:", error);
-      res.status(500).json({ error: "Failed to fetch assistants from Vapi API" });
+      sendError(res, error, "Failed to fetch assistants from Vapi API", "assistant-list");
     }
   });
 
-  app.get("/api/assistants/:id", authenticateUser, async (req, res) => {
+  app.get("/api/assistants/:id", ...customerOnly, async (req, res) => {
     try {
-      const vapiApiKey = process.env.VAPI_API_KEY || "";
-      if (!vapiApiKey) {
-        return res.status(500).json({ error: "Vapi API key not configured" });
-      }
-
-      const { id } = req.params;
-      const response = await fetch(`https://api.vapi.ai/assistant/${id}`, {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${vapiApiKey}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Vapi API error: ${response.status} - ${JSON.stringify(errorData)}`);
-      }
-
-      const assistant = await response.json();
+      const id = assertProviderId(req.params.id, "assistant ID");
+      const ctx = await getTenantContext(req, "vapi");
+      const assistant = ctx.demo
+        ? demoAssistants().find((a) => a.id === id) ?? null
+        : await getOwnedAssistant(ctx.key!, id);
+      if (!assistant) return res.status(404).json({ error: "Assistant not found" });
       res.json(assistant);
     } catch (error) {
-      console.error("Get assistant error:", error);
-      res.status(500).json({ error: "Failed to fetch assistant from Vapi API" });
+      sendError(res, error, "Failed to fetch assistant from Vapi API", "assistant-get");
     }
   });
 
-  app.delete("/api/assistants/:id", authenticateUser, async (req, res) => {
+  app.delete("/api/assistants/:id", ...customerOnly, async (req, res) => {
     try {
-      const vapiApiKey = process.env.VAPI_API_KEY || "";
-      if (!vapiApiKey) {
-        return res.status(500).json({ error: "Vapi API key not configured" });
-      }
-
-      const { id } = req.params;
-      const response = await fetch(`https://api.vapi.ai/assistant/${id}`, {
-        method: "DELETE",
-        headers: {
-          "Authorization": `Bearer ${vapiApiKey}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Vapi API error: ${response.status} - ${JSON.stringify(errorData)}`);
-      }
-
-      auditLog('ASSISTANT_DELETED', req.user?.id, { assistantId: id });
+      const id = assertProviderId(req.params.id, "assistant ID");
+      const { key } = await requireTenantKey(req, "vapi");
+      await deleteAssistant(key, id);
+      auditLog("ASSISTANT_DELETED", req.user?.id, { customerId: req.customerId, assistantId: id });
       res.json({ success: true, deletedId: id });
     } catch (error) {
-      console.error("Delete assistant error:", error);
-      res.status(500).json({ error: "Failed to delete assistant from Vapi API" });
+      sendError(res, error, "Failed to delete assistant from Vapi API", "assistant-delete");
     }
   });
 
-  app.patch("/api/assistants/:id", authenticateUser, async (req, res) => {
+  app.patch("/api/assistants/:id", ...customerOnly, async (req, res) => {
     try {
-      const vapiApiKey = process.env.VAPI_API_KEY || "";
-      if (!vapiApiKey) {
-        return res.status(500).json({ error: "Vapi API key not configured" });
-      }
-
-      const { id } = req.params;
-      const response = await fetch(`https://api.vapi.ai/assistant/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Authorization": `Bearer ${vapiApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(req.body),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Vapi API error: ${response.status} - ${JSON.stringify(errorData)}`);
-      }
-
-      const updatedAssistant = await response.json();
-      auditLog('ASSISTANT_UPDATED', req.user?.id, { assistantId: id });
-      res.json(updatedAssistant);
+      const id = assertProviderId(req.params.id, "assistant ID");
+      const patch = assistantPatchSchema.parse(req.body);
+      const { key } = await requireTenantKey(req, "vapi");
+      const updated = await updateAssistant(key, id, patch);
+      auditLog("ASSISTANT_UPDATED", req.user?.id, { customerId: req.customerId, assistantId: id });
+      res.json(updated);
     } catch (error) {
-      console.error("Update assistant error:", error);
-      res.status(500).json({ error: "Failed to update assistant via Vapi API" });
+      sendError(res, error, "Failed to update assistant via Vapi API", "assistant-update");
     }
   });
 }

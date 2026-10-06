@@ -30,6 +30,37 @@ import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { encrypt, decrypt } from './utils/encryption';
+import { decryptSecret, encryptSecret } from "./security/secrets";
+
+const PROVIDER_KEY_FIELDS = ["vapiApiKey", "retellApiKey"] as const;
+
+/** Encrypts provider API keys before they are written to the customers table. */
+function encryptProviderKeys<T extends Partial<Customer>>(data: T): T {
+  const out: any = { ...data };
+  for (const field of PROVIDER_KEY_FIELDS) {
+    if (typeof out[field] === "string" && out[field].length > 0) {
+      out[field] = encryptSecret(out[field]);
+    }
+  }
+  return out;
+}
+
+/** Decrypts provider API keys read from the customers table. A key that fails to decrypt reads as unset. */
+function decryptProviderKeys(row: Customer | undefined): Customer | undefined {
+  if (!row) return row;
+  const out: any = { ...row };
+  for (const field of PROVIDER_KEY_FIELDS) {
+    if (out[field]) {
+      try {
+        out[field] = decryptSecret(out[field]);
+      } catch {
+        console.error(`[storage] Could not decrypt ${field} for customer ${row.id}; treating it as unset. Was ENCRYPTION_KEY changed?`);
+        out[field] = null;
+      }
+    }
+  }
+  return out;
+}
 
 export interface IStorage {
   // User management
@@ -173,26 +204,26 @@ export class DbStorage implements IStorage {
   // Customer management
   async getCustomer(id: string): Promise<Customer | undefined> {
     const result = await db.select().from(customers).where(eq(customers.id, id)).limit(1);
-    return result[0];
+    return decryptProviderKeys(result[0]);
   }
 
   async getCustomerByName(name: string): Promise<Customer | undefined> {
     const result = await db.select().from(customers).where(eq(customers.name, name)).limit(1);
-    return result[0];
+    return decryptProviderKeys(result[0]);
   }
 
   async createCustomer(customerData: InsertCustomer & { createdByUserId: string }): Promise<Customer> {
     const result = await db.insert(customers).values({
-      ...customerData,
+      ...encryptProviderKeys(customerData),
       createdAt: new Date(),
       updatedAt: new Date(),
     }).returning();
-    return result[0];
+    return decryptProviderKeys(result[0])!;
   }
 
   async updateCustomer(id: string, updates: Partial<Customer>): Promise<Customer | undefined> {
     const updateData = {
-      ...updates,
+      ...encryptProviderKeys(updates),
       updatedAt: new Date(),
     };
 
@@ -201,11 +232,12 @@ export class DbStorage implements IStorage {
       .where(eq(customers.id, id))
       .returning();
 
-    return result[0];
+    return decryptProviderKeys(result[0]);
   }
 
   async getAllCustomers(): Promise<Customer[]> {
-    return db.select().from(customers);
+    const rows = await db.select().from(customers);
+    return rows.map((row) => decryptProviderKeys(row)!);
   }
 
   // User-customer assignments

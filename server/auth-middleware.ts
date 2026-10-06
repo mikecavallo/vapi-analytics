@@ -117,13 +117,16 @@ export async function validateCustomerAccess(req: Request, res: Response, next: 
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    // Super admins can access all customer data
+    const fromQuery = typeof req.query.customerId === "string" ? req.query.customerId : undefined;
+    const requestedCustomerId = req.params.customerId || fromQuery || req.customerId;
+
+    // Super admins can access all customer data (acting on the requested workspace if one is named)
     if (req.user.role === "super_admin") {
+      if (requestedCustomerId) req.customerId = requestedCustomerId;
       return next();
     }
 
     // For regular customers, check if they have access to the requested customer
-    const requestedCustomerId = req.params.customerId || req.query.customerId || req.customerId;
     
     if (!requestedCustomerId) {
       // If no specific customer is requested, use their primary customer
@@ -197,11 +200,20 @@ interface RateLimitCounter {
 
 const rateLimitCounters = new Map<string, RateLimitCounter>();
 
+// Evict stale auth rate limit entries so the map cannot grow without bound.
+setInterval(() => {
+  const now = Date.now();
+  rateLimitCounters.forEach((counter, key) => {
+    if (now - counter.windowStart > 15 * 60 * 1000) rateLimitCounters.delete(key);
+  });
+}, 30 * 60 * 1000).unref();
+
 /**
  * Rate limiting middleware for authentication endpoints
  */
 export function authRateLimit(req: Request, res: Response, next: NextFunction) {
-  // Simple in-memory rate limiting (in production, use Redis or similar)
+  // Simple in-memory rate limiting, per process (in production with several instances, use Redis or similar).
+  // req.ip is the real client address only when `trust proxy` is configured (see server/index.ts).
   const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
   const endpoint = req.path;
   const key = `${clientIP}:${endpoint}`;
@@ -233,7 +245,7 @@ export function authRateLimit(req: Request, res: Response, next: NextFunction) {
 
 /**
  * Rate limiting middleware for protected API endpoints
- * More permissive than auth rate limiting: 100 requests per 15 minutes per IP
+ * More permissive than auth rate limiting: 300 requests per 15 minutes per IP, shared across the limited groups
  */
 const apiRateLimitCounters = new Map<string, RateLimitCounter>();
 
@@ -246,7 +258,7 @@ setInterval(() => {
       apiRateLimitCounters.delete(key);
     }
   });
-}, 30 * 60 * 1000);
+}, 30 * 60 * 1000).unref();
 
 export function apiRateLimit(req: Request, res: Response, next: NextFunction) {
   const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
@@ -254,7 +266,7 @@ export function apiRateLimit(req: Request, res: Response, next: NextFunction) {
 
   const now = Date.now();
   const windowSize = 15 * 60 * 1000; // 15 minutes
-  const maxRequests = 100;
+  const maxRequests = 300;
 
   const counter: RateLimitCounter = apiRateLimitCounters.get(key) || { count: 0, windowStart: now };
 

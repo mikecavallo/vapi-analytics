@@ -3,6 +3,18 @@ import { storage } from "../storage";
 import { facebookAdsService } from "../services/facebook-ads";
 import { authenticateUser } from "../auth-middleware";
 
+/** Public view of a stored Facebook Ads account: no tokens, app IDs or secrets (encrypted or not). */
+function toPublicFacebookAccount(account: any) {
+  if (!account) return account;
+  return {
+    id: account.id,
+    adAccountId: account.adAccountId,
+    accountName: account.accountName,
+    isActive: account.isActive,
+    lastValidatedAt: account.lastValidatedAt,
+  };
+}
+
 export function registerFacebookAdsRoutes(app: Express): void {
   // Validate and save Facebook credentials (access token, app ID, app secret)
   app.post("/api/facebook-ads/setup", authenticateUser, async (req, res) => {
@@ -49,7 +61,7 @@ export function registerFacebookAdsRoutes(app: Express): void {
 
         res.json({
           success: true,
-          account: updatedAccount,
+          account: toPublicFacebookAccount(updatedAccount),
           message: "Facebook Ads account updated successfully"
         });
       } else {
@@ -66,7 +78,7 @@ export function registerFacebookAdsRoutes(app: Express): void {
 
         res.json({
           success: true,
-          account: newAccount,
+          account: toPublicFacebookAccount(newAccount),
           message: "Facebook Ads account connected successfully"
         });
       }
@@ -164,6 +176,9 @@ export function registerFacebookAdsRoutes(app: Express): void {
   app.get("/api/facebook-ads/campaigns/:campaignId/adsets", authenticateUser, async (req, res) => {
     try {
       const { campaignId } = req.params;
+      if (!/^\d{1,32}$/.test(campaignId)) {
+        return res.status(400).json({ error: "Invalid campaign ID" });
+      }
       const userId = req.user!.id;
       const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
 
@@ -198,6 +213,9 @@ export function registerFacebookAdsRoutes(app: Express): void {
   app.get("/api/facebook-ads/adsets/:adSetId/ads", authenticateUser, async (req, res) => {
     try {
       const { adSetId } = req.params;
+      if (!/^\d{1,32}$/.test(adSetId)) {
+        return res.status(400).json({ error: "Invalid ad set ID" });
+      }
       const userId = req.user!.id;
       const userCustomerAssignments = await storage.getUserCustomerAssignments(userId);
 
