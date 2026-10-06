@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Brain, Wand2, Users, User, Sun, Moon, LogOut, BarChart3, Menu, Settings } from "lucide-react";
-import logoTransparent from "@assets/logo_transparent_1757373755849.png";
+import logoTransparent from "@/assets/logo.png";
 import { useTheme } from "@/contexts/theme-context";
 import { useAuth } from "@/contexts/auth-context";
 

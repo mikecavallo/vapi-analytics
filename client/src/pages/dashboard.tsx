@@ -32,7 +32,7 @@ import AIChatbot from "@/components/ai-chatbot";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChartLine, Activity, Settings, RefreshCw, Phone, RotateCcw, Download } from "lucide-react";
-import logoTransparent from "@assets/logo_transparent_1757373755849.png";
+import logoTransparent from "@/assets/logo.png";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";

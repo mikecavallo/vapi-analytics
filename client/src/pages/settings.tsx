@@ -19,7 +19,7 @@ import { useWarningSettings } from "@/contexts/warning-settings-context";
 import { useAuth } from "@/contexts/auth-context";
 import { defaultWarningSettings, warningDescriptions, WarningSettings } from "@shared/warning-settings";
 import { Settings, AlertTriangle, RotateCcw, Save, User, Sun, Moon, ChartLine, Brain, Activity, Wand2, FileText, Key, Building, LogOut } from "lucide-react";
-import logoTransparent from "@assets/logo_transparent_1757373755849.png";
+import logoTransparent from "@/assets/logo.png";
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/contexts/theme-context";
 import { DashboardHeader } from "@/components/layout/dashboard-header";

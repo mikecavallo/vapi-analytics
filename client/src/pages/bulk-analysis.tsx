@@ -56,7 +56,7 @@ import {
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
-import logoTransparent from "@assets/logo_transparent_1757373755849.png";
+import logoTransparent from "@/assets/logo.png";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { downloadCSV, downloadTextFile } from "@/lib/export-utils";

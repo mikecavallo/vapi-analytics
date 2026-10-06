@@ -7,3 +7,6 @@ vite.config.ts.*
 .env
 .env.local
 .env.production
+
+# Replit paste/screenshot uploads (never commit)
+attached_assets/

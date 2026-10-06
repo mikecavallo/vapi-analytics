@@ -14,7 +14,7 @@ import { Users, Building, Mail, Key, Plus, Trash2, Settings, ChartLine, Brain, A
 import { Link } from 'wouter';
 import { useTheme } from '@/contexts/theme-context';
 import { Sun, Moon } from 'lucide-react';
-import logoTransparent from "@assets/logo_transparent_1757373755849.png";
+import logoTransparent from "@/assets/logo.png";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
